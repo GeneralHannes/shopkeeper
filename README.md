@@ -65,7 +65,7 @@ model turns it into a reviewable cart. All verified against the live database.
 - [x] Manual cashier loop (works without AI)
 - [x] Ollama integration: parse typed entries → structured cart (via the `ai` command)
 - [x] Price lookup ("cashier" Q&A) over the DB (`price` command)
-- [ ] Smarter name matching (aliases / fuzzy — e.g. "coke" → "Coca-Cola")
+- [x] Smarter name matching (aliases + trigram fuzzy — "coke"/"cocacola" → "Coca-Cola")
 - [ ] Daily sales recording + simple reports
 - [ ] Local web UI (later)
 
@@ -98,13 +98,17 @@ find  QUERY                              search items
 price QUERY                              show current price
 restock  QUERY QTY                       add stock
 setprice QUERY PRICE                     change a price
+alias    QUERY | NICKNAME                teach a nickname (e.g. coca-cola | coke)
 sell                                     start a sale, then 'ITEM QTY' lines, then 'pay cash'
+ai       TEXT                            free-text -> reviewable cart (local AI)
 today                                    today's sales + total
 quit                                     leave
 ```
 
-Ambiguous name? Use `#id` (e.g. `price #3`). The cashier is fully usable on its own —
-the AI layer (next) just parses your fast typing into these same commands.
+Name matching handles nicknames (via `alias`) and typos (trigram fuzzy), e.g. `coke` or
+`cocacola` both find "Coca-Cola". Still ambiguous? Use `#id` (e.g. `price #3`).
+
+Schema upgrades (new machine already has them via first-boot init): `./scripts/migrate.sh`.
 
 ### Moving between machines (Syncthing)
 

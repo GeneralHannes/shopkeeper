@@ -37,21 +37,59 @@ def get_item(item_id: int) -> Item | None:
     return Item(**row) if row else None
 
 
-def find_items(query: str, limit: int = 10) -> list[Item]:
-    """Fuzzy-ish search by name, sku, or barcode. Powers the cashier lookup."""
-    like = f"%{query.strip().lower()}%"
+def find_items(query: str, limit: int = 10, threshold: float = 0.3) -> list[Item]:
+    """Search by name, sku, barcode, or alias — with trigram fuzzy matching.
+
+    Matches on: substring of name/sku/barcode/alias, or trigram similarity above
+    `threshold` (handles typos and nicknames). Results are ranked best-match first.
+    Lower the threshold for looser "did you mean?" suggestions.
+    """
+    q = query.strip().lower()
+    if not q:
+        return []
     with connection() as conn:
         rows = conn.execute(
             """
-            SELECT * FROM items
-            WHERE active
-              AND (lower(name) LIKE %s OR lower(coalesce(sku, '')) LIKE %s OR coalesce(barcode, '') LIKE %s)
-            ORDER BY lower(name)
-            LIMIT %s
+            SELECT i.*
+            FROM items i
+            LEFT JOIN LATERAL (
+                SELECT MAX(similarity(lower(a.alias), %(q)s)) AS best,
+                       bool_or(lower(a.alias) LIKE '%%' || %(q)s || '%%') AS sub
+                FROM item_aliases a
+                WHERE a.item_id = i.id
+            ) al ON true
+            WHERE i.active AND (
+                lower(i.name) LIKE '%%' || %(q)s || '%%'
+                OR lower(coalesce(i.sku, '')) LIKE '%%' || %(q)s || '%%'
+                OR coalesce(i.barcode, '') LIKE '%%' || %(q)s || '%%'
+                OR similarity(lower(i.name), %(q)s) >= %(th)s
+                OR COALESCE(al.sub, false)
+                OR COALESCE(al.best, 0) >= %(th)s
+            )
+            ORDER BY GREATEST(similarity(lower(i.name), %(q)s), COALESCE(al.best, 0)) DESC,
+                     lower(i.name)
+            LIMIT %(lim)s
             """,
-            (like, like, like, limit),
+            {"q": q, "th": threshold, "lim": limit},
         ).fetchall()
     return [Item(**r) for r in rows]
+
+
+def add_alias(item_id: int, alias: str) -> None:
+    """Teach the system a nickname/alternate name for an item (idempotent)."""
+    with connection() as conn:
+        conn.execute(
+            "INSERT INTO item_aliases (item_id, alias) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+            (item_id, alias.strip()),
+        )
+
+
+def get_aliases(item_id: int) -> list[str]:
+    with connection() as conn:
+        rows = conn.execute(
+            "SELECT alias FROM item_aliases WHERE item_id = %s ORDER BY lower(alias)", (item_id,)
+        ).fetchall()
+    return [r["alias"] for r in rows]
 
 
 def list_items(limit: int = 500) -> list[Item]:

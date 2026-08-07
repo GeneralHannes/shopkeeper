@@ -21,6 +21,7 @@ commands:
   price QUERY                              show current price
   restock  QUERY QTY                       add stock
   setprice QUERY PRICE                     change an item's price
+  alias QUERY | NICKNAME                   teach a nickname (e.g. coca-cola | coke)
   sell                                     start a sale (cart mode)
   ai    TEXT                               parse free-text into a sale (local AI)
   today                                    today's sales + total
@@ -161,6 +162,23 @@ def cmd_setprice(arg: str) -> None:
     print(f"{item.name}: price now {_money(price)}")
 
 
+def cmd_alias(arg: str) -> None:
+    if "|" not in arg:
+        print("usage: alias QUERY | NICKNAME  (e.g. alias coca-cola | coke)")
+        return
+    left, _, nick = arg.partition("|")
+    nick = nick.strip()
+    if not nick:
+        print("nickname is empty")
+        return
+    item, err = _resolve(left.strip())
+    if err:
+        print(err)
+        return
+    repo.add_alias(item.id, nick)
+    print(f"alias '{nick}' -> {item.name}")
+
+
 def cmd_today() -> None:
     sales = repo.todays_sales()
     if not sales:
@@ -291,7 +309,14 @@ def cmd_ai(text: str) -> None:
     for p in parsed:
         item, err = _resolve(p.name)
         if err:
-            print(f"  ? '{p.name}': {err.splitlines()[0]}")
+            # Offer near matches so the user can teach an alias next time.
+            suggestions = repo.find_items(p.name, limit=3, threshold=0.15)
+            if suggestions:
+                names = ", ".join(f"#{s.id} {s.name}" for s in suggestions)
+                print(f"  ? '{p.name}' not found — did you mean: {names}?")
+                print(f"      teach it with:  alias #{suggestions[0].id} | {p.name}")
+            else:
+                print(f"  ? '{p.name}' not found")
             continue
         price = repo.current_price(item.id)
         if price is None:
@@ -328,6 +353,8 @@ def run_command(raw: str) -> None:
         cmd_restock(arg)
     elif cmd == "setprice":
         cmd_setprice(arg)
+    elif cmd == "alias":
+        cmd_alias(arg)
     elif cmd == "sell":
         sell_mode()
     elif cmd == "ai":
