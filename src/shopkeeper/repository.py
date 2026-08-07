@@ -9,7 +9,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from .db import connection
-from .models import Item, Price, Sale, SaleLine
+from .models import Item, Price, Sale
 
 # --------------------------------------------------------------------------- #
 # Items
@@ -89,16 +89,15 @@ def current_price(item_id: int) -> Price | None:
 
 def adjust_stock(item_id: int, change: Decimal, reason: str, ref: str | None = None) -> None:
     """Append a movement to the ledger and keep quantity_on_hand in sync."""
-    with connection() as conn:
-        with conn.transaction():
-            conn.execute(
-                "INSERT INTO stock_movements (item_id, change, reason, ref) VALUES (%s, %s, %s, %s)",
-                (item_id, change, reason, ref),
-            )
-            conn.execute(
-                "UPDATE items SET quantity_on_hand = quantity_on_hand + %s WHERE id = %s",
-                (change, item_id),
-            )
+    with connection() as conn, conn.transaction():
+        conn.execute(
+            "INSERT INTO stock_movements (item_id, change, reason, ref) VALUES (%s, %s, %s, %s)",
+            (item_id, change, reason, ref),
+        )
+        conn.execute(
+            "UPDATE items SET quantity_on_hand = quantity_on_hand + %s WHERE id = %s",
+            (change, item_id),
+        )
 
 
 def restock(item_id: int, quantity: Decimal, note: str | None = None) -> None:
@@ -116,40 +115,39 @@ def record_sale(sale: Sale) -> Sale:
 
     total = sum((ln.resolved_total() for ln in sale.lines), Decimal(0))
 
-    with connection() as conn:
-        with conn.transaction():
-            head = conn.execute(
+    with connection() as conn, conn.transaction():
+        head = conn.execute(
+            """
+            INSERT INTO sales (total, currency, payment_method, note)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id, sold_at
+            """,
+            (total, sale.currency, sale.payment_method, sale.note),
+        ).fetchone()
+        sale.id = head["id"]
+        sale.sold_at = head["sold_at"]
+        sale.total = total
+
+        for line in sale.lines:
+            line_total = line.resolved_total()
+            lr = conn.execute(
                 """
-                INSERT INTO sales (total, currency, payment_method, note)
-                VALUES (%s, %s, %s, %s)
-                RETURNING id, sold_at
+                INSERT INTO sale_lines (sale_id, item_id, description, quantity, unit_price, line_total)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                RETURNING id
                 """,
-                (total, sale.currency, sale.payment_method, sale.note),
+                (sale.id, line.item_id, line.description, line.quantity, line.unit_price, line_total),
             ).fetchone()
-            sale.id = head["id"]
-            sale.sold_at = head["sold_at"]
-            sale.total = total
+            line.id = lr["id"]
+            line.line_total = line_total
 
-            for line in sale.lines:
-                line_total = line.resolved_total()
-                lr = conn.execute(
-                    """
-                    INSERT INTO sale_lines (sale_id, item_id, description, quantity, unit_price, line_total)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                    RETURNING id
-                    """,
-                    (sale.id, line.item_id, line.description, line.quantity, line.unit_price, line_total),
-                ).fetchone()
-                line.id = lr["id"]
-                line.line_total = line_total
-
-                if line.item_id is not None:
-                    conn.execute(
-                        "INSERT INTO stock_movements (item_id, change, reason, ref) VALUES (%s, %s, 'sale', %s)",
-                        (line.item_id, -line.quantity, f"sale:{sale.id}"),
-                    )
-                    conn.execute(
-                        "UPDATE items SET quantity_on_hand = quantity_on_hand - %s WHERE id = %s",
-                        (line.quantity, line.item_id),
-                    )
+            if line.item_id is not None:
+                conn.execute(
+                    "INSERT INTO stock_movements (item_id, change, reason, ref) VALUES (%s, %s, 'sale', %s)",
+                    (line.item_id, -line.quantity, f"sale:{sale.id}"),
+                )
+                conn.execute(
+                    "UPDATE items SET quantity_on_hand = quantity_on_hand - %s WHERE id = %s",
+                    (line.quantity, line.item_id),
+                )
     return sale

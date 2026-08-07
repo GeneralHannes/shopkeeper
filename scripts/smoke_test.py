@@ -29,8 +29,8 @@ def main() -> None:
     print(f"current price of coke: {cp.price} {cp.currency}")
     assert cp.price == Decimal("1.75"), f"expected 1.75, got {cp.price}"
 
-    repo.restock(coke.id, Decimal("24"), note="initial crate")
-    repo.restock(rice.id, Decimal("50"))
+    repo.restock(coke.id, Decimal(24), note="initial crate")
+    repo.restock(rice.id, Decimal(50))
     print("restocked coke +24, rice +50")
 
     found = repo.find_items("cola")
@@ -42,19 +42,19 @@ def main() -> None:
             payment_method="cash",
             lines=[
                 SaleLine(item_id=coke.id, description="Coca-Cola 330ml",
-                         quantity=Decimal("2"), unit_price=Decimal("1.75")),
+                         quantity=Decimal(2), unit_price=Decimal("1.75")),
                 SaleLine(item_id=rice.id, description="Rice",
-                         quantity=Decimal("3"), unit_price=Decimal("0.90")),
+                         quantity=Decimal(3), unit_price=Decimal("0.90")),
             ],
         )
     )
-    expected_total = Decimal("2") * Decimal("1.75") + Decimal("3") * Decimal("0.90")
+    expected_total = Decimal(2) * Decimal("1.75") + Decimal(3) * Decimal("0.90")
     print(f"recorded sale#{sale.id}: total={sale.total} at {sale.sold_at}")
     assert sale.total == expected_total, f"expected {expected_total}, got {sale.total}"
 
     coke_after = repo.get_item(coke.id)
     print(f"coke stock after sale: {coke_after.quantity_on_hand} (expect 22)")
-    assert coke_after.quantity_on_hand == Decimal("22"), coke_after.quantity_on_hand
+    assert coke_after.quantity_on_hand == Decimal(22), coke_after.quantity_on_hand
 
     print("\nALL CHECKS PASSED")
 
