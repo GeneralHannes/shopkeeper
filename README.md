@@ -54,29 +54,44 @@ validates them, and only validated data is persisted. This keeps the DB trustwor
 
 ## Status
 
-**Setup phase.** Repo, git, Postgres compose config, and permissions are being prepared.
-No application code yet — that starts next.
+**DB + Python core working.** Postgres schema applied, and the repository layer (items,
+prices, stock, sales) is verified end-to-end against the live database. Next: the cashier loop.
 
 ## Roadmap
 
-- [ ] Postgres schema: items, prices, sales, sale_lines
-- [ ] Python core: DB layer + models + validation
+- [x] Postgres schema: items, prices, sales, sale_lines, stock_movements
+- [x] Python core: DB pool + models + repository + validation
 - [ ] Manual cashier loop (works without AI)
 - [ ] Ollama integration: parse typed entries → structured records
 - [ ] Price lookup ("cashier" Q&A) over the DB
 - [ ] Daily sales recording + simple reports
 - [ ] Local web UI (later)
 
-## Getting started (once built)
+## Getting started
 
 ```bash
-# 1. start the database
+# 1. start the database (host port 5434; container is 5432 internally)
 docker compose up -d
 
 # 2. pull the local model
 ollama pull qwen2.5:3b-instruct
 
-# 3. set up python
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+# 3. set up python (venv is per-machine; not synced)
+python3.13 -m venv .venv
+.venv/bin/pip install -e ".[dev]"
+
+# 4. verify the whole DB layer end-to-end (inserts sample data, then cleans up)
+.venv/bin/python scripts/smoke_test.py
+```
+
+### Moving between machines (Syncthing)
+
+Syncthing carries the **code**, `db/dumps/`, and `.env` — never the live database.
+Run the app on **one machine at a time**. To move your data:
+
+```bash
+# on the machine you're leaving:
+./scripts/db-export.sh      # writes db/dumps/shopkeeper.sql (Syncthing carries it)
+# on the machine you're arriving at, after it syncs:
+./scripts/db-import.sh
 ```
