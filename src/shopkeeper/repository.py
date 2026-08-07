@@ -54,6 +54,15 @@ def find_items(query: str, limit: int = 10) -> list[Item]:
     return [Item(**r) for r in rows]
 
 
+def list_items(limit: int = 500) -> list[Item]:
+    """All active items, name-sorted — for the 'items' overview."""
+    with connection() as conn:
+        rows = conn.execute(
+            "SELECT * FROM items WHERE active ORDER BY lower(name) LIMIT %s", (limit,)
+        ).fetchall()
+    return [Item(**r) for r in rows]
+
+
 # --------------------------------------------------------------------------- #
 # Prices
 # --------------------------------------------------------------------------- #
@@ -151,3 +160,17 @@ def record_sale(sale: Sale) -> Sale:
                     (line.quantity, line.item_id),
                 )
     return sale
+
+
+def todays_sales() -> list[Sale]:
+    """Sales recorded today (local server date), oldest first. Lines not loaded."""
+    with connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT id, sold_at, total, currency, payment_method, note
+            FROM sales
+            WHERE sold_at::date = CURRENT_DATE
+            ORDER BY sold_at
+            """
+        ).fetchall()
+    return [Sale(**r) for r in rows]

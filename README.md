@@ -54,14 +54,15 @@ validates them, and only validated data is persisted. This keeps the DB trustwor
 
 ## Status
 
-**DB + Python core working.** Postgres schema applied, and the repository layer (items,
-prices, stock, sales) is verified end-to-end against the live database. Next: the cashier loop.
+**Cashier working — usable today, no AI needed.** DB + Python core + a terminal cashier are
+verified end-to-end: add/restock items, set prices, look up prices, ring up sales, and see
+today's totals. Next: the local AI layer on top.
 
 ## Roadmap
 
 - [x] Postgres schema: items, prices, sales, sale_lines, stock_movements
 - [x] Python core: DB pool + models + repository + validation
-- [ ] Manual cashier loop (works without AI)
+- [x] Manual cashier loop (works without AI)
 - [ ] Ollama integration: parse typed entries → structured records
 - [ ] Price lookup ("cashier" Q&A) over the DB
 - [ ] Daily sales recording + simple reports
@@ -82,7 +83,27 @@ python3.13 -m venv .venv
 
 # 4. verify the whole DB layer end-to-end (inserts sample data, then cleans up)
 .venv/bin/python scripts/smoke_test.py
+
+# 5. run the cashier
+.venv/bin/shopkeeper
 ```
+
+### Using the cashier
+
+```
+add   NAME | PRICE [| UNIT | CATEGORY]   add an item and its price
+items                                    list all items (stock + price)
+find  QUERY                              search items
+price QUERY                              show current price
+restock  QUERY QTY                       add stock
+setprice QUERY PRICE                     change a price
+sell                                     start a sale, then 'ITEM QTY' lines, then 'pay cash'
+today                                    today's sales + total
+quit                                     leave
+```
+
+Ambiguous name? Use `#id` (e.g. `price #3`). The cashier is fully usable on its own —
+the AI layer (next) just parses your fast typing into these same commands.
 
 ### Moving between machines (Syncthing)
 
