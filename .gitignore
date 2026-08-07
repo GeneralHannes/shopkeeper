@@ -19,6 +19,9 @@ env/
 db/data/
 *.dump
 *.sql.bak
+# Portable data dumps: carried by Syncthing between machines, but NOT committed to git
+# (may be large / contain real shop data). See scripts/db-export.sh.
+db/dumps/
 
 # --- Ollama / models (large; never commit) ---
 models/

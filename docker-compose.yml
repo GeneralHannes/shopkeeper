@@ -8,7 +8,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shopkeeper}
       POSTGRES_DB: ${POSTGRES_DB:-shopkeeper}
     ports:
-      - "5432:5432"
+      # Host 5434 (5432 = Postgres.app, 5433 = wayfinder-db). Container stays 5432 internally.
+      - "5434:5432"
     volumes:
       # Data lives inside the project → self-contained, and gitignored.
       - ./db/data:/var/lib/postgresql/data
