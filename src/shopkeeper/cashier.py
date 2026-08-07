@@ -22,6 +22,7 @@ commands:
   restock  QUERY QTY                       add stock
   setprice QUERY PRICE                     change an item's price
   sell                                     start a sale (cart mode)
+  ai    TEXT                               parse free-text into a sale (local AI)
   today                                    today's sales + total
   help | ?                                 this help
   quit | exit                              leave
@@ -173,9 +174,11 @@ def cmd_today() -> None:
     print(f"  ---- {len(sales)} sale(s), TOTAL {_money(total)}")
 
 
-def sell_mode() -> None:
-    """Cart mode: add lines, then pay. Type 'ITEM QTY' (QTY optional, default 1)."""
-    cart: list[SaleLine] = []
+def sell_mode(cart: list[SaleLine] | None = None) -> None:
+    """Cart mode: add lines, then pay. Type 'ITEM QTY' (QTY optional, default 1).
+
+    An initial cart (e.g. from the AI parser) can be passed in for review."""
+    cart = cart if cart is not None else []
     print("cart open — 'ITEM QTY' to add, 'list', 'pay [cash|card]', 'cancel'")
     while True:
         try:
@@ -246,6 +249,66 @@ def _finalize(cart: list[SaleLine], method: str) -> None:
 
 
 # --------------------------------------------------------------------------- #
+# AI (optional layer — the cashier works fully without it)
+# --------------------------------------------------------------------------- #
+
+_ai_provider = None
+_ai_tried = False
+
+
+def _get_ai():
+    """Lazily construct the AI provider once; return None if unavailable."""
+    global _ai_provider, _ai_tried
+    if not _ai_tried:
+        _ai_tried = True
+        try:
+            from .ai import get_provider
+
+            _ai_provider = get_provider()
+        except Exception:  # noqa: BLE001 - AI is optional; never break the till
+            _ai_provider = None
+    return _ai_provider
+
+
+def cmd_ai(text: str) -> None:
+    if not text.strip():
+        print("usage: ai <what was sold, in your own words>")
+        return
+    provider = _get_ai()
+    if provider is None or not provider.available():
+        print("AI not available (model not pulled or ollama down) — use plain commands")
+        return
+    try:
+        parsed = provider.parse_items(text)
+    except Exception as exc:  # noqa: BLE001 - a parse failure must not crash the till
+        print(f"AI parse failed: {exc}")
+        return
+    if not parsed:
+        print("AI found no items in that")
+        return
+
+    cart: list[SaleLine] = []
+    for p in parsed:
+        item, err = _resolve(p.name)
+        if err:
+            print(f"  ? '{p.name}': {err.splitlines()[0]}")
+            continue
+        price = repo.current_price(item.id)
+        if price is None:
+            print(f"  ? {item.name}: no price set — skipped")
+            continue
+        line = SaleLine(item_id=item.id, description=item.name, quantity=p.qty(), unit_price=price.price)
+        cart.append(line)
+        print(f"  + {_qty(p.qty())} x {item.name} @ {_money(price.price)} = {_money(line.resolved_total())}")
+
+    if not cart:
+        print("nothing recognised — add the items first, or use plain commands")
+        return
+    print("review, add more, or pay:")
+    sell_mode(cart)
+
+
+# --------------------------------------------------------------------------- #
 # Dispatch + loop
 # --------------------------------------------------------------------------- #
 
@@ -267,6 +330,8 @@ def run_command(raw: str) -> None:
         cmd_setprice(arg)
     elif cmd == "sell":
         sell_mode()
+    elif cmd == "ai":
+        cmd_ai(arg)
     elif cmd == "today":
         cmd_today()
     elif cmd in ("help", "?"):

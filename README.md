@@ -54,17 +54,18 @@ validates them, and only validated data is persisted. This keeps the DB trustwor
 
 ## Status
 
-**Cashier working — usable today, no AI needed.** DB + Python core + a terminal cashier are
-verified end-to-end: add/restock items, set prices, look up prices, ring up sales, and see
-today's totals. Next: the local AI layer on top.
+**End-to-end working — DB + cashier + local AI.** Add/restock items, set & look up prices,
+ring up sales, daily totals — and now type naturally (`ai 2 coke, rice 3kg`) and the local
+model turns it into a reviewable cart. All verified against the live database.
 
 ## Roadmap
 
 - [x] Postgres schema: items, prices, sales, sale_lines, stock_movements
 - [x] Python core: DB pool + models + repository + validation
 - [x] Manual cashier loop (works without AI)
-- [ ] Ollama integration: parse typed entries → structured records
-- [ ] Price lookup ("cashier" Q&A) over the DB
+- [x] Ollama integration: parse typed entries → structured cart (via the `ai` command)
+- [x] Price lookup ("cashier" Q&A) over the DB (`price` command)
+- [ ] Smarter name matching (aliases / fuzzy — e.g. "coke" → "Coca-Cola")
 - [ ] Daily sales recording + simple reports
 - [ ] Local web UI (later)
 
