@@ -1,0 +1,9 @@
+# Core
+psycopg[binary]>=3.2       # PostgreSQL driver
+python-dotenv>=1.0         # load .env
+pydantic>=2.7             # data validation for AI-proposed records
+ollama>=0.3               # local AI client
+
+# Dev
+pytest>=8.0
+ruff>=0.5

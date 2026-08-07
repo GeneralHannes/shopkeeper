@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16
+    container_name: shopkeeper-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-shopkeeper}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shopkeeper}
+      POSTGRES_DB: ${POSTGRES_DB:-shopkeeper}
+    ports:
+      - "5432:5432"
+    volumes:
+      # Data lives inside the project → self-contained, and gitignored.
+      - ./db/data:/var/lib/postgresql/data
+      # Any *.sql here runs once on first init.
+      - ./db/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-shopkeeper}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
