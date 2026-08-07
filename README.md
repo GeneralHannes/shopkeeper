@@ -110,10 +110,25 @@ Name matching handles nicknames (via `alias`) and typos (trigram fuzzy), e.g. `c
 
 Schema upgrades (new machine already has them via first-boot init): `./scripts/migrate.sh`.
 
-### Moving between machines (Syncthing)
+### Keeping Mac and Linux in sync (Syncthing)
 
-Syncthing carries the **code**, `db/dumps/`, and `.env` — never the live database.
-Run the app on **one machine at a time**. To move your data:
+This project lives inside a Syncthing folder whose **root is the parent `Projects/` dir**
+(not `shopkeeper/`). Syncthing only reads the ignore file at that root, so the rules live
+in a synced file (`shopkeeper/.syncignore`) that the root pulls in.
+
+**One-time setup on each machine** — create the root ignore file (Syncthing never syncs
+`.stignore` itself, so each machine needs its own; the rules come from the synced file):
+
+```bash
+echo '#include shopkeeper/.syncignore' > "$(git rev-parse --show-toplevel)/../.stignore"
+# i.e. the file must be at  <Syncthing folder root>/.stignore
+```
+
+What syncs automatically: **code, migrations, `.env`, and `db/dumps/`**.
+What never syncs (recreated per machine): **`db/data` (live DB), `.venv`, models, caches** —
+syncing a live Postgres dir corrupts it.
+
+**Moving your actual data** — run the app on **one machine at a time**:
 
 ```bash
 # on the machine you're leaving:
@@ -121,3 +136,7 @@ Run the app on **one machine at a time**. To move your data:
 # on the machine you're arriving at, after it syncs:
 ./scripts/db-import.sh
 ```
+
+> First run on a new machine: make sure `db/data` is empty before `docker compose up`
+> (a stale synced copy would confuse Postgres). Then `docker compose up -d`, pull the
+> model, create the venv — see steps above.

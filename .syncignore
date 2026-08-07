@@ -1,0 +1,26 @@
+// Syncthing ignore rules for the shopkeeper project.
+//
+// This file is SYNCED to every machine. Each machine's Syncthing share root
+// (Projects/.stignore) pulls it in with a single line:
+//
+//     #include shopkeeper/.syncignore
+//
+// Syncthing interprets all patterns relative to the share ROOT (Projects/),
+// which is why every line is prefixed with "shopkeeper/".
+//
+// Rule of thumb: sync code + db/dumps (portable data) + .env. Never sync the
+// live database, virtualenvs, model files, or caches — they are machine- and
+// version-specific, and syncing the live DB would corrupt it.
+
+shopkeeper/db/data
+shopkeeper/.venv
+shopkeeper/venv
+shopkeeper/env
+shopkeeper/models
+shopkeeper/.pytest_cache
+shopkeeper/.ruff_cache
+shopkeeper/.mypy_cache
+shopkeeper/**/__pycache__
+shopkeeper/**/*.pyc
+shopkeeper/**/*.gguf
+shopkeeper/**/*.bin
