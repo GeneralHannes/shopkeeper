@@ -331,10 +331,15 @@ def api_assistant(body: ParseIn) -> dict:
             return {"reply": "No sales in the last 30 days."}
         return {"reply": "Best sellers (30d):\n" + "\n".join(f"{r['name']}: {float(r['qty']):g} sold" for r in rows[:10])}
     if kind == "help":
-        return {"reply": "I can tell you prices, stock, today's sales, low stock, and best sellers — "
-                         "and record a sale, add an item, or restock (you confirm first). Try: "
-                         "“price coke”, “rice in stock”, “sales today”, "
-                         "“sell 2 coke”, “restock rice 20”."}
+        try:
+            reply = provider.chat(text)
+        except Exception:  # noqa: BLE001 - fall back to a fixed hint if chat fails
+            reply = ""
+        if not reply:
+            reply = ("I can tell you prices, stock, today's sales, low stock, and best sellers — "
+                     "and record a sale, add an item, or restock (you confirm first). Try: "
+                     "“price coke”, “sales today”, “sell 2 coke”, “restock rice 20”.")
+        return {"reply": reply}
 
     # ---- proposed actions (client confirms) ----
     if kind == "record_sale":

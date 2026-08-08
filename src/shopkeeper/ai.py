@@ -60,6 +60,13 @@ class Intent(BaseModel):
     quantity: float | None = None  # a number stated in the message (e.g. restock amount)
 
 
+_SYSTEM_CHAT = """You are a friendly, concise assistant inside a small shop's point-of-sale app.
+Reply in 1-2 short, warm sentences. Small talk is fine. You CANNOT look up shop data in this reply —
+if the user asks about a specific price, stock level, or sales figure, or wants to record a sale,
+add an item, or restock, tell them to just say it plainly (e.g. "price coke", "sales today",
+"sell 2 coke", "restock rice 20") and the app will handle it. Never invent prices, stock, or numbers."""
+
+
 _SYSTEM_CLASSIFY = """You are the intent router for a small shop assistant. Read the shopkeeper's
 message and classify it into exactly one intent:
 - price: asking the price or cost of an item
@@ -104,6 +111,7 @@ class AIProvider(Protocol):
     def parse_items(self, text: str) -> list[ParsedItem]: ...
     def parse_new_items(self, text: str) -> list[ParsedNewItem]: ...
     def classify(self, text: str) -> Intent: ...
+    def chat(self, text: str) -> str: ...
     def warm(self) -> None: ...
 
 
@@ -233,6 +241,18 @@ class OllamaProvider:
         )
         return Intent.model_validate_json(resp["message"]["content"])
 
+    def chat(self, text: str) -> str:
+        resp = self._client.chat(
+            model=self._model,
+            messages=[
+                {"role": "system", "content": _SYSTEM_CHAT},
+                {"role": "user", "content": text},
+            ],
+            options={"temperature": 0.4},
+            keep_alive="30m",
+        )
+        return resp["message"]["content"].strip()
+
     def warm(self) -> None:
         """Pre-load the model into memory so the first real parse isn't slow."""
         try:
@@ -305,6 +325,15 @@ class ClaudeProvider:
         )
         content = next((b.text for b in resp.content if b.type == "text"), "{}")
         return Intent.model_validate(json.loads(content))
+
+    def chat(self, text: str) -> str:
+        resp = self._client.messages.create(
+            model=self._model,
+            max_tokens=200,
+            system=_SYSTEM_CHAT,
+            messages=[{"role": "user", "content": text}],
+        )
+        return next((b.text for b in resp.content if b.type == "text"), "").strip()
 
     def warm(self) -> None:  # nothing to pre-load for a cloud model
         pass
