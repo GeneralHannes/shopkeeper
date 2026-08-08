@@ -74,8 +74,17 @@ class OllamaProvider:
             ],
             format=ParsedEntry.model_json_schema(),
             options={"temperature": 0},
+            keep_alive="30m",  # keep the model resident so later calls stay fast
         )
         return ParsedEntry.model_validate_json(resp["message"]["content"]).items
+
+    def warm(self) -> None:
+        """Pre-load the model into memory so the first real parse isn't slow."""
+        try:
+            self._client.generate(model=self._model, prompt="ok",
+                                  options={"num_predict": 1}, keep_alive="30m")
+        except Exception:  # noqa: BLE001,S110 - warming is best-effort, ignore failures
+            pass
 
 
 def get_provider(settings: Settings | None = None) -> OllamaProvider:

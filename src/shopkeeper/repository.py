@@ -331,6 +331,31 @@ def best_sellers(days: int = 30, limit: int = 10) -> list[dict]:
         ).fetchall()
 
 
+def frequent_items(days: int = 30, limit: int = 12) -> list[Item]:
+    """Active items ordered by how much they've sold recently — for one-tap selling.
+
+    Falls back to name order for items with no recent sales, so a new shop still
+    gets a useful quick list.
+    """
+    with connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT i.*
+            FROM items i
+            LEFT JOIN sale_lines sl ON sl.item_id = i.id
+            LEFT JOIN sales s ON s.id = sl.sale_id
+                 AND s.voided_at IS NULL
+                 AND s.sold_at::date >= CURRENT_DATE - (%(days)s::int - 1)
+            WHERE i.active
+            GROUP BY i.id
+            ORDER BY coalesce(sum(sl.quantity), 0) DESC, lower(i.name)
+            LIMIT %(limit)s
+            """,
+            {"days": days, "limit": limit},
+        ).fetchall()
+    return [Item(**r) for r in rows]
+
+
 def low_stock(threshold: Decimal = Decimal(5), limit: int = 50) -> list[Item]:
     """Active items at or below `threshold` on hand — what to restock."""
     with connection() as conn:

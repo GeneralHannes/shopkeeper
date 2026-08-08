@@ -63,6 +63,12 @@ def api_items() -> list[dict]:
     return [_item_dict(it) for it in repo.list_items()]
 
 
+@api.get("/quick")
+def api_quick() -> list[dict]:
+    """A short list of frequently-sold items for one-tap selling."""
+    return [_item_dict(it) for it in repo.frequent_items(limit=12)]
+
+
 @api.get("/search")
 def api_search(q: str) -> list[dict]:
     return [_item_dict(it) for it in repo.find_items(q)]
@@ -220,7 +226,22 @@ def _lan_ip() -> str:
 
 
 def main() -> None:
+    import threading
+
     import uvicorn
+
+    # Warm the local model in the background so the first AI parse isn't slow.
+    def _warm() -> None:
+        try:
+            from .ai import get_provider
+
+            provider = get_provider()
+            if provider.available():
+                provider.warm()
+        except Exception:  # noqa: BLE001,S110 - warming is best-effort, ignore failures
+            pass
+
+    threading.Thread(target=_warm, daemon=True).start()
 
     host, port = SETTINGS.web_host, SETTINGS.web_port
     print("shopkeeper web  —  Ctrl-C to stop", flush=True)

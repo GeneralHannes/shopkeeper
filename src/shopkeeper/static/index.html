@@ -43,6 +43,12 @@
   .warn { color:var(--warn); }
   .good { color:var(--good); }
   .empty { color:var(--muted); padding:.5rem .2rem; }
+  .quickgrid { display:flex; flex-wrap:wrap; gap:.45rem; }
+  .qbtn { border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:11px;
+          padding:.6rem .7rem; cursor:pointer; text-align:left; min-width:6.5rem; font:inherit; }
+  .qbtn:active { background:var(--accent); color:#fff; }
+  .qbtn b { display:block; font-size:.95rem; }
+  .qbtn span { font-size:.8rem; color:var(--muted); }
   #toast { position:fixed; bottom:1rem; left:50%; transform:translateX(-50%); background:var(--ink);
            color:var(--bg); padding:.7rem 1.1rem; border-radius:9px; opacity:0; transition:opacity .2s; pointer-events:none; z-index:20; }
   #toast.show { opacity:1; }
@@ -61,6 +67,10 @@
 <main>
   <!-- SELL -->
   <section id="view-sell">
+    <div class="card">
+      <h2>Quick — tap to add</h2>
+      <div id="quick" class="quickgrid"><span class="empty">Loading…</span></div>
+    </div>
     <div class="card">
       <h2>Quick entry (AI)</h2>
       <div class="row">
@@ -147,8 +157,25 @@ async function checkAuth(){ try{ const a = await (await fetch('/api/auth')).json
 
 function show(v){
   for(const k of ['sell','stock','dash']){ $('#view-'+k).style.display = (k===v)?'':'none'; $('#tab-'+k).classList.toggle('active', k===v); }
+  if(v==='sell') loadQuick();
   if(v==='dash') loadDash();
   if(v==='stock') loadStock();
+}
+
+async function loadQuick(){
+  const el=$('#quick');
+  try{
+    const items = await api('/api/quick');
+    if(!items.length){ el.innerHTML='<span class="empty">Add items in the Stock tab</span>'; return; }
+    el.innerHTML='';
+    for(const it of items){
+      if(it.price==null) continue;
+      const b=document.createElement('button'); b.className='qbtn';
+      b.innerHTML=`<b>${esc(it.name)}</b><span>${money(it.price)}</span>`;
+      b.onclick=()=>{ addToCart(it); };
+      el.appendChild(b);
+    }
+  }catch(e){ el.innerHTML='<span class="empty">—</span>'; }
 }
 
 // ---- Sell ----
@@ -258,6 +285,7 @@ async function voidSale(id){ if(!confirm('Void sale #'+id+'? Stock will be resto
   try{ await api('/api/sale/'+id+'/void',{method:'POST'}); toast('Voided #'+id); loadDash(); }catch(e){ toast('Error: '+e.message); } }
 
 checkAuth();
+loadQuick();
 </script>
 </body>
 </html>
