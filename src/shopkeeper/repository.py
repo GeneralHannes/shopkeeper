@@ -154,6 +154,22 @@ def set_active(item_id: int, active: bool) -> None:
         conn.execute("UPDATE items SET active = %s WHERE id = %s", (active, item_id))
 
 
+def rename_category(old: str | None, new: str) -> int:
+    """Rename a category across all its items. If `new` already exists, this merges them.
+    `old=None` targets uncategorised items. Returns how many items moved."""
+    new = new.strip()
+    with connection() as conn:
+        if old is None:
+            rows = conn.execute(
+                "UPDATE items SET category = %s WHERE category IS NULL RETURNING id", (new,)
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "UPDATE items SET category = %s WHERE category = %s RETURNING id", (new, old)
+            ).fetchall()
+    return len(rows)
+
+
 def delete_item(item_id: int) -> None:
     """Permanently delete an item. Its prices/aliases/image/stock ledger cascade away;
     past sale lines keep their text (item_id is set null), so sales history stays intact."""

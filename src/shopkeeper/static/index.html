@@ -62,6 +62,7 @@
   <div class="tabs">
     <button id="tab-sell" class="active" onclick="show('sell')">Sell</button>
     <button id="tab-stock" onclick="show('stock')">Stock</button>
+    <button id="tab-cats" onclick="show('cats')">Cats</button>
     <button id="tab-ask" onclick="show('ask')">Ask</button>
     <button id="tab-dash" onclick="show('dash')">Dash</button>
   </div>
@@ -168,6 +169,15 @@
     </div>
   </section>
 
+  <!-- CATEGORIES -->
+  <section id="view-cats" style="display:none">
+    <div class="card">
+      <h2>Categories</h2>
+      <div class="muted" style="margin-bottom:.4rem">tap a category to open its items · “rename” fixes a typo or merges into another category</div>
+      <div id="cats"><div class="empty">Loading…</div></div>
+    </div>
+  </section>
+
   <!-- ASK (AI assistant) -->
   <section id="view-ask" style="display:none">
     <div class="card">
@@ -222,10 +232,11 @@ function askToken(){ const t = prompt('Enter shop PIN:'); if(t && t.trim()){ TOK
 async function checkAuth(){ try{ const a = await (await fetch('/api/auth')).json(); if(a.required && !TOKEN) askToken(); }catch(_){} }
 
 function show(v){
-  for(const k of ['sell','stock','ask','dash']){ $('#view-'+k).style.display = (k===v)?'':'none'; $('#tab-'+k).classList.toggle('active', k===v); }
+  for(const k of ['sell','stock','cats','ask','dash']){ $('#view-'+k).style.display = (k===v)?'':'none'; $('#tab-'+k).classList.toggle('active', k===v); }
   if(v==='sell') loadQuick();
   if(v==='dash') loadDash();
   if(v==='stock') loadStock();
+  if(v==='cats') loadCats();
   if(v==='ask') setTimeout(()=>$('#ask-input')&&$('#ask-input').focus(),50);
 }
 
@@ -508,6 +519,45 @@ async function setPrices(id,name){
     }
   }
   toast('Prices updated'); loadStock();
+}
+
+// ---- Categories ----
+function toggleCat(el){ const ul=el.parentElement.querySelector('.cat-items'); if(ul) ul.style.display = ul.style.display==='none'?'':'none'; }
+async function loadCats(){
+  const items = await api('/api/items'); const box=$('#cats');
+  if(!items.length){ box.innerHTML='<div class="empty">No items yet</div>'; return; }
+  const groups={};
+  for(const it of items){ const c=it.category||'—'; (groups[c]=groups[c]||[]).push(it); }
+  const cats=Object.keys(groups).sort((a,b)=>a.localeCompare(b));
+  box.innerHTML='';
+  for(const c of cats){
+    const list=groups[c];
+    const stock=list.reduce((s,i)=>s+(i.quantity_on_hand||0),0);
+    const retailVal=list.reduce((s,i)=>s+((i.retail||0)*(i.quantity_on_hand||0)),0);
+    const costVal=list.reduce((s,i)=>s+((i.cost||0)*(i.quantity_on_hand||0)),0);
+    let itemsHtml='';
+    for(const it of list){
+      itemsHtml+=`<li>${thumb(it)}<span class="name">${esc(it.name)}</span>
+        <span class="muted">${money(it.quantity_on_hand)} ${esc(it.unit)}</span>
+        <span class="price">${it.retail!=null?money(it.retail):'—'}</span>
+        <button class="mini" onclick="deleteItem(${it.id},'${esc(it.name)}')" style="color:var(--warn)">delete</button></li>`;
+    }
+    const d=document.createElement('div'); d.style.cssText='border:1px solid var(--line);border-radius:10px;padding:.6rem;margin:.5rem 0';
+    d.innerHTML=`<div class="row" onclick="toggleCat(this)" style="cursor:pointer">
+        <span class="name">${esc(c)}</span>
+        <span class="muted" style="margin-left:auto">${list.length} item(s) · stock ${money(stock)}</span></div>
+      <div class="row muted" style="margin-top:.2rem"><span>retail value ${money(retailVal)} · cost value ${money(costVal)}</span>
+        <button class="mini" onclick="renameCategory('${esc(c)}')" style="margin-left:auto">rename</button></div>
+      <ul class="cat-items" style="display:none;margin-top:.4rem">${itemsHtml}</ul>`;
+    box.appendChild(d);
+  }
+}
+async function renameCategory(c){
+  const nn=prompt('Rename/merge category "'+c+'" to (type an existing category to merge):', c==='—'?'':c);
+  if(nn==null) return; const nw=nn.trim(); if(!nw){ toast('Name required'); return; } if(nw===c) return;
+  try{ const r=await api('/api/categories/rename',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({old_name:c==='—'?null:c,new:nw})});
+    toast('Moved '+r.moved+' item(s) to "'+nw+'"'); loadCats();
+  }catch(e){ toast('Error: '+e.message); }
 }
 
 // ---- Dashboard ----

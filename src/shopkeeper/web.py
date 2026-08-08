@@ -221,6 +221,20 @@ def api_delete_item(item_id: int) -> dict:
     return {"deleted": item_id}
 
 
+class CategoryRenameIn(BaseModel):
+    old_name: str | None = None
+    new: str
+
+
+@api.post("/categories/rename")
+def api_rename_category(body: CategoryRenameIn) -> dict:
+    new = body.new.strip()
+    if not new:
+        raise HTTPException(400, "new category name required")
+    moved = repo.rename_category(body.old_name, new)
+    return {"moved": moved, "category": new}
+
+
 @api.get("/barcode/{code}")
 def api_barcode(code: str) -> dict:
     item = repo.get_item_by_barcode(code)
