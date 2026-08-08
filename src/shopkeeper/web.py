@@ -11,7 +11,7 @@ from __future__ import annotations
 import base64
 import binascii
 import socket
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query
@@ -112,6 +112,51 @@ def api_add_item(body: ItemIn) -> dict:
     if body.stock:
         repo.restock(item.id, body.stock)
     return _item_dict(repo.get_item(item.id))
+
+
+def _dec(parts: list[str], idx: int) -> Decimal | None:
+    if len(parts) > idx and parts[idx]:
+        return Decimal(parts[idx])  # raises InvalidOperation on non-numbers
+    return None
+
+
+class QuickAddIn(BaseModel):
+    text: str
+
+
+@api.post("/quick-add")
+def api_quick_add(body: QuickAddIn) -> dict:
+    """Deterministic fast entry — one item per line, pipe-separated, no AI:
+       name | retail | wholesale | cost | qty | category | supplier   (blank fields ok)."""
+    created: list[str] = []
+    errors: list[dict] = []
+    for i, raw in enumerate(body.text.splitlines(), 1):
+        line = raw.strip()
+        if not line:
+            continue
+        parts = [p.strip() for p in line.split("|")]
+        name = parts[0] if parts else ""
+        if not name:
+            errors.append({"line": i, "reason": "no name"})
+            continue
+        try:
+            retail, wholesale, cost, qty = (_dec(parts, 1), _dec(parts, 2), _dec(parts, 3), _dec(parts, 4))
+        except InvalidOperation:
+            errors.append({"line": i, "reason": "price/qty must be a number"})
+            continue
+        category = parts[5] if len(parts) > 5 and parts[5] else None
+        supplier = parts[6] if len(parts) > 6 and parts[6] else None
+        item = repo.add_item(Item(name=name, category=category, unit="each", supplier=supplier))
+        if retail is not None:
+            repo.set_price(item.id, retail, "retail")
+        if wholesale is not None:
+            repo.set_price(item.id, wholesale, "wholesale")
+        if cost is not None:
+            repo.set_price(item.id, cost, "cost")
+        if qty:
+            repo.restock(item.id, qty)
+        created.append(name)
+    return {"created": created, "errors": errors}
 
 
 class RestockIn(BaseModel):

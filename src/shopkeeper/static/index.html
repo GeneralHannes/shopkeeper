@@ -123,6 +123,12 @@
   <!-- STOCK -->
   <section id="view-stock" style="display:none">
     <div class="card">
+      <h2>Fast add — one item per line (instant)</h2>
+      <div class="muted" style="margin-bottom:.4rem">name | retail | wholesale | cost | qty | category | supplier &nbsp;(blanks ok)</div>
+      <textarea id="fast-input" placeholder="Coke | 1.75 | 1.40 | 1.10 | 24 | drinks&#10;Rice | 0.90 | | 0.70 | 50 | staples" style="min-height:5rem"></textarea>
+      <div class="row" style="margin-top:.5rem"><button class="act" onclick="fastAdd()">Add all</button><span class="muted" id="fast-note"></span></div>
+    </div>
+    <div class="card">
       <h2>AI add — type or paste items (local AI)</h2>
       <textarea id="ai-items" placeholder="e.g. Coca-Cola 330ml, drinks, sell 1.75 wholesale 1.40 cost 1.10, 24 in stock, from ABC"></textarea>
       <div class="row" style="margin-top:.5rem">
@@ -351,6 +357,20 @@ async function uploadImage(id,dataURL){
   try{ await api('/api/items/'+id+'/image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:b64,content_type:'image/jpeg'})});
     toast('Photo saved'); loadStock();
   }catch(e){ toast('Error: '+e.message); }
+}
+
+// ---- Stock: fast deterministic add ----
+async function fastAdd(){
+  const text=$('#fast-input').value.trim(); if(!text) return;
+  $('#fast-note').textContent='adding…';
+  try{
+    const r=await api('/api/quick-add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+    let msg='Added '+r.created.length;
+    if(r.errors.length) msg+=' · '+r.errors.length+' skipped (line '+r.errors.map(e=>e.line).join(', ')+')';
+    $('#fast-note').textContent=msg;
+    if(!r.errors.length) $('#fast-input').value='';
+    loadStock();
+  }catch(e){ $('#fast-note').textContent=''; toast('Error: '+e.message); }
 }
 
 // ---- Stock: AI add ----
