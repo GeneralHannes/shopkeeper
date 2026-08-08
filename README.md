@@ -94,14 +94,21 @@ python3.13 -m venv .venv
 .venv/bin/shopkeeper-web
 ```
 
-### Web UI
+### Web UI (works on your phone)
 
-`shopkeeper-web` serves a self-contained page (no external assets, binds `127.0.0.1` only)
-that reuses the same database as the terminal cashier:
-- **Sell** — search items, build a cart, complete a sale; quick-add new items.
-- **Dashboard** — today's total, per-sale list with one-click void, low-stock, best sellers.
+`shopkeeper-web` serves a self-contained page (no external assets) that reuses the same
+database as the terminal cashier. On startup it prints the URL to open **on your phone**
+(same Wi-Fi), e.g. `http://192.168.1.9:8765`.
 
-Restock/adjust/rename and the AI free-text entry live in the terminal cashier for now.
+- **Sell** — search + tap to cart, complete a sale; plus an **AI quick-entry** box (type
+  "2 coke, rice 3kg" → parsed into the cart).
+- **Stock** — add items, change prices, restock quantities.
+- **Dash** — today's total, per-sale void, low-stock, best sellers.
+
+**Network access & password:** set in `.env` — `WEB_HOST=0.0.0.0` (default) makes it reachable
+from your phone; `WEB_HOST=127.0.0.1` restricts to this machine. Since it's on your network,
+set `WEB_TOKEN=<a password>` for the shop — the phone is asked for it once. Leave blank on a
+trusted home network.
 
 ### Using the cashier
 

@@ -20,6 +20,9 @@ class Settings:
     database_url: str
     ollama_host: str
     ollama_model: str
+    web_host: str
+    web_port: int
+    web_token: str
 
 
 def load_settings() -> Settings:
@@ -42,4 +45,7 @@ def load_settings() -> Settings:
         database_url=database_url,
         ollama_host=os.getenv("OLLAMA_HOST", "http://localhost:11434"),
         ollama_model=os.getenv("OLLAMA_MODEL", "qwen2.5:3b-instruct"),
+        web_host=os.getenv("WEB_HOST", "0.0.0.0"),  # LAN-reachable so the phone can connect
+        web_port=int(os.getenv("WEB_PORT", "8765")),
+        web_token=os.getenv("WEB_TOKEN", "").strip(),
     )

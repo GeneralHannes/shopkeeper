@@ -1,24 +1,37 @@
 """Local web UI — a browser front-end over the same repository the cashier uses.
 
-Local-only by default (binds 127.0.0.1). Reuses repository.py, so the web UI and the
-terminal cashier are always consistent. No external assets — the page is self-contained.
+Reachable from your phone on the same Wi-Fi (WEB_HOST=0.0.0.0 by default). Reuses
+repository.py, so the web UI and the terminal cashier are always consistent. The page
+is self-contained (no external assets). Optional shared password via WEB_TOKEN.
 
-    .venv/bin/shopkeeper-web      # then open http://127.0.0.1:8765
+    .venv/bin/shopkeeper-web      # prints the phone URL on startup
 """
 from __future__ import annotations
 
+import socket
 from decimal import Decimal
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
 from . import repository as repo
+from .config import load_settings
 from .models import Item, Sale, SaleLine
 
+SETTINGS = load_settings()
 app = FastAPI(title="shopkeeper")
 _STATIC = Path(__file__).parent / "static"
+
+
+def require_token(token: str | None = Query(None), x_token: str | None = Header(None)) -> None:
+    """If WEB_TOKEN is set, require it (as ?token= or X-Token header) on every API call."""
+    if SETTINGS.web_token and token != SETTINGS.web_token and x_token != SETTINGS.web_token:
+        raise HTTPException(401, "missing or wrong password")
+
+
+api = APIRouter(prefix="/api", dependencies=[Depends(require_token)])
 
 
 def _item_dict(it: Item) -> dict:
@@ -39,12 +52,18 @@ def index() -> str:
     return (_STATIC / "index.html").read_text(encoding="utf-8")
 
 
-@app.get("/api/items")
+@app.get("/api/auth")
+def auth_needed() -> dict:
+    """Unauthenticated: lets the page know whether to prompt for a password."""
+    return {"required": bool(SETTINGS.web_token)}
+
+
+@api.get("/items")
 def api_items() -> list[dict]:
     return [_item_dict(it) for it in repo.list_items()]
 
 
-@app.get("/api/search")
+@api.get("/search")
 def api_search(q: str) -> list[dict]:
     return [_item_dict(it) for it in repo.find_items(q)]
 
@@ -56,11 +75,35 @@ class ItemIn(BaseModel):
     category: str | None = None
 
 
-@app.post("/api/items")
+@api.post("/items")
 def api_add_item(body: ItemIn) -> dict:
     item = repo.add_item(Item(name=body.name, unit=body.unit, category=body.category))
     repo.set_price(item.id, body.price)
     return _item_dict(item)
+
+
+class RestockIn(BaseModel):
+    quantity: Decimal
+
+
+@api.post("/items/{item_id}/restock")
+def api_restock(item_id: int, body: RestockIn) -> dict:
+    if repo.get_item(item_id) is None:
+        raise HTTPException(404, f"no item #{item_id}")
+    repo.restock(item_id, body.quantity)
+    return _item_dict(repo.get_item(item_id))
+
+
+class PriceIn(BaseModel):
+    price: Decimal = Field(ge=0)
+
+
+@api.post("/items/{item_id}/price")
+def api_set_price(item_id: int, body: PriceIn) -> dict:
+    if repo.get_item(item_id) is None:
+        raise HTTPException(404, f"no item #{item_id}")
+    repo.set_price(item_id, body.price)
+    return _item_dict(repo.get_item(item_id))
 
 
 class SaleLineIn(BaseModel):
@@ -73,7 +116,7 @@ class SaleIn(BaseModel):
     lines: list[SaleLineIn]
 
 
-@app.post("/api/sale")
+@api.post("/sale")
 def api_sale(body: SaleIn) -> dict:
     if not body.lines:
         raise HTTPException(400, "sale has no lines")
@@ -92,7 +135,7 @@ def api_sale(body: SaleIn) -> dict:
             "lines": len(sale.lines)}
 
 
-@app.post("/api/sale/{sale_id}/void")
+@api.post("/sale/{sale_id}/void")
 def api_void(sale_id: int) -> dict:
     try:
         sale = repo.void_sale(sale_id)
@@ -101,7 +144,36 @@ def api_void(sale_id: int) -> dict:
     return {"id": sale.id, "voided": True, "total": float(sale.total)}
 
 
-@app.get("/api/today")
+class ParseIn(BaseModel):
+    text: str
+
+
+@api.post("/parse")
+def api_parse(body: ParseIn) -> dict:
+    """Turn free text ('2 coke, rice 3kg') into priced, DB-resolved cart lines."""
+    from .ai import get_provider
+
+    provider = get_provider()
+    if not provider.available():
+        raise HTTPException(503, "local AI not available (model not pulled or ollama down)")
+    lines, unresolved = [], []
+    for p in provider.parse_items(body.text):
+        matches = repo.find_items(p.name)
+        if not matches:
+            unresolved.append(p.name)
+            continue
+        item = matches[0]
+        price = repo.current_price(item.id)
+        if price is None:
+            unresolved.append(f"{item.name} (no price)")
+            continue
+        q = p.qty()
+        lines.append({"item_id": item.id, "name": item.name, "quantity": float(q),
+                      "unit_price": float(price.price), "line_total": float(q * price.price)})
+    return {"lines": lines, "unresolved": unresolved}
+
+
+@api.get("/today")
 def api_today() -> dict:
     sales = repo.todays_sales()
     total = sum((s.total for s in sales), Decimal(0))
@@ -116,28 +188,48 @@ def api_today() -> dict:
     }
 
 
-@app.get("/api/report")
+@api.get("/report")
 def api_report(days: int = 7) -> list[dict]:
     return [{"day": str(r["day"]), "sales": r["sales"], "total": float(r["total"])}
             for r in repo.sales_summary(days)]
 
 
-@app.get("/api/best")
+@api.get("/best")
 def api_best(days: int = 30) -> list[dict]:
     return [{"name": r["name"], "qty": float(r["qty"]), "revenue": float(r["revenue"])}
             for r in repo.best_sellers(days)]
 
 
-@app.get("/api/low")
+@api.get("/low")
 def api_low(threshold: float = 5) -> list[dict]:
     return [_item_dict(it) for it in repo.low_stock(Decimal(str(threshold)))]
+
+
+app.include_router(api)
+
+
+def _lan_ip() -> str:
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 80))
+        return s.getsockname()[0]
+    except Exception:  # noqa: BLE001 - best-effort LAN IP for the printed URL
+        return "127.0.0.1"
+    finally:
+        s.close()
 
 
 def main() -> None:
     import uvicorn
 
-    print("shopkeeper web — open http://127.0.0.1:8765  (Ctrl-C to stop)")
-    uvicorn.run(app, host="127.0.0.1", port=8765, log_level="warning")
+    host, port = SETTINGS.web_host, SETTINGS.web_port
+    print("shopkeeper web  —  Ctrl-C to stop", flush=True)
+    print(f"  this machine : http://127.0.0.1:{port}", flush=True)
+    if host == "0.0.0.0":
+        print(f"  your phone   : http://{_lan_ip()}:{port}   (same Wi-Fi)", flush=True)
+        if not SETTINGS.web_token:
+            print("  ! no WEB_TOKEN set — anyone on this network can use it. Set one in .env for the shop.", flush=True)
+    uvicorn.run(app, host=host, port=port, log_level="warning")
 
 
 if __name__ == "__main__":
