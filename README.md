@@ -117,6 +117,18 @@ Name matching handles nicknames (via `alias`) and typos (trigram fuzzy), e.g. `c
 
 Schema upgrades (new machine already has them via first-boot init): `./scripts/migrate.sh`.
 
+### Backups
+
+```bash
+./scripts/backup.sh                 # timestamped, compressed, rotating (keeps newest 30)
+./scripts/restore.sh                # restore newest backup (or pass a specific file)
+./scripts/install-backup-cron.sh    # automate: daily backup at 21:00 (run once per machine)
+```
+
+Backups live in `db/backups/` (gitignored). Syncthing carries them to your other machine,
+so a backup is automatically kept **off-device** as well. Verified: backing up, dropping every
+table, then restoring brings the data back intact.
+
 ### Keeping Mac and Linux in sync (Syncthing)
 
 This project lives inside a Syncthing folder whose **root is the parent `Projects/` dir**

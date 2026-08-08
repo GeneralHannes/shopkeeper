@@ -22,6 +22,8 @@ db/data/
 # Portable data dumps: carried by Syncthing between machines, but NOT committed to git
 # (may be large / contain real shop data). See scripts/db-export.sh.
 db/dumps/
+# Automatic backups: real shop data — Syncthing carries them for redundancy, git does not.
+db/backups/
 
 # --- Ollama / models (large; never commit) ---
 models/
