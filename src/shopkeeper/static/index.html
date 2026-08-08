@@ -121,6 +121,15 @@
   <!-- STOCK -->
   <section id="view-stock" style="display:none">
     <div class="card">
+      <h2>AI add — type or paste items (local AI)</h2>
+      <textarea id="ai-items" placeholder="e.g. Coca-Cola 330ml, drinks, sell 1.75 wholesale 1.40 cost 1.10, 24 in stock, from ABC"></textarea>
+      <div class="row" style="margin-top:.5rem">
+        <button class="act" onclick="aiParseItems()">Parse</button>
+        <span class="muted" id="ai-items-note"></span>
+      </div>
+      <div id="ai-drafts"></div>
+    </div>
+    <div class="card">
       <h2>Add item</h2>
       <input id="ni-name" placeholder="name" style="margin-bottom:.4rem">
       <div class="row" style="margin-bottom:.4rem">
@@ -304,6 +313,43 @@ async function cameraScan(){
     requestAnimationFrame(tick);
   };
   v.onloadedmetadata=()=>tick();
+}
+
+// ---- Stock: AI add ----
+async function aiParseItems(){
+  const text=$('#ai-items').value.trim(); if(!text) return;
+  $('#ai-items-note').textContent='parsing… (first call may take a moment)';
+  try{
+    const res=await api('/api/parse-catalog',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+    renderDrafts(res.items);
+    $('#ai-items-note').textContent = res.items.length ? 'review & edit below, then Save' : 'nothing recognised';
+  }catch(e){ $('#ai-items-note').textContent=''; toast('AI: '+e.message); }
+}
+function draftInput(f, val, ph, extra){ return `<input placeholder="${ph}" value="${val==null?'':esc(String(val))}" data-f="${f}" ${extra||''}>`; }
+function renderDrafts(items){
+  const box=$('#ai-drafts'); box.innerHTML='';
+  if(!items.length) return;
+  items.forEach(it=>{
+    const d=document.createElement('div'); d.style.cssText='border:1px solid var(--line);border-radius:10px;padding:.6rem;margin:.5rem 0';
+    d.innerHTML=`
+      ${draftInput('name', it.name, 'name', 'style="margin-bottom:.3rem"')}
+      <div class="row" style="margin-bottom:.3rem">${draftInput('category', it.category, 'category')}${draftInput('unit', it.unit==null?'each':it.unit, 'unit', 'style="max-width:6rem"')}</div>
+      <div class="row" style="margin-bottom:.3rem">${draftInput('retail', it.retail, 'retail', 'inputmode="decimal"')}${draftInput('wholesale', it.wholesale, 'wholesale', 'inputmode="decimal"')}</div>
+      <div class="row" style="margin-bottom:.3rem">${draftInput('cost', it.cost, 'cost', 'inputmode="decimal"')}${draftInput('stock', it.stock, 'stock', 'inputmode="decimal"')}</div>
+      <div class="row">${draftInput('supplier', it.supplier, 'supplier')}<button class="act" data-save>Save</button></div>`;
+    d.querySelector('[data-save]').onclick=async()=>{
+      const body={}; d.querySelectorAll('[data-f]').forEach(el=>{ const v=el.value.trim(); if(v) body[el.dataset.f]=v; });
+      if(!body.name){ toast('Name required'); return; }
+      try{ await api('/api/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        toast('Saved '+body.name); d.remove(); loadStock();
+        if(!box.querySelector('[data-save]')){ box.innerHTML=''; $('#ai-items').value=''; $('#ai-items-note').textContent=''; }
+      }catch(e){ toast('Error: '+e.message); }
+    };
+    box.appendChild(d);
+  });
+  const all=document.createElement('button'); all.className='act'; all.textContent='Save all'; all.style.marginTop='.3rem';
+  all.onclick=()=>{ box.querySelectorAll('[data-save]').forEach(b=>b.click()); };
+  box.appendChild(all);
 }
 
 // ---- Stock ----

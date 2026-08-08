@@ -229,6 +229,21 @@ def api_parse(body: ParseIn) -> dict:
     return {"lines": lines, "unresolved": unresolved}
 
 
+@api.post("/parse-catalog")
+def api_parse_catalog(body: ParseIn) -> dict:
+    """Turn free text into catalogue-entry drafts (name/prices/stock/etc.), NOT saved.
+
+    The client shows these for review/edit, then POSTs each to /api/items to save.
+    """
+    from .ai import get_provider
+
+    provider = get_provider()
+    if not provider.available():
+        raise HTTPException(503, "local AI not available (model not pulled or ollama down)")
+    drafts = provider.parse_new_items(body.text)
+    return {"items": [d.model_dump() for d in drafts]}
+
+
 @api.get("/today")
 def api_today() -> dict:
     sales = repo.todays_sales()

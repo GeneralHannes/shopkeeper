@@ -33,6 +33,35 @@ class ParsedEntry(BaseModel):
     items: list[ParsedItem] = Field(default_factory=list)
 
 
+class ParsedNewItem(BaseModel):
+    """A catalogue entry the model extracted from free text. All fields but name
+    are optional; prices/stock are floats at the AI boundary."""
+    name: str
+    category: str | None = None
+    unit: str | None = None
+    retail: float | None = None
+    wholesale: float | None = None
+    cost: float | None = None
+    stock: float | None = None
+    supplier: str | None = None
+
+
+class ParsedCatalog(BaseModel):
+    items: list[ParsedNewItem] = Field(default_factory=list)
+
+
+_SYSTEM_ITEMS = """You turn a shopkeeper's notes into product catalogue entries.
+Each item may include: name, category, unit (each/kg/pack/carton...), retail (single sell price),
+wholesale (bulk sell price), cost (buy price from supplier), stock (quantity on hand), supplier.
+Fill only fields the text gives; use null for anything not mentioned. Prices/quantities are numbers only.
+Return JSON matching the schema (an "items" array, one entry per product).
+Examples:
+- "Coca-Cola 330ml, drinks, sell 1.75 wholesale 1.40 cost 1.10, 24 in stock, from ABC" ->
+  {"items":[{"name":"Coca-Cola 330ml","category":"drinks","unit":null,"retail":1.75,"wholesale":1.40,"cost":1.10,"stock":24,"supplier":"ABC"}]}
+- "rice 25kg bag cost 18 sell 22" ->
+  {"items":[{"name":"Rice 25kg bag","category":null,"unit":null,"retail":22,"wholesale":null,"cost":18,"stock":null,"supplier":null}]}"""
+
+
 _SYSTEM = """You extract line items from a shopkeeper's shorthand typing.
 Return the items and their quantities as JSON matching the given schema.
 Rules:
@@ -48,7 +77,41 @@ Examples:
 class AIProvider(Protocol):
     def available(self) -> bool: ...
     def parse_items(self, text: str) -> list[ParsedItem]: ...
+    def parse_new_items(self, text: str) -> list[ParsedNewItem]: ...
     def warm(self) -> None: ...
+
+
+def _nullable(t: str) -> dict:
+    return {"anyOf": [{"type": t}, {"type": "null"}]}
+
+
+# Claude structured-output schema for catalogue parsing (all keys required; null for absent).
+_CLAUDE_CATALOG_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "items": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "category": _nullable("string"),
+                    "unit": _nullable("string"),
+                    "retail": _nullable("number"),
+                    "wholesale": _nullable("number"),
+                    "cost": _nullable("number"),
+                    "stock": _nullable("number"),
+                    "supplier": _nullable("string"),
+                },
+                "required": ["name", "category", "unit", "retail", "wholesale",
+                             "cost", "stock", "supplier"],
+                "additionalProperties": False,
+            },
+        }
+    },
+    "required": ["items"],
+    "additionalProperties": False,
+}
 
 
 # JSON schema for Claude structured output (no unsupported numeric/string constraints;
@@ -104,6 +167,19 @@ class OllamaProvider:
         )
         return ParsedEntry.model_validate_json(resp["message"]["content"]).items
 
+    def parse_new_items(self, text: str) -> list[ParsedNewItem]:
+        resp = self._client.chat(
+            model=self._model,
+            messages=[
+                {"role": "system", "content": _SYSTEM_ITEMS},
+                {"role": "user", "content": text},
+            ],
+            format=ParsedCatalog.model_json_schema(),
+            options={"temperature": 0},
+            keep_alive="30m",
+        )
+        return ParsedCatalog.model_validate_json(resp["message"]["content"]).items
+
     def warm(self) -> None:
         """Pre-load the model into memory so the first real parse isn't slow."""
         try:
@@ -152,6 +228,19 @@ class ClaudeProvider:
             qty = float(it.get("quantity") or 1) or 1.0
             items.append(ParsedItem(name=it["name"], quantity=qty, unit=unit))
         return items
+
+    def parse_new_items(self, text: str) -> list[ParsedNewItem]:
+        resp = self._client.messages.create(
+            model=self._model,
+            max_tokens=2048,
+            system=_SYSTEM_ITEMS,
+            messages=[{"role": "user", "content": text}],
+            output_config={"format": {"type": "json_schema", "schema": _CLAUDE_CATALOG_SCHEMA}},
+        )
+        content = next((b.text for b in resp.content if b.type == "text"), "{}")
+        data = json.loads(content)
+        fields = ("name", "category", "unit", "retail", "wholesale", "cost", "stock", "supplier")
+        return [ParsedNewItem(**{k: it.get(k) for k in fields}) for it in data.get("items", [])]
 
     def warm(self) -> None:  # nothing to pre-load for a cloud model
         pass
