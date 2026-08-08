@@ -75,6 +75,9 @@ model turns it into a reviewable cart. All verified against the live database.
 - [x] Optional Claude cloud AI provider (swappable; local stays default)
 - [x] Barcode support (hardware scanner / typing; camera where HTTPS is available)
 - [x] Item model: retail + wholesale + cost prices, category, unit, supplier, stock; margin & wholesale sales
+- [x] AI on recording too (free-text → item drafts) + AI Assistant chat (answer + propose actions)
+- [x] Per-item photos (stored in DB, resized on device, back up & sync with everything)
+- [x] Phone password (PIN), auto-start (launchd), tracked DB migrations
 
 ## Getting started
 
@@ -108,8 +111,11 @@ database as the terminal cashier. On startup it prints the URL to open **on your
 - **Sell** — a **Retail/Wholesale toggle**, search + tap to cart, complete a sale; plus an
   **AI quick-entry** box (type "2 coke, rice 3kg" → parsed into the cart).
 - **Stock** — add items with **retail / wholesale / cost** prices, **category, unit, supplier,
-  and stock**; edit prices, restock, assign barcodes. Items are grouped by category, and margin
-  (retail − cost) is shown.
+  and stock**; edit prices, restock, assign barcodes, **attach a photo** (camera, resized on
+  device). Grouped by category; margin (retail − cost) shown. Plus an **AI add** box: type/paste
+  items in plain words → reviewable drafts.
+- **Ask** — chat with the local AI: it answers (price, stock, today's sales, low stock, best
+  sellers) or **proposes an action** (record a sale, add an item, restock) that you confirm.
 - **Dash** — today's total, per-sale void, low-stock, best sellers.
 
 **Network access & password:** set in `.env` — `WEB_HOST=0.0.0.0` (default) makes it reachable

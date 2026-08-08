@@ -75,6 +75,29 @@ def find_items(query: str, limit: int = 10, threshold: float = 0.3) -> list[Item
     return [Item(**r) for r in rows]
 
 
+def set_item_image(item_id: int, data: bytes, content_type: str = "image/jpeg") -> None:
+    """Store (or replace) an item's photo and flag the item as having one."""
+    with connection() as conn, conn.transaction():
+        conn.execute(
+            """
+            INSERT INTO item_images (item_id, data, content_type, updated_at)
+            VALUES (%s, %s, %s, now())
+            ON CONFLICT (item_id) DO UPDATE
+              SET data = EXCLUDED.data, content_type = EXCLUDED.content_type, updated_at = now()
+            """,
+            (item_id, data, content_type),
+        )
+        conn.execute("UPDATE items SET has_image = true WHERE id = %s", (item_id,))
+
+
+def get_item_image(item_id: int) -> tuple[bytes, str] | None:
+    with connection() as conn:
+        row = conn.execute(
+            "SELECT data, content_type FROM item_images WHERE item_id = %s", (item_id,)
+        ).fetchone()
+    return (bytes(row["data"]), row["content_type"]) if row else None
+
+
 def get_item_by_barcode(code: str) -> Item | None:
     with connection() as conn:
         row = conn.execute("SELECT * FROM items WHERE barcode = %s", (code.strip(),)).fetchone()

@@ -8,12 +8,14 @@ is self-contained (no external assets). Optional shared password via WEB_TOKEN.
 """
 from __future__ import annotations
 
+import base64
+import binascii
 import socket
 from decimal import Decimal
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from pydantic import BaseModel, Field
 
 from . import repository as repo
@@ -55,6 +57,7 @@ def _item_dict(it: Item) -> dict:
         "margin": round(retail - cost, 2) if (retail is not None and cost is not None) else None,
         "currency": any_price.currency if any_price else "USD",
         "price": retail,  # back-compat: default sell price is retail
+        "has_image": bool(it.has_image),
     }
 
 
@@ -144,6 +147,35 @@ def api_set_barcode(item_id: int, body: BarcodeIn) -> dict:
     except ValueError as exc:
         raise HTTPException(409, str(exc)) from exc
     return _item_dict(repo.get_item(item_id))
+
+
+class ImageIn(BaseModel):
+    data: str                       # base64-encoded image bytes (no data: prefix)
+    content_type: str = "image/jpeg"
+
+
+@api.post("/items/{item_id}/image")
+def api_set_image(item_id: int, body: ImageIn) -> dict:
+    if repo.get_item(item_id) is None:
+        raise HTTPException(404, f"no item #{item_id}")
+    try:
+        raw = base64.b64decode(body.data, validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise HTTPException(400, "invalid image data") from exc
+    if len(raw) > 6_000_000:
+        raise HTTPException(413, "image too large (resize on the client)")
+    repo.set_item_image(item_id, raw, body.content_type)
+    return {"ok": True}
+
+
+@api.get("/items/{item_id}/image")
+def api_get_image(item_id: int) -> Response:
+    img = repo.get_item_image(item_id)
+    if img is None:
+        raise HTTPException(404, "no image")
+    data, content_type = img
+    return Response(content=data, media_type=content_type,
+                    headers={"Cache-Control": "no-cache"})
 
 
 class PriceIn(BaseModel):

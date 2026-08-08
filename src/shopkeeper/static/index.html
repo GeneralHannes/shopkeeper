@@ -44,6 +44,7 @@
   .warn { color:var(--warn); }
   .good { color:var(--good); }
   .empty { color:var(--muted); padding:.5rem .2rem; }
+  img.thumb { width:2.2rem; height:2.2rem; object-fit:cover; border-radius:6px; vertical-align:middle; margin-right:.4rem; }
   .quickgrid { display:flex; flex-wrap:wrap; gap:.45rem; }
   .qbtn { border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:11px;
           padding:.6rem .7rem; cursor:pointer; text-align:left; min-width:6.5rem; font:inherit; }
@@ -234,7 +235,7 @@ async function loadQuick(){
       const price = modePrice(it);
       if(price==null) continue;
       const b=document.createElement('button'); b.className='qbtn';
-      b.innerHTML=`<b>${esc(it.name)}</b><span>${money(price)}</span>`;
+      b.innerHTML=`${thumb(it)}<b>${esc(it.name)}</b><span>${money(price)}</span>`;
       b.onclick=()=>{ addToCart(it); };
       el.appendChild(b);
     }
@@ -252,7 +253,7 @@ async function doSearch(){
   for(const it of items){
     const li=document.createElement('li'); li.className='add';
     const price = modePrice(it);
-    li.innerHTML=`<span class="name">${esc(it.name)}</span><span class="muted">${money(it.quantity_on_hand)} ${esc(it.unit)}</span>
+    li.innerHTML=`${thumb(it)}<span class="name">${esc(it.name)}</span><span class="muted">${money(it.quantity_on_hand)} ${esc(it.unit)}</span>
       <span class="price">${price==null?'<span class=warn>no price</span>':money(price)+' '+it.currency}</span>`;
     li.onclick=()=>addToCart(it); ul.appendChild(li);
   }
@@ -330,6 +331,28 @@ async function cameraScan(){
   v.onloadedmetadata=()=>tick();
 }
 
+// ---- Images ----
+const thumb = it => it.has_image ? `<img class="thumb" src="/api/items/${it.id}/image?token=${encodeURIComponent(TOKEN)}" alt="">` : '';
+function pickImage(id){
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.capture='environment';
+  inp.onchange=()=>{ const f=inp.files&&inp.files[0]; if(f) resizeDataURL(f,1000,0.8).then(u=>uploadImage(id,u)).catch(()=>toast('Could not read that image')); };
+  inp.click();
+}
+function resizeDataURL(file,max,q){
+  return new Promise((res,rej)=>{ const img=new Image(), url=URL.createObjectURL(file);
+    img.onload=()=>{ URL.revokeObjectURL(url); let w=img.width,h=img.height;
+      if(w>=h && w>max){ h=Math.round(h*max/w); w=max; } else if(h>max){ w=Math.round(w*max/h); h=max; }
+      const c=document.createElement('canvas'); c.width=w; c.height=h; c.getContext('2d').drawImage(img,0,0,w,h);
+      res(c.toDataURL('image/jpeg',q)); };
+    img.onerror=rej; img.src=url; });
+}
+async function uploadImage(id,dataURL){
+  const b64=dataURL.split(',')[1];
+  try{ await api('/api/items/'+id+'/image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:b64,content_type:'image/jpeg'})});
+    toast('Photo saved'); loadStock();
+  }catch(e){ toast('Error: '+e.message); }
+}
+
 // ---- Stock: AI add ----
 async function aiParseItems(){
   const text=$('#ai-items').value.trim(); if(!text) return;
@@ -405,13 +428,14 @@ async function loadStock(){
     const li=document.createElement('li'); li.style.flexWrap='wrap';
     const m = it.margin!=null ? ` · margin ${money(it.margin)}` : '';
     li.innerHTML=`<div style="flex:1 1 100%">
-        <span class="name">${esc(it.name)}</span>
+        ${thumb(it)}<span class="name">${esc(it.name)}</span>
         <span class="muted">${money(it.quantity_on_hand)} ${esc(it.unit)}${it.supplier?' · '+esc(it.supplier):''}</span></div>
       <div style="flex:1 1 100%" class="muted">retail ${it.retail!=null?money(it.retail):'—'} · wholesale ${it.wholesale!=null?money(it.wholesale):'—'} · cost ${it.cost!=null?money(it.cost):'—'}${m}</div>
       <input type="number" placeholder="+qty" inputmode="decimal" style="max-width:4.5rem" id="rs-${it.id}">
       <button class="mini" onclick="restock(${it.id})">restock</button>
       <button class="mini" onclick="setPrices(${it.id},'${esc(it.name)}')">prices</button>
-      <button class="mini" onclick="setBarcode(${it.id})">barcode</button>`;
+      <button class="mini" onclick="setBarcode(${it.id})">barcode</button>
+      <button class="mini" onclick="pickImage(${it.id})">photo</button>`;
     ul.appendChild(li);
   }
 }

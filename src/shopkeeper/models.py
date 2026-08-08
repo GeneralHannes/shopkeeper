@@ -23,6 +23,7 @@ class Item(BaseModel):
     active: bool = True
     supplier: str | None = None
     note: str | None = None
+    has_image: bool = False
 
     @field_validator("name")
     @classmethod
