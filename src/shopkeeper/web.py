@@ -27,7 +27,8 @@ _STATIC = Path(__file__).parent / "static"
 
 def require_token(token: str | None = Query(None), x_token: str | None = Header(None)) -> None:
     """If WEB_TOKEN is set, require it (as ?token= or X-Token header) on every API call."""
-    if SETTINGS.web_token and token != SETTINGS.web_token and x_token != SETTINGS.web_token:
+    supplied = (x_token or token or "").strip()
+    if SETTINGS.web_token and supplied != SETTINGS.web_token:
         raise HTTPException(401, "missing or wrong password")
 
 

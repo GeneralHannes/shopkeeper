@@ -178,11 +178,11 @@ function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('sh
 async function api(path, opts={}){
   opts.headers = Object.assign({}, opts.headers||{}, TOKEN?{'X-Token':TOKEN}:{});
   const r = await fetch(path, opts);
-  if(r.status===401){ askToken(); throw new Error('password required'); }
+  if(r.status===401){ TOKEN=''; localStorage.removeItem('sk_token'); askToken(); throw new Error('password required'); }
   if(!r.ok){ let d; try{ d=(await r.json()).detail; }catch(_){} throw new Error(d || r.statusText); }
   return r.json();
 }
-function askToken(){ const t = prompt('Shop password:'); if(t){ TOKEN=t; localStorage.setItem('sk_token',t); location.reload(); } }
+function askToken(){ const t = prompt('Enter shop PIN:'); if(t && t.trim()){ TOKEN=t.trim(); localStorage.setItem('sk_token',TOKEN); location.reload(); } }
 async function checkAuth(){ try{ const a = await (await fetch('/api/auth')).json(); if(a.required && !TOKEN) askToken(); }catch(_){} }
 
 function show(v){
