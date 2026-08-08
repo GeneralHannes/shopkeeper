@@ -74,6 +74,7 @@ model turns it into a reviewable cart. All verified against the live database.
 - [x] Speed: warm local AI, one-tap quick items, faster tap-to-sell
 - [x] Optional Claude cloud AI provider (swappable; local stays default)
 - [x] Barcode support (hardware scanner / typing; camera where HTTPS is available)
+- [x] Item model: retail + wholesale + cost prices, category, unit, supplier, stock; margin & wholesale sales
 
 ## Getting started
 
@@ -104,9 +105,11 @@ python3.13 -m venv .venv
 database as the terminal cashier. On startup it prints the URL to open **on your phone**
 (same Wi-Fi), e.g. `http://192.168.1.9:8765`.
 
-- **Sell** — search + tap to cart, complete a sale; plus an **AI quick-entry** box (type
-  "2 coke, rice 3kg" → parsed into the cart).
-- **Stock** — add items, change prices, restock quantities, assign barcodes.
+- **Sell** — a **Retail/Wholesale toggle**, search + tap to cart, complete a sale; plus an
+  **AI quick-entry** box (type "2 coke, rice 3kg" → parsed into the cart).
+- **Stock** — add items with **retail / wholesale / cost** prices, **category, unit, supplier,
+  and stock**; edit prices, restock, assign barcodes. Items are grouped by category, and margin
+  (retail − cost) is shown.
 - **Dash** — today's total, per-sale void, low-stock, best sellers.
 
 **Network access & password:** set in `.env` — `WEB_HOST=0.0.0.0` (default) makes it reachable

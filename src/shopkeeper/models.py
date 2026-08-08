@@ -21,6 +21,7 @@ class Item(BaseModel):
     unit: str = "each"
     quantity_on_hand: Decimal = Decimal(0)
     active: bool = True
+    supplier: str | None = None
     note: str | None = None
 
     @field_validator("name")
@@ -36,6 +37,7 @@ class Price(BaseModel):
     id: int | None = None
     item_id: int
     price: Decimal = Field(ge=0)
+    kind: str = "retail"  # retail | wholesale | cost
     currency: str = "USD"
     effective_from: datetime | None = None
     note: str | None = None

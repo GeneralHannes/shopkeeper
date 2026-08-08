@@ -30,6 +30,7 @@
   button.act { background:var(--accent); color:#fff; border:none; padding:.6rem 1rem; border-radius:9px; cursor:pointer; font:inherit; }
   button.act:disabled { opacity:.5; }
   button.mini { border:1px solid var(--line); background:var(--card); color:var(--ink); padding:.45rem .6rem; border-radius:8px; cursor:pointer; }
+  button.mini.active { background:var(--accent); color:#fff; border-color:var(--accent); }
   .row { display:flex; gap:.5rem; align-items:center; }
   ul { list-style:none; margin:.4rem 0 0; padding:0; }
   li { padding:.55rem .2rem; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
@@ -67,6 +68,14 @@
 <main>
   <!-- SELL -->
   <section id="view-sell">
+    <div class="card">
+      <h2>Price mode</h2>
+      <div class="row">
+        <button class="mini active" id="pm-retail" onclick="setMode('retail')">Retail</button>
+        <button class="mini" id="pm-wholesale" onclick="setMode('wholesale')">Wholesale</button>
+        <span class="muted" id="pm-label">selling at retail</span>
+      </div>
+    </div>
     <div class="card">
       <h2>Quick — tap to add</h2>
       <div id="quick" class="quickgrid"><span class="empty">Loading…</span></div>
@@ -113,11 +122,22 @@
   <section id="view-stock" style="display:none">
     <div class="card">
       <h2>Add item</h2>
-      <div class="row">
-        <input id="ni-name" placeholder="name">
-        <input id="ni-price" placeholder="price" inputmode="decimal" style="max-width:6rem">
+      <input id="ni-name" placeholder="name" style="margin-bottom:.4rem">
+      <div class="row" style="margin-bottom:.4rem">
+        <input id="ni-category" placeholder="category (drinks, snacks…)">
         <input id="ni-unit" placeholder="unit" value="each" style="max-width:6rem">
-        <button class="act" onclick="addItem()">Add</button>
+      </div>
+      <div class="row" style="margin-bottom:.4rem">
+        <input id="ni-retail" placeholder="retail (sell 1)" inputmode="decimal">
+        <input id="ni-wholesale" placeholder="wholesale" inputmode="decimal">
+      </div>
+      <div class="row" style="margin-bottom:.4rem">
+        <input id="ni-cost" placeholder="cost (buy)" inputmode="decimal">
+        <input id="ni-stock" placeholder="stock qty" inputmode="decimal">
+      </div>
+      <div class="row">
+        <input id="ni-supplier" placeholder="supplier / note">
+        <button class="act" onclick="addItem()">Add item</button>
       </div>
     </div>
     <div class="card">
@@ -149,7 +169,9 @@ const $ = s => document.querySelector(s);
 const money = n => (n==null? '—' : Number(n).toFixed(2));
 const esc = s => (s??'').toString().replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let cart = [];
+let priceMode = 'retail';   // 'retail' | 'wholesale'
 let TOKEN = localStorage.getItem('sk_token') || '';
+const modePrice = it => (priceMode==='wholesale' && it.wholesale!=null) ? it.wholesale : it.retail;
 
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
 
@@ -170,6 +192,14 @@ function show(v){
   if(v==='stock') loadStock();
 }
 
+function setMode(m){
+  priceMode = m;
+  $('#pm-retail').classList.toggle('active', m==='retail');
+  $('#pm-wholesale').classList.toggle('active', m==='wholesale');
+  $('#pm-label').textContent = 'selling at ' + m;
+  loadQuick(); doSearch();
+}
+
 async function loadQuick(){
   const el=$('#quick');
   try{
@@ -177,9 +207,10 @@ async function loadQuick(){
     if(!items.length){ el.innerHTML='<span class="empty">Add items in the Stock tab</span>'; return; }
     el.innerHTML='';
     for(const it of items){
-      if(it.price==null) continue;
+      const price = modePrice(it);
+      if(price==null) continue;
       const b=document.createElement('button'); b.className='qbtn';
-      b.innerHTML=`<b>${esc(it.name)}</b><span>${money(it.price)}</span>`;
+      b.innerHTML=`<b>${esc(it.name)}</b><span>${money(price)}</span>`;
       b.onclick=()=>{ addToCart(it); };
       el.appendChild(b);
     }
@@ -196,15 +227,18 @@ async function doSearch(){
   ul.innerHTML = items.length ? '' : '<li class="empty">No matches</li>';
   for(const it of items){
     const li=document.createElement('li'); li.className='add';
+    const price = modePrice(it);
     li.innerHTML=`<span class="name">${esc(it.name)}</span><span class="muted">${money(it.quantity_on_hand)} ${esc(it.unit)}</span>
-      <span class="price">${it.price==null?'<span class=warn>no price</span>':money(it.price)+' '+it.currency}</span>`;
+      <span class="price">${price==null?'<span class=warn>no price</span>':money(price)+' '+it.currency}</span>`;
     li.onclick=()=>addToCart(it); ul.appendChild(li);
   }
 }
 function addToCart(it){
-  if(it.price==null){ toast('Set a price first (Stock tab)'); return; }
-  const ex=cart.find(l=>l.item_id===it.id);
-  if(ex){ ex.quantity+=1; } else { cart.push({item_id:it.id,name:it.name,price:it.price,quantity:1}); }
+  const price = modePrice(it);
+  if(price==null){ toast('Set a price first (Stock tab)'); return; }
+  const kind = (priceMode==='wholesale' && it.wholesale!=null) ? 'wholesale' : 'retail';
+  const ex=cart.find(l=>l.item_id===it.id && l.kind===kind);
+  if(ex){ ex.quantity+=1; } else { cart.push({item_id:it.id,name:it.name,price,quantity:1,kind}); }
   renderCart();
 }
 function renderCart(){
@@ -213,7 +247,7 @@ function renderCart(){
   ul.innerHTML=''; let total=0;
   cart.forEach((l,i)=>{ total+=l.price*l.quantity;
     const li=document.createElement('li');
-    li.innerHTML=`<span class="name">${esc(l.name)}</span>
+    li.innerHTML=`<span class="name">${esc(l.name)}${l.kind==='wholesale'?' <span class="pill">W</span>':''}</span>
       <input type="number" min="0" step="1" value="${l.quantity}" style="max-width:4.6rem" onchange="setQty(${i},this.value)">
       <span class="price">${money(l.price*l.quantity)}</span>
       <button class="mini" onclick="delLine(${i})">✕</button>`;
@@ -224,7 +258,7 @@ function setQty(i,v){ v=Number(v); if(v>0){ cart[i].quantity=v; } else { cart.sp
 function delLine(i){ cart.splice(i,1); renderCart(); }
 async function checkout(){
   try{ const res=await api('/api/sale',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({payment_method:$('#pay').value,lines:cart.map(l=>({item_id:l.item_id,quantity:l.quantity}))})});
+      body:JSON.stringify({payment_method:$('#pay').value,lines:cart.map(l=>({item_id:l.item_id,quantity:l.quantity,kind:l.kind||'retail'}))})});
     toast(`Sale #${res.id} — ${money(res.total)} ${res.currency}`); cart=[]; renderCart(); doSearch();
   }catch(e){ toast('Error: '+e.message); }
 }
@@ -280,22 +314,42 @@ async function setBarcode(id){
   }catch(e){ toast('Error: '+e.message); }
 }
 async function addItem(){
-  const name=$('#ni-name').value.trim(), price=$('#ni-price').value.trim(), unit=$('#ni-unit').value.trim()||'each';
-  if(!name||!price){ toast('Name and price required'); return; }
-  try{ await api('/api/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,price,unit})});
-    $('#ni-name').value=''; $('#ni-price').value=''; toast('Added '+name); loadStock();
+  const name=$('#ni-name').value.trim();
+  if(!name){ toast('Name required'); return; }
+  const body={ name,
+    category: $('#ni-category').value.trim()||null,
+    unit: $('#ni-unit').value.trim()||'each',
+    supplier: $('#ni-supplier').value.trim()||null };
+  const retail=$('#ni-retail').value.trim(), wholesale=$('#ni-wholesale').value.trim(),
+        cost=$('#ni-cost').value.trim(), stock=$('#ni-stock').value.trim();
+  if(retail) body.retail=retail;
+  if(wholesale) body.wholesale=wholesale;
+  if(cost) body.cost=cost;
+  if(stock) body.stock=stock;
+  try{ await api('/api/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    for(const id of ['ni-name','ni-category','ni-retail','ni-wholesale','ni-cost','ni-stock','ni-supplier']) $('#'+id).value='';
+    $('#ni-unit').value='each';
+    toast('Added '+name); loadStock();
   }catch(e){ toast('Error: '+e.message); }
 }
 async function loadStock(){
   const items = await api('/api/items'); const ul=$('#stock-list');
-  ul.innerHTML = items.length ? '' : '<li class="empty">No items yet</li>';
+  if(!items.length){ ul.innerHTML='<li class="empty">No items yet — add one above</li>'; return; }
+  ul.innerHTML=''; let cat=null;
   for(const it of items){
-    const li=document.createElement('li');
-    li.innerHTML=`<span class="name">${esc(it.name)}</span>
-      <span class="muted">${money(it.quantity_on_hand)} ${esc(it.unit)}</span>
-      <span class="price add" title="tap to change price" onclick="setPrice(${it.id},'${esc(it.name)}')">${it.price==null?'<span class=warn>set price</span>':money(it.price)}</span>
-      <input type="number" placeholder="+qty" inputmode="decimal" style="max-width:5rem" id="rs-${it.id}">
+    const c = it.category || '—';
+    if(c!==cat){ cat=c; const h=document.createElement('li'); h.style.borderBottom='none';
+      h.innerHTML=`<span class="muted" style="text-transform:uppercase;letter-spacing:.04em">${esc(cat)}</span>`;
+      ul.appendChild(h); }
+    const li=document.createElement('li'); li.style.flexWrap='wrap';
+    const m = it.margin!=null ? ` · margin ${money(it.margin)}` : '';
+    li.innerHTML=`<div style="flex:1 1 100%">
+        <span class="name">${esc(it.name)}</span>
+        <span class="muted">${money(it.quantity_on_hand)} ${esc(it.unit)}${it.supplier?' · '+esc(it.supplier):''}</span></div>
+      <div style="flex:1 1 100%" class="muted">retail ${it.retail!=null?money(it.retail):'—'} · wholesale ${it.wholesale!=null?money(it.wholesale):'—'} · cost ${it.cost!=null?money(it.cost):'—'}${m}</div>
+      <input type="number" placeholder="+qty" inputmode="decimal" style="max-width:4.5rem" id="rs-${it.id}">
       <button class="mini" onclick="restock(${it.id})">restock</button>
+      <button class="mini" onclick="setPrices(${it.id},'${esc(it.name)}')">prices</button>
       <button class="mini" onclick="setBarcode(${it.id})">barcode</button>`;
     ul.appendChild(li);
   }
@@ -306,11 +360,15 @@ async function restock(id){
     toast(`${it.name}: now ${money(it.quantity_on_hand)} ${it.unit}`); loadStock();
   }catch(e){ toast('Error: '+e.message); }
 }
-async function setPrice(id,name){
-  const p=prompt('New price for '+name+':'); if(p==null||p.trim()==='') return;
-  try{ await api('/api/items/'+id+'/price',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({price:p.trim()})});
-    toast('Price updated'); loadStock();
-  }catch(e){ toast('Error: '+e.message); }
+async function setPrices(id,name){
+  for(const kind of ['retail','wholesale','cost']){
+    const v=prompt(`${kind} price for ${name} (blank = keep):`);
+    if(v && v.trim()){
+      try{ await api('/api/items/'+id+'/price',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({price:v.trim(),kind})}); }
+      catch(e){ toast('Error ('+kind+'): '+e.message); }
+    }
+  }
+  toast('Prices updated'); loadStock();
 }
 
 // ---- Dashboard ----

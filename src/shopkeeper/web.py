@@ -35,15 +35,25 @@ api = APIRouter(prefix="/api", dependencies=[Depends(require_token)])
 
 
 def _item_dict(it: Item) -> dict:
-    p = repo.current_price(it.id) if it.id is not None else None
+    r = repo.current_price(it.id, "retail") if it.id is not None else None
+    w = repo.current_price(it.id, "wholesale") if it.id is not None else None
+    c = repo.current_price(it.id, "cost") if it.id is not None else None
+    retail = float(r.price) if r else None
+    cost = float(c.price) if c else None
+    any_price = r or w or c
     return {
         "id": it.id,
         "name": it.name,
-        "unit": it.unit,
         "category": it.category,
+        "unit": it.unit,
+        "supplier": it.supplier,
         "quantity_on_hand": float(it.quantity_on_hand),
-        "price": float(p.price) if p else None,
-        "currency": p.currency if p else "USD",
+        "retail": retail,
+        "wholesale": float(w.price) if w else None,
+        "cost": cost,
+        "margin": round(retail - cost, 2) if (retail is not None and cost is not None) else None,
+        "currency": any_price.currency if any_price else "USD",
+        "price": retail,  # back-compat: default sell price is retail
     }
 
 
@@ -76,16 +86,28 @@ def api_search(q: str) -> list[dict]:
 
 class ItemIn(BaseModel):
     name: str
-    price: Decimal = Field(ge=0)
-    unit: str = "each"
     category: str | None = None
+    unit: str = "each"
+    supplier: str | None = None
+    retail: Decimal | None = Field(default=None, ge=0)
+    wholesale: Decimal | None = Field(default=None, ge=0)
+    cost: Decimal | None = Field(default=None, ge=0)
+    stock: Decimal | None = None
 
 
 @api.post("/items")
 def api_add_item(body: ItemIn) -> dict:
-    item = repo.add_item(Item(name=body.name, unit=body.unit, category=body.category))
-    repo.set_price(item.id, body.price)
-    return _item_dict(item)
+    item = repo.add_item(Item(name=body.name, category=body.category,
+                              unit=body.unit, supplier=body.supplier))
+    if body.retail is not None:
+        repo.set_price(item.id, body.retail, "retail")
+    if body.wholesale is not None:
+        repo.set_price(item.id, body.wholesale, "wholesale")
+    if body.cost is not None:
+        repo.set_price(item.id, body.cost, "cost")
+    if body.stock:
+        repo.restock(item.id, body.stock)
+    return _item_dict(repo.get_item(item.id))
 
 
 class RestockIn(BaseModel):
@@ -125,19 +147,23 @@ def api_set_barcode(item_id: int, body: BarcodeIn) -> dict:
 
 class PriceIn(BaseModel):
     price: Decimal = Field(ge=0)
+    kind: str = "retail"  # retail | wholesale | cost
 
 
 @api.post("/items/{item_id}/price")
 def api_set_price(item_id: int, body: PriceIn) -> dict:
     if repo.get_item(item_id) is None:
         raise HTTPException(404, f"no item #{item_id}")
-    repo.set_price(item_id, body.price)
+    if body.kind not in ("retail", "wholesale", "cost"):
+        raise HTTPException(400, "kind must be retail, wholesale, or cost")
+    repo.set_price(item_id, body.price, body.kind)
     return _item_dict(repo.get_item(item_id))
 
 
 class SaleLineIn(BaseModel):
     item_id: int
     quantity: Decimal = Field(default=Decimal(1), gt=0)
+    kind: str = "retail"  # retail | wholesale
 
 
 class SaleIn(BaseModel):
@@ -154,7 +180,7 @@ def api_sale(body: SaleIn) -> dict:
         item = repo.get_item(ln.item_id)
         if item is None:
             raise HTTPException(400, f"no item #{ln.item_id}")
-        price = repo.current_price(ln.item_id)
+        price = repo.current_price(ln.item_id, ln.kind) or repo.current_price(ln.item_id, "retail")
         if price is None:
             raise HTTPException(400, f"{item.name} has no price set")
         lines.append(SaleLine(item_id=item.id, description=item.name,
