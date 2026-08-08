@@ -53,7 +53,7 @@ class ParsedCatalog(BaseModel):
 class Intent(BaseModel):
     """What the shopkeeper's chat message is asking for."""
     intent: Literal[
-        "price", "stock", "today", "low_stock", "best_sellers",
+        "item", "price", "stock", "today", "low_stock", "best_sellers",
         "record_sale", "add_item", "restock", "help",
     ]
     query: str | None = None      # item name, when the message is about one item
@@ -67,19 +67,28 @@ add an item, or restock, tell them to just say it plainly (e.g. "price coke", "s
 "sell 2 coke", "restock rice 20") and the app will handle it. Never invent prices, stock, or numbers."""
 
 
-_SYSTEM_CLASSIFY = """You are the intent router for a small shop assistant. Read the shopkeeper's
-message and classify it into exactly one intent:
-- price: asking the price or cost of an item
-- stock: asking how much of an item is in stock
-- today: asking about today's sales or total
-- low_stock: asking what is low or needs restocking
-- best_sellers: asking best sellers / top items
-- record_sale: recording or ringing up a sale of one or more items
+_SYSTEM_CLASSIFY = """You are the intent router for a small shop assistant. Classify the message into
+exactly one intent:
+- item: the message names a product and wants info about it — a bare product name, "do you have X",
+  "is there X", "tell me about X". This is the default for anything centred on a product.
+- price: explicitly asks the price/cost of an item
+- stock: explicitly asks how much of an item is in stock
+- today: asks about today's sales or total
+- low_stock: asks what is low / needs restocking
+- best_sellers: asks top/best-selling items (NO specific product named)
+- record_sale: clearly wants to sell/record items — a sell verb (sell, sold, ring up) or an order like "2 coke"
 - add_item: adding a NEW product to the catalogue
-- restock: adding stock to an EXISTING item
-- help: a greeting, thanks, or anything that doesn't fit the above
-Also extract: query = the item name if the message centres on one item; quantity = a number if the
-message states an amount. Use null when not applicable. Return JSON matching the schema."""
+- restock: adding stock to an existing item (e.g. "restock rice 20")
+- help: greetings, thanks, small talk, or questions about you (the assistant) — NOT about a product
+Rules: a bare product name (e.g. "coke") is `item`, never `help` and never `record_sale`. Use
+`record_sale` only with a clear sell verb or an explicit order quantity.
+Extract query = the product name if one is mentioned; quantity = a number if stated. null otherwise.
+Examples:
+"coke"->item,coke | "do you have rice"->item,rice | "tell me about milk"->item,milk |
+"how much is coke"->price,coke | "rice in stock"->stock,rice | "sales today"->today |
+"what's low"->low_stock | "best sellers"->best_sellers | "sell 2 coke"->record_sale |
+"restock rice 20"->restock,rice,20 | "add item bread 0.50"->add_item | "hi"/"thanks"->help
+Return JSON matching the schema."""
 
 
 _SYSTEM_ITEMS = """You turn a shopkeeper's notes into product catalogue entries.
@@ -151,7 +160,7 @@ _CLAUDE_INTENT_SCHEMA = {
     "type": "object",
     "properties": {
         "intent": {"type": "string", "enum": [
-            "price", "stock", "today", "low_stock", "best_sellers",
+            "item", "price", "stock", "today", "low_stock", "best_sellers",
             "record_sale", "add_item", "restock", "help",
         ]},
         "query": _nullable("string"),

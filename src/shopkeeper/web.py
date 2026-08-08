@@ -276,6 +276,22 @@ def api_parse_catalog(body: ParseIn) -> dict:
     return {"items": [d.model_dump() for d in drafts]}
 
 
+_QUERY_NOISE = [
+    "how much is", "how much for", "what is the price of", "what's the price of",
+    "the price of", "price of", "price for", "do you have any", "do you have",
+    "do we have", "is there any", "is there", "tell me about", "what about",
+    "how many", "in stock", "left of", "price", "stock",
+]
+
+
+def _strip_query(text: str) -> str:
+    """Best-effort: pull the item name out of a question when the model didn't isolate it."""
+    t = " " + text.lower().strip().rstrip("?.! ") + " "
+    for phrase in _QUERY_NOISE:
+        t = t.replace(" " + phrase + " ", " ")
+    return " ".join(t.split()).strip()
+
+
 def _price_str(item_id: int) -> str:
     r = repo.current_price(item_id, "retail")
     w = repo.current_price(item_id, "wholesale")
@@ -302,19 +318,24 @@ def api_assistant(body: ParseIn) -> dict:
         raise HTTPException(500, f"AI error: {exc}") from exc
 
     kind = intent.intent
-    q = (intent.query or text).strip()
+    q = (intent.query or _strip_query(text) or text).strip()
+
+    def item_reply(query: str) -> str:
+        query = (query or "").strip()
+        if not query:
+            return "Which item? For example: “price coke”."
+        matches = repo.find_items(query)[:3]
+        if not matches:
+            return (f"“{query}” isn't in your catalogue yet. "
+                    f"Add it in the Stock tab, or say “add item {query} …”.")
+        return "\n".join(
+            f"{m.name}: {_price_str(m.id)} · {m.quantity_on_hand:g} {m.unit} in stock"
+            for m in matches
+        )
 
     # ---- read-only answers ----
-    if kind == "price":
-        matches = repo.find_items(q)[:3]
-        if not matches:
-            return {"reply": f"No item matches “{q}”."}
-        return {"reply": "\n".join(f"{m.name}: {_price_str(m.id)}" for m in matches)}
-    if kind == "stock":
-        matches = repo.find_items(q)[:5]
-        if not matches:
-            return {"reply": f"No item matches “{q}”."}
-        return {"reply": "\n".join(f"{m.name}: {m.quantity_on_hand:g} {m.unit} in stock" for m in matches)}
+    if kind in ("item", "price", "stock"):
+        return {"reply": item_reply(q)}
     if kind == "today":
         sales = repo.todays_sales()
         total = sum((s.total for s in sales), Decimal(0))
@@ -326,6 +347,8 @@ def api_assistant(body: ParseIn) -> dict:
             return {"reply": "Nothing is low on stock."}
         return {"reply": "Low stock:\n" + "\n".join(f"{i.name}: {i.quantity_on_hand:g} {i.unit}" for i in low)}
     if kind == "best_sellers":
+        if intent.query:  # a specific product named — treat as an item question
+            return {"reply": item_reply(intent.query)}
         rows = repo.best_sellers(30)
         if not rows:
             return {"reply": "No sales in the last 30 days."}
