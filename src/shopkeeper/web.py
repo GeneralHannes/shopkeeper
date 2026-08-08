@@ -171,6 +171,14 @@ def api_restock(item_id: int, body: RestockIn) -> dict:
     return _item_dict(repo.get_item(item_id))
 
 
+@api.delete("/items/{item_id}")
+def api_delete_item(item_id: int) -> dict:
+    if repo.get_item(item_id) is None:
+        raise HTTPException(404, f"no item #{item_id}")
+    repo.delete_item(item_id)
+    return {"deleted": item_id}
+
+
 @api.get("/barcode/{code}")
 def api_barcode(code: str) -> dict:
     item = repo.get_item_by_barcode(code)

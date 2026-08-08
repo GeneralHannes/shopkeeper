@@ -154,6 +154,13 @@ def set_active(item_id: int, active: bool) -> None:
         conn.execute("UPDATE items SET active = %s WHERE id = %s", (active, item_id))
 
 
+def delete_item(item_id: int) -> None:
+    """Permanently delete an item. Its prices/aliases/image/stock ledger cascade away;
+    past sale lines keep their text (item_id is set null), so sales history stays intact."""
+    with connection() as conn:
+        conn.execute("DELETE FROM items WHERE id = %s", (item_id,))
+
+
 # --------------------------------------------------------------------------- #
 # Prices
 # --------------------------------------------------------------------------- #

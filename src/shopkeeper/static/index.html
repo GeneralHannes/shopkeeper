@@ -411,6 +411,11 @@ function renderDrafts(items){
 }
 
 // ---- Stock ----
+async function deleteItem(id, name){
+  if(!confirm('Delete "'+name+'" permanently? This removes the item, its prices and photo.')) return;
+  try{ await api('/api/items/'+id,{method:'DELETE'}); toast('Deleted '+name); loadStock(); }
+  catch(e){ toast('Error: '+e.message); }
+}
 async function setBarcode(id){
   const code=prompt('Scan or type a barcode for this item:'); if(!code||!code.trim()) return;
   try{ await api('/api/items/'+id+'/barcode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({barcode:code.trim()})});
@@ -455,7 +460,8 @@ async function loadStock(){
       <button class="mini" onclick="restock(${it.id})">restock</button>
       <button class="mini" onclick="setPrices(${it.id},'${esc(it.name)}')">prices</button>
       <button class="mini" onclick="setBarcode(${it.id})">barcode</button>
-      <button class="mini" onclick="pickImage(${it.id})">photo</button>`;
+      <button class="mini" onclick="pickImage(${it.id})">photo</button>
+      <button class="mini" onclick="deleteItem(${it.id},'${esc(it.name)}')" style="color:var(--warn)">delete</button>`;
     ul.appendChild(li);
   }
 }
