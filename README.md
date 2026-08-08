@@ -70,6 +70,10 @@ model turns it into a reviewable cart. All verified against the live database.
 - [x] Automatic daily backups (rotating + restore + cron)
 - [x] Daily reports (sales/day, best sellers, low-stock alerts)
 - [x] Local web UI (FastAPI + self-contained page: sell, dashboard, void)
+- [x] Phone access over Wi-Fi (LAN web UI) + optional password
+- [x] Speed: warm local AI, one-tap quick items, faster tap-to-sell
+- [x] Optional Claude cloud AI provider (swappable; local stays default)
+- [x] Barcode support (hardware scanner / typing; camera where HTTPS is available)
 
 ## Getting started
 
@@ -102,7 +106,7 @@ database as the terminal cashier. On startup it prints the URL to open **on your
 
 - **Sell** — search + tap to cart, complete a sale; plus an **AI quick-entry** box (type
   "2 coke, rice 3kg" → parsed into the cart).
-- **Stock** — add items, change prices, restock quantities.
+- **Stock** — add items, change prices, restock quantities, assign barcodes.
 - **Dash** — today's total, per-sale void, low-stock, best sellers.
 
 **Network access & password:** set in `.env` — `WEB_HOST=0.0.0.0` (default) makes it reachable

@@ -81,6 +81,14 @@
         <span class="muted" id="ai-note"></span>
       </div>
     </div>
+    <div class="card">
+      <h2>Barcode — scan (hardware) or type</h2>
+      <div class="row">
+        <input id="barcode" placeholder="scan or type a barcode, then Enter" inputmode="numeric"
+               autocomplete="off" onkeydown="if(event.key==='Enter')scanEnter()">
+        <button class="mini" id="cam-btn" onclick="cameraScan()" style="display:none">📷</button>
+      </div>
+    </div>
     <div class="grid">
       <div class="card">
         <h2>Find items</h2>
@@ -232,7 +240,45 @@ async function aiParse(){
   }catch(e){ $('#ai-note').textContent=''; toast('AI: '+e.message); }
 }
 
+// ---- Barcode ----
+async function scanEnter(){
+  const el=$('#barcode'); const code=el.value.trim(); if(!code) return; el.value='';
+  await addByBarcode(code);
+}
+async function addByBarcode(code){
+  try{ const it=await api('/api/barcode/'+encodeURIComponent(code)); addToCart(it); toast('Added '+it.name); }
+  catch(e){ toast('Unknown barcode — assign it in the Stock tab'); }
+}
+async function cameraScan(){
+  if(!('BarcodeDetector' in window)){ toast('Camera scanning not supported in this browser'); return; }
+  let stream;
+  try{ stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}); }
+  catch(e){ toast('Camera unavailable (needs HTTPS off localhost): '+e.message); return; }
+  const det = new window.BarcodeDetector();
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:#000;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem';
+  const v=document.createElement('video'); v.autoplay=true; v.playsInline=true; v.muted=true; v.srcObject=stream;
+  v.style.cssText='max-width:100%;max-height:80vh;border-radius:12px';
+  const cancel=document.createElement('button'); cancel.textContent='Cancel'; cancel.className='act';
+  ov.appendChild(v); ov.appendChild(cancel); document.body.appendChild(ov);
+  let done=false;
+  const stop=()=>{ done=true; stream.getTracks().forEach(t=>t.stop()); ov.remove(); };
+  cancel.onclick=stop;
+  const tick=async()=>{
+    if(done) return;
+    try{ const codes=await det.detect(v); if(codes.length){ const c=codes[0].rawValue; stop(); addByBarcode(c); return; } }catch(_){}
+    requestAnimationFrame(tick);
+  };
+  v.onloadedmetadata=()=>tick();
+}
+
 // ---- Stock ----
+async function setBarcode(id){
+  const code=prompt('Scan or type a barcode for this item:'); if(!code||!code.trim()) return;
+  try{ await api('/api/items/'+id+'/barcode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({barcode:code.trim()})});
+    toast('Barcode set'); loadStock();
+  }catch(e){ toast('Error: '+e.message); }
+}
 async function addItem(){
   const name=$('#ni-name').value.trim(), price=$('#ni-price').value.trim(), unit=$('#ni-unit').value.trim()||'each';
   if(!name||!price){ toast('Name and price required'); return; }
@@ -249,7 +295,8 @@ async function loadStock(){
       <span class="muted">${money(it.quantity_on_hand)} ${esc(it.unit)}</span>
       <span class="price add" title="tap to change price" onclick="setPrice(${it.id},'${esc(it.name)}')">${it.price==null?'<span class=warn>set price</span>':money(it.price)}</span>
       <input type="number" placeholder="+qty" inputmode="decimal" style="max-width:5rem" id="rs-${it.id}">
-      <button class="mini" onclick="restock(${it.id})">restock</button>`;
+      <button class="mini" onclick="restock(${it.id})">restock</button>
+      <button class="mini" onclick="setBarcode(${it.id})">barcode</button>`;
     ul.appendChild(li);
   }
 }
@@ -286,6 +333,7 @@ async function voidSale(id){ if(!confirm('Void sale #'+id+'? Stock will be resto
 
 checkAuth();
 loadQuick();
+if('BarcodeDetector' in window && window.isSecureContext){ $('#cam-btn').style.display=''; }
 </script>
 </body>
 </html>

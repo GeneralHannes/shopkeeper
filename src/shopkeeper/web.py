@@ -100,6 +100,29 @@ def api_restock(item_id: int, body: RestockIn) -> dict:
     return _item_dict(repo.get_item(item_id))
 
 
+@api.get("/barcode/{code}")
+def api_barcode(code: str) -> dict:
+    item = repo.get_item_by_barcode(code)
+    if item is None:
+        raise HTTPException(404, "unknown barcode")
+    return _item_dict(item)
+
+
+class BarcodeIn(BaseModel):
+    barcode: str
+
+
+@api.post("/items/{item_id}/barcode")
+def api_set_barcode(item_id: int, body: BarcodeIn) -> dict:
+    if repo.get_item(item_id) is None:
+        raise HTTPException(404, f"no item #{item_id}")
+    try:
+        repo.set_barcode(item_id, body.barcode)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    return _item_dict(repo.get_item(item_id))
+
+
 class PriceIn(BaseModel):
     price: Decimal = Field(ge=0)
 

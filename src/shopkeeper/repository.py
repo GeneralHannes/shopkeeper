@@ -75,6 +75,24 @@ def find_items(query: str, limit: int = 10, threshold: float = 0.3) -> list[Item
     return [Item(**r) for r in rows]
 
 
+def get_item_by_barcode(code: str) -> Item | None:
+    with connection() as conn:
+        row = conn.execute("SELECT * FROM items WHERE barcode = %s", (code.strip(),)).fetchone()
+    return Item(**row) if row else None
+
+
+def set_barcode(item_id: int, code: str) -> None:
+    """Assign a barcode to an item. Raises ValueError if another item already has it."""
+    code = code.strip()
+    with connection() as conn:
+        clash = conn.execute(
+            "SELECT id FROM items WHERE barcode = %s AND id <> %s", (code, item_id)
+        ).fetchone()
+        if clash:
+            raise ValueError(f"barcode already used by item #{clash['id']}")
+        conn.execute("UPDATE items SET barcode = %s WHERE id = %s", (code, item_id))
+
+
 def add_alias(item_id: int, alias: str) -> None:
     """Teach the system a nickname/alternate name for an item (idempotent)."""
     with connection() as conn:
