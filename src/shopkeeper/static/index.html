@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shopkeeper</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --line:#e3e6ea; --ink:#1c2430; --muted:#6b7686;
+          --accent:#2563eb; --good:#16a34a; --warn:#c2410c; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.45 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+         background:var(--bg); color:var(--ink); }
+  header { background:var(--card); border-bottom:1px solid var(--line); padding:.7rem 1rem;
+           display:flex; align-items:center; gap:1rem; position:sticky; top:0; }
+  header h1 { font-size:1.1rem; margin:0; }
+  .tabs { margin-left:auto; display:flex; gap:.3rem; }
+  .tabs button { border:1px solid var(--line); background:var(--card); padding:.4rem .9rem;
+                 border-radius:8px; cursor:pointer; font-size:.9rem; }
+  .tabs button.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  main { max-width:960px; margin:1rem auto; padding:0 1rem; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  @media (max-width:720px){ .grid { grid-template-columns:1fr; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:1rem; }
+  .card h2 { font-size:.95rem; margin:0 0 .6rem; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; }
+  input, select { font:inherit; padding:.5rem .6rem; border:1px solid var(--line); border-radius:8px; width:100%; }
+  button.act { background:var(--accent); color:#fff; border:none; padding:.55rem .9rem; border-radius:8px; cursor:pointer; font:inherit; }
+  button.act:disabled { opacity:.5; cursor:default; }
+  .row { display:flex; gap:.5rem; align-items:center; }
+  ul { list-style:none; margin:.4rem 0 0; padding:0; }
+  li { padding:.45rem .2rem; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:.5rem; }
+  li:last-child { border-bottom:none; }
+  .name { font-weight:600; }
+  .muted { color:var(--muted); font-size:.85rem; }
+  .price { margin-left:auto; font-variant-numeric:tabular-nums; }
+  .pill { font-size:.75rem; padding:.1rem .4rem; border-radius:6px; background:#eef2ff; color:var(--accent); }
+  .add { cursor:pointer; }
+  .add:hover { background:#f0f5ff; }
+  .total { font-size:1.4rem; font-weight:700; }
+  .warn { color:var(--warn); }
+  .good { color:var(--good); }
+  .empty { color:var(--muted); padding:.5rem .2rem; }
+  #toast { position:fixed; bottom:1rem; left:50%; transform:translateX(-50%); background:var(--ink);
+           color:#fff; padding:.6rem 1rem; border-radius:8px; opacity:0; transition:opacity .2s; pointer-events:none; }
+  #toast.show { opacity:1; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🛒 shopkeeper</h1>
+  <div class="tabs">
+    <button id="tab-sell" class="active" onclick="show('sell')">Sell</button>
+    <button id="tab-dash" onclick="show('dash')">Dashboard</button>
+  </div>
+</header>
+
+<main>
+  <!-- SELL -->
+  <section id="view-sell" class="grid">
+    <div class="card">
+      <h2>Find items</h2>
+      <input id="search" placeholder="Search name / nickname (coke, rice…)" oninput="search()" autocomplete="off">
+      <ul id="results"><li class="empty">Type to search…</li></ul>
+      <h2 style="margin-top:1rem">Quick add</h2>
+      <div class="row">
+        <input id="ni-name" placeholder="name">
+        <input id="ni-price" placeholder="price" style="max-width:6rem">
+        <button class="act" onclick="addItem()">Add</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Cart</h2>
+      <ul id="cart"><li class="empty">Cart is empty</li></ul>
+      <div class="row" style="margin-top:.8rem">
+        <span class="muted">Total</span>
+        <span class="total price" id="cart-total">0.00</span>
+      </div>
+      <div class="row" style="margin-top:.8rem">
+        <select id="pay" style="max-width:8rem"><option>cash</option><option>card</option></select>
+        <button class="act" id="pay-btn" onclick="checkout()" disabled style="margin-left:auto">Complete sale</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section id="view-dash" style="display:none">
+    <div class="card" style="margin-bottom:1rem">
+      <h2>Today</h2>
+      <div class="row"><span class="total good price" id="today-total">0.00</span>
+        <span class="muted" id="today-count">0 sales</span>
+        <button class="act" onclick="loadDash()" style="margin-left:auto">Refresh</button></div>
+      <ul id="today-list"></ul>
+    </div>
+    <div class="grid">
+      <div class="card"><h2>Low stock</h2><ul id="low"></ul></div>
+      <div class="card"><h2>Best sellers (30d)</h2><ul id="best"></ul></div>
+    </div>
+  </section>
+</main>
+
+<div id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const money = n => (n==null? '—' : Number(n).toFixed(2));
+let cart = [];
+
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }
+async function api(path, opts){ const r = await fetch(path, opts); if(!r.ok){ throw new Error((await r.json()).detail || r.statusText); } return r.json(); }
+
+function show(v){
+  $('#view-sell').style.display = v==='sell'?'':'none';
+  $('#view-dash').style.display = v==='dash'?'':'none';
+  $('#tab-sell').classList.toggle('active', v==='sell');
+  $('#tab-dash').classList.toggle('active', v==='dash');
+  if(v==='dash') loadDash();
+}
+
+let searchTimer;
+function search(){ clearTimeout(searchTimer); searchTimer = setTimeout(doSearch, 150); }
+async function doSearch(){
+  const q = $('#search').value.trim();
+  const ul = $('#results');
+  if(!q){ ul.innerHTML = '<li class="empty">Type to search…</li>'; return; }
+  const items = await api('/api/search?q=' + encodeURIComponent(q));
+  if(!items.length){ ul.innerHTML = '<li class="empty">No matches</li>'; return; }
+  ul.innerHTML = '';
+  for(const it of items){
+    const li = document.createElement('li');
+    li.className = 'add';
+    li.innerHTML = `<span class="name">${esc(it.name)}</span>
+      <span class="muted">${money(it.quantity_on_hand)} ${esc(it.unit)}</span>
+      <span class="price">${it.price==null?'<span class=warn>no price</span>':money(it.price)+' '+it.currency}</span>`;
+    li.onclick = () => addToCart(it);
+    ul.appendChild(li);
+  }
+}
+const esc = s => (s??'').replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+function addToCart(it){
+  if(it.price==null){ toast('Set a price first'); return; }
+  const ex = cart.find(l=>l.item_id===it.id);
+  if(ex){ ex.quantity += 1; } else { cart.push({item_id:it.id, name:it.name, price:it.price, quantity:1}); }
+  renderCart();
+}
+function renderCart(){
+  const ul = $('#cart');
+  if(!cart.length){ ul.innerHTML = '<li class="empty">Cart is empty</li>'; $('#cart-total').textContent='0.00'; $('#pay-btn').disabled=true; return; }
+  ul.innerHTML=''; let total=0;
+  cart.forEach((l,i)=>{
+    total += l.price*l.quantity;
+    const li=document.createElement('li');
+    li.innerHTML = `<span class="name">${esc(l.name)}</span>
+      <input type="number" min="0" step="1" value="${l.quantity}" style="max-width:4.5rem" onchange="setQty(${i}, this.value)">
+      <span class="price">${money(l.price*l.quantity)}</span>
+      <button onclick="delLine(${i})" style="border:none;background:none;cursor:pointer;color:var(--muted)">✕</button>`;
+    ul.appendChild(li);
+  });
+  $('#cart-total').textContent = money(total);
+  $('#pay-btn').disabled=false;
+}
+function setQty(i,v){ v=Number(v); if(v>0){ cart[i].quantity=v; } else { cart.splice(i,1);} renderCart(); }
+function delLine(i){ cart.splice(i,1); renderCart(); }
+
+async function checkout(){
+  try{
+    const res = await api('/api/sale', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({payment_method: $('#pay').value, lines: cart.map(l=>({item_id:l.item_id, quantity:l.quantity}))})});
+    toast(`Sale #${res.id} — ${money(res.total)} ${res.currency}`);
+    cart=[]; renderCart(); doSearch();
+  }catch(e){ toast('Error: '+e.message); }
+}
+
+async function addItem(){
+  const name=$('#ni-name').value.trim(), price=$('#ni-price').value.trim();
+  if(!name || !price){ toast('Name and price required'); return; }
+  try{
+    await api('/api/items', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({name, price})});
+    $('#ni-name').value=''; $('#ni-price').value='';
+    toast('Added '+name); $('#search').value=name; doSearch();
+  }catch(e){ toast('Error: '+e.message); }
+}
+
+async function loadDash(){
+  const t = await api('/api/today');
+  $('#today-total').textContent = money(t.total);
+  $('#today-count').textContent = t.count + ' sale' + (t.count===1?'':'s');
+  $('#today-list').innerHTML = t.sales.length ? t.sales.map(s=>
+    `<li><span class="muted">${s.at}</span><span class="name">#${s.id}</span>
+     <span class="pill">${esc(s.payment_method||'')}</span>
+     <span class="price">${money(s.total)}</span>
+     <button onclick="voidSale(${s.id})" style="border:none;background:none;cursor:pointer;color:var(--warn)">void</button></li>`
+  ).join('') : '<li class="empty">No sales today</li>';
+
+  const low = await api('/api/low?threshold=5');
+  $('#low').innerHTML = low.length ? low.map(it=>
+    `<li><span class="name">${esc(it.name)}</span><span class="price warn">${money(it.quantity_on_hand)} ${esc(it.unit)}</span></li>`
+  ).join('') : '<li class="empty">All well stocked</li>';
+
+  const best = await api('/api/best?days=30');
+  $('#best').innerHTML = best.length ? best.map((b,i)=>
+    `<li><span class="muted">${i+1}.</span><span class="name">${esc(b.name)}</span>
+     <span class="price">${money(b.qty)} sold · ${money(b.revenue)}</span></li>`
+  ).join('') : '<li class="empty">No sales yet</li>';
+}
+
+async function voidSale(id){
+  if(!confirm('Void sale #'+id+'? Stock will be restored.')) return;
+  try{ await api('/api/sale/'+id+'/void', {method:'POST'}); toast('Voided #'+id); loadDash(); }
+  catch(e){ toast('Error: '+e.message); }
+}
+</script>
+</body>
+</html>

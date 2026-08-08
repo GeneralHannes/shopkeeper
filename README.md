@@ -69,7 +69,7 @@ model turns it into a reviewable cart. All verified against the live database.
 - [x] Corrections: void sale (restores stock), rename/remove item, adjust stock
 - [x] Automatic daily backups (rotating + restore + cron)
 - [x] Daily reports (sales/day, best sellers, low-stock alerts)
-- [ ] Local web UI
+- [x] Local web UI (FastAPI + self-contained page: sell, dashboard, void)
 
 ## Getting started
 
@@ -87,9 +87,21 @@ python3.13 -m venv .venv
 # 4. verify the whole DB layer end-to-end (inserts sample data, then cleans up)
 .venv/bin/python scripts/smoke_test.py
 
-# 5. run the cashier
+# 5. run the cashier (terminal)
 .venv/bin/shopkeeper
+
+# ...or the web UI, then open http://127.0.0.1:8765 in any browser
+.venv/bin/shopkeeper-web
 ```
+
+### Web UI
+
+`shopkeeper-web` serves a self-contained page (no external assets, binds `127.0.0.1` only)
+that reuses the same database as the terminal cashier:
+- **Sell** — search items, build a cart, complete a sale; quick-add new items.
+- **Dashboard** — today's total, per-sale list with one-click void, low-stock, best sellers.
+
+Restock/adjust/rename and the AI free-text entry live in the terminal cashier for now.
 
 ### Using the cashier
 
