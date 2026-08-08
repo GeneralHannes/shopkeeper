@@ -139,6 +139,11 @@
     </div>
     <div class="card">
       <h2>Add item</h2>
+      <div class="row" style="margin-bottom:.4rem">
+        <input id="ni-barcode" placeholder="barcode — scan or type, Enter to look up" inputmode="numeric"
+               autocomplete="off" onkeydown="if(event.key==='Enter')lookupBarcode()">
+        <button class="mini" id="ni-cam" onclick="scanBarcodeInto()" style="display:none">📷 Scan</button>
+      </div>
       <input id="ni-name" placeholder="name" style="margin-bottom:.4rem">
       <div class="row" style="margin-bottom:.4rem">
         <input id="ni-category" placeholder="category (drinks, snacks…)">
@@ -194,6 +199,7 @@
 
 <div id="toast"></div>
 
+<script src="/static/vendor/zxing.min.js"></script>
 <script>
 const $ = s => document.querySelector(s);
 const money = n => (n==null? '—' : Number(n).toFixed(2));
@@ -314,27 +320,38 @@ async function addByBarcode(code){
   try{ const it=await api('/api/barcode/'+encodeURIComponent(code)); addToCart(it); toast('Added '+it.name); }
   catch(e){ toast('Unknown barcode — assign it in the Stock tab'); }
 }
-async function cameraScan(){
-  if(!('BarcodeDetector' in window)){ toast('Camera scanning not supported in this browser'); return; }
+function cameraScan(){ scanCamera(addByBarcode); }
+function scanBarcodeInto(){ scanCamera(code=>{ $('#ni-barcode').value=code; lookupBarcode(); }); }
+
+async function scanCamera(onCode){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ toast('Camera not available in this browser'); return; }
+  const hasBD = ('BarcodeDetector' in window);
+  const hasZX = !!(window.ZXing && window.ZXing.BrowserMultiFormatReader);
+  if(!hasBD && !hasZX){ toast('Barcode scanning not supported in this browser'); return; }
   let stream;
   try{ stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}); }
-  catch(e){ toast('Camera unavailable (needs HTTPS off localhost): '+e.message); return; }
-  const det = new window.BarcodeDetector();
+  catch(e){ toast('Camera blocked — needs HTTPS: '+e.message); return; }
   const ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:#000;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem';
   const v=document.createElement('video'); v.autoplay=true; v.playsInline=true; v.muted=true; v.srcObject=stream;
   v.style.cssText='max-width:100%;max-height:80vh;border-radius:12px';
   const cancel=document.createElement('button'); cancel.textContent='Cancel'; cancel.className='act';
   ov.appendChild(v); ov.appendChild(cancel); document.body.appendChild(ov);
-  let done=false;
-  const stop=()=>{ done=true; stream.getTracks().forEach(t=>t.stop()); ov.remove(); };
+  let done=false, zx=null;
+  const stop=()=>{ if(done) return; done=true; try{ if(zx) zx.reset(); }catch(_){} stream.getTracks().forEach(t=>t.stop()); ov.remove(); };
+  const hit=code=>{ if(done) return; stop(); onCode(code); };
   cancel.onclick=stop;
-  const tick=async()=>{
-    if(done) return;
-    try{ const codes=await det.detect(v); if(codes.length){ const c=codes[0].rawValue; stop(); addByBarcode(c); return; } }catch(_){}
-    requestAnimationFrame(tick);
-  };
-  v.onloadedmetadata=()=>tick();
+  if(hasBD){
+    const det=new window.BarcodeDetector();
+    const tick=async()=>{ if(done) return;
+      try{ const codes=await det.detect(v); if(codes.length){ hit(codes[0].rawValue); return; } }catch(_){}
+      requestAnimationFrame(tick); };
+    v.onloadedmetadata=()=>tick();
+  } else {
+    try{ zx=new window.ZXing.BrowserMultiFormatReader();
+      zx.decodeFromVideoElement(v, (result)=>{ if(result) hit(result.getText()); });
+    }catch(e){ toast('Scanner error: '+e.message); stop(); }
+  }
 }
 
 // ---- Images ----
@@ -422,13 +439,24 @@ async function setBarcode(id){
     toast('Barcode set'); loadStock();
   }catch(e){ toast('Error: '+e.message); }
 }
+async function lookupBarcode(){
+  const code=$('#ni-barcode').value.trim(); if(!code) return;
+  toast('Looking up '+code+'…');
+  try{
+    const r=await api('/api/lookup-barcode/'+encodeURIComponent(code));
+    if(r.in_catalog){ $('#ni-name').value=r.item.name; toast('Already in catalogue: '+r.item.name); }
+    else if(r.found){ $('#ni-name').value=r.name; toast('Found: '+r.name+' — add your prices'); $('#ni-retail').focus(); }
+    else { toast('Not in product database — type the name'); $('#ni-name').focus(); }
+  }catch(e){ toast('Lookup needs internet: '+e.message); }
+}
 async function addItem(){
   const name=$('#ni-name').value.trim();
   if(!name){ toast('Name required'); return; }
   const body={ name,
     category: $('#ni-category').value.trim()||null,
     unit: $('#ni-unit').value.trim()||'each',
-    supplier: $('#ni-supplier').value.trim()||null };
+    supplier: $('#ni-supplier').value.trim()||null,
+    barcode: $('#ni-barcode').value.trim()||null };
   const retail=$('#ni-retail').value.trim(), wholesale=$('#ni-wholesale').value.trim(),
         cost=$('#ni-cost').value.trim(), stock=$('#ni-stock').value.trim();
   if(retail) body.retail=retail;
@@ -436,7 +464,7 @@ async function addItem(){
   if(cost) body.cost=cost;
   if(stock) body.stock=stock;
   try{ await api('/api/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    for(const id of ['ni-name','ni-category','ni-retail','ni-wholesale','ni-cost','ni-stock','ni-supplier']) $('#'+id).value='';
+    for(const id of ['ni-name','ni-category','ni-retail','ni-wholesale','ni-cost','ni-stock','ni-supplier','ni-barcode']) $('#'+id).value='';
     $('#ni-unit').value='each';
     toast('Added '+name); loadStock();
   }catch(e){ toast('Error: '+e.message); }
@@ -544,7 +572,11 @@ async function voidSale(id){ if(!confirm('Void sale #'+id+'? Stock will be resto
 
 checkAuth();
 loadQuick();
-if('BarcodeDetector' in window && window.isSecureContext){ $('#cam-btn').style.display=''; }
+// Camera scanning needs a secure context (HTTPS). Show the scan buttons only then.
+if(window.isSecureContext){
+  $('#cam-btn').style.display='';
+  const nc=$('#ni-cam'); if(nc) nc.style.display='';
+}
 </script>
 </body>
 </html>

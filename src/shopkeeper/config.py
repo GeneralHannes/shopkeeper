@@ -23,6 +23,8 @@ class Settings:
     web_host: str
     web_port: int
     web_token: str
+    web_tls_cert: str
+    web_tls_key: str
     ai_provider: str      # "ollama" (local, free) | "claude" (cloud, paid)
     claude_model: str
     anthropic_api_key: str
@@ -51,6 +53,8 @@ def load_settings() -> Settings:
         web_host=os.getenv("WEB_HOST", "0.0.0.0"),  # LAN-reachable so the phone can connect
         web_port=int(os.getenv("WEB_PORT", "8765")),
         web_token=os.getenv("WEB_TOKEN", "").strip(),
+        web_tls_cert=os.getenv("WEB_TLS_CERT", str(PROJECT_ROOT / "certs" / "cert.pem")),
+        web_tls_key=os.getenv("WEB_TLS_KEY", str(PROJECT_ROOT / "certs" / "key.pem")),
         ai_provider=os.getenv("AI_PROVIDER", "ollama").strip().lower(),
         claude_model=os.getenv("CLAUDE_MODEL", "claude-haiku-4-5"),
         anthropic_api_key=os.getenv("ANTHROPIC_API_KEY", "").strip(),

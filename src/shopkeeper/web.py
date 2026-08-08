@@ -10,12 +10,15 @@ from __future__ import annotations
 
 import base64
 import binascii
+import json
 import socket
+import urllib.request
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query
 from fastapi.responses import HTMLResponse, Response
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import repository as repo
@@ -93,6 +96,7 @@ class ItemIn(BaseModel):
     category: str | None = None
     unit: str = "each"
     supplier: str | None = None
+    barcode: str | None = None
     retail: Decimal | None = Field(default=None, ge=0)
     wholesale: Decimal | None = Field(default=None, ge=0)
     cost: Decimal | None = Field(default=None, ge=0)
@@ -101,8 +105,9 @@ class ItemIn(BaseModel):
 
 @api.post("/items")
 def api_add_item(body: ItemIn) -> dict:
-    item = repo.add_item(Item(name=body.name, category=body.category,
-                              unit=body.unit, supplier=body.supplier))
+    barcode = (body.barcode or "").strip() or None
+    item = repo.add_item(Item(name=body.name, category=body.category, unit=body.unit,
+                              supplier=body.supplier, barcode=barcode))
     if body.retail is not None:
         repo.set_price(item.id, body.retail, "retail")
     if body.wholesale is not None:
@@ -169,6 +174,43 @@ def api_restock(item_id: int, body: RestockIn) -> dict:
         raise HTTPException(404, f"no item #{item_id}")
     repo.restock(item_id, body.quantity)
     return _item_dict(repo.get_item(item_id))
+
+
+def _off_lookup(code: str) -> str | None:
+    """Look a barcode up in Open Food Facts (free, needs internet). Returns a product
+    name or None. Best for packaged/branded goods; many local products won't be listed."""
+    url = (f"https://world.openfoodfacts.org/api/v2/product/{code}.json"
+           "?fields=product_name,brands,quantity")
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "shopkeeper/1.0"})
+        with urllib.request.urlopen(req, timeout=6) as resp:
+            data = json.loads(resp.read().decode())
+    except Exception:  # noqa: BLE001 - offline / not found / any error -> no result
+        return None
+    product = data.get("product") or {}
+    name = (product.get("product_name") or "").strip()
+    if not name:
+        return None
+    brand = (product.get("brands") or "").split(",")[0].strip()
+    qty = (product.get("quantity") or "").strip()
+    full = name if (not brand or brand.lower() in name.lower()) else f"{brand} {name}"
+    if qty and qty.lower() not in full.lower():
+        full = f"{full} {qty}"
+    return full.strip()
+
+
+@api.get("/lookup-barcode/{code}")
+def api_lookup_barcode(code: str) -> dict:
+    """Resolve a barcode: your catalogue first (offline), then Open Food Facts (online)."""
+    code = code.strip()
+    existing = repo.get_item_by_barcode(code)
+    if existing is not None:
+        return {"found": True, "in_catalog": True, "item": _item_dict(existing), "barcode": code}
+    name = _off_lookup(code)
+    if name:
+        return {"found": True, "in_catalog": False, "name": name,
+                "source": "openfoodfacts", "barcode": code}
+    return {"found": False, "in_catalog": False, "barcode": code}
 
 
 @api.delete("/items/{item_id}")
@@ -493,6 +535,7 @@ def api_low(threshold: float = 5) -> list[dict]:
 
 
 app.include_router(api)
+app.mount("/static", StaticFiles(directory=str(_STATIC)), name="static")
 
 
 def _lan_ip() -> str:
@@ -525,13 +568,22 @@ def main() -> None:
     threading.Thread(target=_warm, daemon=True).start()
 
     host, port = SETTINGS.web_host, SETTINGS.web_port
+    cert, key = SETTINGS.web_tls_cert, SETTINGS.web_tls_key
+    use_tls = Path(cert).exists() and Path(key).exists()
+    scheme = "https" if use_tls else "http"
     print("shopkeeper web  —  Ctrl-C to stop", flush=True)
-    print(f"  this machine : http://127.0.0.1:{port}", flush=True)
+    print(f"  this machine : {scheme}://127.0.0.1:{port}", flush=True)
     if host == "0.0.0.0":
-        print(f"  your phone   : http://{_lan_ip()}:{port}   (same Wi-Fi)", flush=True)
+        print(f"  your phone   : {scheme}://{_lan_ip()}:{port}   (same Wi-Fi)", flush=True)
+        if not use_tls:
+            print("  (no TLS cert — camera needs HTTPS; run scripts/make-cert.sh)", flush=True)
         if not SETTINGS.web_token:
-            print("  ! no WEB_TOKEN set — anyone on this network can use it. Set one in .env for the shop.", flush=True)
-    uvicorn.run(app, host=host, port=port, log_level="warning")
+            print("  ! no WEB_TOKEN set — anyone on this network can use it. Set one in .env.", flush=True)
+    if use_tls:
+        uvicorn.run(app, host=host, port=port, log_level="warning",
+                    ssl_certfile=cert, ssl_keyfile=key)
+    else:
+        uvicorn.run(app, host=host, port=port, log_level="warning")
 
 
 if __name__ == "__main__":
