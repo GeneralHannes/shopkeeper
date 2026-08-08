@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 from decimal import Decimal
-from typing import Protocol
+from typing import Literal, Protocol
 
 from pydantic import BaseModel, Field
 
@@ -50,6 +50,31 @@ class ParsedCatalog(BaseModel):
     items: list[ParsedNewItem] = Field(default_factory=list)
 
 
+class Intent(BaseModel):
+    """What the shopkeeper's chat message is asking for."""
+    intent: Literal[
+        "price", "stock", "today", "low_stock", "best_sellers",
+        "record_sale", "add_item", "restock", "help",
+    ]
+    query: str | None = None      # item name, when the message is about one item
+    quantity: float | None = None  # a number stated in the message (e.g. restock amount)
+
+
+_SYSTEM_CLASSIFY = """You are the intent router for a small shop assistant. Read the shopkeeper's
+message and classify it into exactly one intent:
+- price: asking the price or cost of an item
+- stock: asking how much of an item is in stock
+- today: asking about today's sales or total
+- low_stock: asking what is low or needs restocking
+- best_sellers: asking best sellers / top items
+- record_sale: recording or ringing up a sale of one or more items
+- add_item: adding a NEW product to the catalogue
+- restock: adding stock to an EXISTING item
+- help: a greeting, thanks, or anything that doesn't fit the above
+Also extract: query = the item name if the message centres on one item; quantity = a number if the
+message states an amount. Use null when not applicable. Return JSON matching the schema."""
+
+
 _SYSTEM_ITEMS = """You turn a shopkeeper's notes into product catalogue entries.
 Each item may include: name, category, unit (each/kg/pack/carton...), retail (single sell price),
 wholesale (bulk sell price), cost (buy price from supplier), stock (quantity on hand), supplier.
@@ -78,6 +103,7 @@ class AIProvider(Protocol):
     def available(self) -> bool: ...
     def parse_items(self, text: str) -> list[ParsedItem]: ...
     def parse_new_items(self, text: str) -> list[ParsedNewItem]: ...
+    def classify(self, text: str) -> Intent: ...
     def warm(self) -> None: ...
 
 
@@ -110,6 +136,20 @@ _CLAUDE_CATALOG_SCHEMA = {
         }
     },
     "required": ["items"],
+    "additionalProperties": False,
+}
+
+_CLAUDE_INTENT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "intent": {"type": "string", "enum": [
+            "price", "stock", "today", "low_stock", "best_sellers",
+            "record_sale", "add_item", "restock", "help",
+        ]},
+        "query": _nullable("string"),
+        "quantity": _nullable("number"),
+    },
+    "required": ["intent", "query", "quantity"],
     "additionalProperties": False,
 }
 
@@ -180,6 +220,19 @@ class OllamaProvider:
         )
         return ParsedCatalog.model_validate_json(resp["message"]["content"]).items
 
+    def classify(self, text: str) -> Intent:
+        resp = self._client.chat(
+            model=self._model,
+            messages=[
+                {"role": "system", "content": _SYSTEM_CLASSIFY},
+                {"role": "user", "content": text},
+            ],
+            format=Intent.model_json_schema(),
+            options={"temperature": 0},
+            keep_alive="30m",
+        )
+        return Intent.model_validate_json(resp["message"]["content"])
+
     def warm(self) -> None:
         """Pre-load the model into memory so the first real parse isn't slow."""
         try:
@@ -241,6 +294,17 @@ class ClaudeProvider:
         data = json.loads(content)
         fields = ("name", "category", "unit", "retail", "wholesale", "cost", "stock", "supplier")
         return [ParsedNewItem(**{k: it.get(k) for k in fields}) for it in data.get("items", [])]
+
+    def classify(self, text: str) -> Intent:
+        resp = self._client.messages.create(
+            model=self._model,
+            max_tokens=256,
+            system=_SYSTEM_CLASSIFY,
+            messages=[{"role": "user", "content": text}],
+            output_config={"format": {"type": "json_schema", "schema": _CLAUDE_INTENT_SCHEMA}},
+        )
+        content = next((b.text for b in resp.content if b.type == "text"), "{}")
+        return Intent.model_validate(json.loads(content))
 
     def warm(self) -> None:  # nothing to pre-load for a cloud model
         pass

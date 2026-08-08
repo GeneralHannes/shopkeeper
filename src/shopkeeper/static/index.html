@@ -61,6 +61,7 @@
   <div class="tabs">
     <button id="tab-sell" class="active" onclick="show('sell')">Sell</button>
     <button id="tab-stock" onclick="show('stock')">Stock</button>
+    <button id="tab-ask" onclick="show('ask')">Ask</button>
     <button id="tab-dash" onclick="show('dash')">Dash</button>
   </div>
 </header>
@@ -155,6 +156,19 @@
     </div>
   </section>
 
+  <!-- ASK (AI assistant) -->
+  <section id="view-ask" style="display:none">
+    <div class="card">
+      <h2>Ask the assistant (local AI)</h2>
+      <div id="chat" style="min-height:8rem;max-height:52vh;overflow-y:auto"></div>
+      <div class="row" style="margin-top:.6rem">
+        <input id="ask-input" placeholder="price coke · sales today · sell 2 coke · restock rice 20"
+               autocomplete="off" onkeydown="if(event.key==='Enter')sendAssistant()">
+        <button class="act" onclick="sendAssistant()">Send</button>
+      </div>
+    </div>
+  </section>
+
   <!-- DASHBOARD -->
   <section id="view-dash" style="display:none">
     <div class="card">
@@ -195,10 +209,11 @@ function askToken(){ const t = prompt('Enter shop PIN:'); if(t && t.trim()){ TOK
 async function checkAuth(){ try{ const a = await (await fetch('/api/auth')).json(); if(a.required && !TOKEN) askToken(); }catch(_){} }
 
 function show(v){
-  for(const k of ['sell','stock','dash']){ $('#view-'+k).style.display = (k===v)?'':'none'; $('#tab-'+k).classList.toggle('active', k===v); }
+  for(const k of ['sell','stock','ask','dash']){ $('#view-'+k).style.display = (k===v)?'':'none'; $('#tab-'+k).classList.toggle('active', k===v); }
   if(v==='sell') loadQuick();
   if(v==='dash') loadDash();
   if(v==='stock') loadStock();
+  if(v==='ask') setTimeout(()=>$('#ask-input')&&$('#ask-input').focus(),50);
 }
 
 function setMode(m){
@@ -432,6 +447,48 @@ async function loadDash(){
   $('#best').innerHTML = best.length ? best.map((b,i)=>`<li><span class="muted">${i+1}.</span><span class="name">${esc(b.name)}</span><span class="price">${money(b.qty)} · ${money(b.revenue)}</span></li>`).join('')
     : '<li class="empty">No sales yet</li>';
 }
+// ---- Ask (AI assistant) ----
+function chatAdd(who, text){
+  const box=$('#chat'); const d=document.createElement('div');
+  d.style.cssText='margin:.4rem 0;padding:.5rem .7rem;border-radius:10px;white-space:pre-wrap;'+
+    (who==='you'?'background:var(--accent);color:#fff;margin-left:2rem':'background:var(--bg);border:1px solid var(--line);margin-right:2rem');
+  d.textContent=text; box.appendChild(d); box.scrollTop=box.scrollHeight; return d;
+}
+async function sendAssistant(){
+  const el=$('#ask-input'); const text=el.value.trim(); if(!text) return; el.value='';
+  chatAdd('you', text);
+  const bubble=chatAdd('ai','…');
+  try{
+    const res=await api('/api/assistant',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+    bubble.textContent=res.reply||'(no reply)';
+    if(res.action) attachAction(bubble, res.action);
+  }catch(e){ bubble.textContent='Error: '+e.message; }
+}
+function attachAction(afterNode, action){
+  const btn=document.createElement('button'); btn.className='act'; btn.textContent='Confirm';
+  btn.style.cssText='margin:.1rem 0 .6rem 0;margin-right:2rem';
+  btn.onclick=async()=>{
+    btn.disabled=true;
+    try{
+      if(action.type==='sale'){
+        const r=await api('/api/sale',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({payment_method:'cash',lines:action.lines.map(l=>({item_id:l.item_id,quantity:l.quantity}))})});
+        chatAdd('ai',`✓ Sale #${r.id} recorded — ${money(r.total)} ${r.currency}`);
+      } else if(action.type==='restock'){
+        const it=await api('/api/items/'+action.item_id+'/restock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({quantity:action.quantity})});
+        chatAdd('ai',`✓ ${it.name} restocked — now ${money(it.quantity_on_hand)} ${it.unit}`);
+      } else if(action.type==='items'){
+        let n=0;
+        for(const d of action.items){ const b={};
+          for(const k of ['name','category','unit','retail','wholesale','cost','stock','supplier']){ if(d[k]!=null&&d[k]!=='') b[k]=d[k]; }
+          if(!b.name) continue;
+          await api('/api/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}); n++; }
+        chatAdd('ai',`✓ Added ${n} item(s)`); loadStock();
+      }
+    }catch(e){ chatAdd('ai','Error: '+e.message); btn.disabled=false; }
+  };
+  afterNode.after(btn); $('#chat').scrollTop=$('#chat').scrollHeight;
+}
+
 async function voidSale(id){ if(!confirm('Void sale #'+id+'? Stock will be restored.')) return;
   try{ await api('/api/sale/'+id+'/void',{method:'POST'}); toast('Voided #'+id); loadDash(); }catch(e){ toast('Error: '+e.message); } }
 

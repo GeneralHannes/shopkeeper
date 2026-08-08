@@ -244,6 +244,109 @@ def api_parse_catalog(body: ParseIn) -> dict:
     return {"items": [d.model_dump() for d in drafts]}
 
 
+def _price_str(item_id: int) -> str:
+    r = repo.current_price(item_id, "retail")
+    w = repo.current_price(item_id, "wholesale")
+    parts = []
+    if r:
+        parts.append(f"retail {r.price:.2f}")
+    if w:
+        parts.append(f"wholesale {w.price:.2f}")
+    return ", ".join(parts) if parts else "no price set"
+
+
+@api.post("/assistant")
+def api_assistant(body: ParseIn) -> dict:
+    """Chat assistant: classify the message, then answer (read) or propose an action."""
+    from .ai import get_provider
+
+    provider = get_provider()
+    if not provider.available():
+        raise HTTPException(503, "local AI not available (model not pulled or ollama down)")
+    text = body.text.strip()
+    try:
+        intent = provider.classify(text)
+    except Exception as exc:
+        raise HTTPException(500, f"AI error: {exc}") from exc
+
+    kind = intent.intent
+    q = (intent.query or text).strip()
+
+    # ---- read-only answers ----
+    if kind == "price":
+        matches = repo.find_items(q)[:3]
+        if not matches:
+            return {"reply": f"No item matches “{q}”."}
+        return {"reply": "\n".join(f"{m.name}: {_price_str(m.id)}" for m in matches)}
+    if kind == "stock":
+        matches = repo.find_items(q)[:5]
+        if not matches:
+            return {"reply": f"No item matches “{q}”."}
+        return {"reply": "\n".join(f"{m.name}: {m.quantity_on_hand:g} {m.unit} in stock" for m in matches)}
+    if kind == "today":
+        sales = repo.todays_sales()
+        total = sum((s.total for s in sales), Decimal(0))
+        return {"reply": f"Today: {len(sales)} sale(s), total {total:.2f}."}
+    if kind == "low_stock":
+        thr = Decimal(str(intent.quantity)) if intent.quantity else Decimal(5)
+        low = repo.low_stock(thr)
+        if not low:
+            return {"reply": "Nothing is low on stock."}
+        return {"reply": "Low stock:\n" + "\n".join(f"{i.name}: {i.quantity_on_hand:g} {i.unit}" for i in low)}
+    if kind == "best_sellers":
+        rows = repo.best_sellers(30)
+        if not rows:
+            return {"reply": "No sales in the last 30 days."}
+        return {"reply": "Best sellers (30d):\n" + "\n".join(f"{r['name']}: {float(r['qty']):g} sold" for r in rows[:10])}
+    if kind == "help":
+        return {"reply": "I can tell you prices, stock, today's sales, low stock, and best sellers — "
+                         "and record a sale, add an item, or restock (you confirm first). Try: "
+                         "“price coke”, “rice in stock”, “sales today”, "
+                         "“sell 2 coke”, “restock rice 20”."}
+
+    # ---- proposed actions (client confirms) ----
+    if kind == "record_sale":
+        lines, unresolved = [], []
+        for p in provider.parse_items(text):
+            m = repo.find_items(p.name)
+            if not m:
+                unresolved.append(p.name)
+                continue
+            item = m[0]
+            price = repo.current_price(item.id, "retail")
+            if price is None:
+                unresolved.append(f"{item.name} (no price)")
+                continue
+            qty = p.qty()
+            lines.append({"item_id": item.id, "name": item.name, "quantity": float(qty),
+                          "unit_price": float(price.price), "line_total": float(qty * price.price)})
+        if not lines:
+            miss = f" (not found: {', '.join(unresolved)})" if unresolved else ""
+            return {"reply": f"Couldn't match any items to sell{miss}."}
+        total = round(sum(x["line_total"] for x in lines), 2)
+        summary = ", ".join(f"{x['quantity']:g} {x['name']}" for x in lines)
+        note = f"  (not found: {', '.join(unresolved)})" if unresolved else ""
+        return {"reply": f"Ring up: {summary} — total {total:.2f}?{note}",
+                "action": {"type": "sale", "lines": lines, "total": total}}
+    if kind == "add_item":
+        drafts = [d.model_dump() for d in provider.parse_new_items(text)]
+        if not drafts:
+            return {"reply": "Couldn't read an item to add."}
+        return {"reply": f"Add {len(drafts)} item(s): {', '.join(d['name'] for d in drafts)}? Review & confirm.",
+                "action": {"type": "items", "items": drafts}}
+    if kind == "restock":
+        if not intent.query or intent.quantity is None:
+            return {"reply": "Tell me the item and amount, e.g. “restock rice 20”."}
+        m = repo.find_items(intent.query)
+        if not m:
+            return {"reply": f"No item matches “{intent.query}”."}
+        item = m[0]
+        return {"reply": f"Restock {item.name} by {intent.quantity:g} (now {item.quantity_on_hand:g} {item.unit})?",
+                "action": {"type": "restock", "item_id": item.id, "name": item.name, "quantity": intent.quantity}}
+
+    return {"reply": "Sorry, I didn't understand that."}
+
+
 @api.get("/today")
 def api_today() -> dict:
     sales = repo.todays_sales()
