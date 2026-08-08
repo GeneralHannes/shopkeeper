@@ -14,8 +14,10 @@ env/
 .env
 .env.*
 !.env.example
-# --- TLS cert (self-signed, per-machine; key is private) ---
+# --- TLS cert (per-machine; key is private) ---
 certs/
+# mkcert root CA copy served for phone install (per-machine)
+src/shopkeeper/static/rootCA.pem
 
 # --- Postgres (Docker volume data lives in-project) ---
 db/data/

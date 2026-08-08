@@ -335,33 +335,34 @@ function cameraScan(){ scanCamera(addByBarcode); }
 function scanBarcodeInto(){ scanCamera(code=>{ $('#ni-barcode').value=code; lookupBarcode(); }); }
 
 async function scanCamera(onCode){
-  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ toast('Camera not available in this browser'); return; }
   const hasBD = ('BarcodeDetector' in window);
   const hasZX = !!(window.ZXing && window.ZXing.BrowserMultiFormatReader);
   if(!hasBD && !hasZX){ toast('Barcode scanning not supported in this browser'); return; }
-  let stream;
-  try{ stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}); }
-  catch(e){ toast('Camera blocked — needs HTTPS: '+e.message); return; }
   const ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;background:#000;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem';
-  const v=document.createElement('video'); v.autoplay=true; v.playsInline=true; v.muted=true; v.srcObject=stream;
+  const v=document.createElement('video'); v.autoplay=true; v.playsInline=true; v.muted=true; v.setAttribute('playsinline','');
   v.style.cssText='max-width:100%;max-height:80vh;border-radius:12px';
   const cancel=document.createElement('button'); cancel.textContent='Cancel'; cancel.className='act';
   ov.appendChild(v); ov.appendChild(cancel); document.body.appendChild(ov);
-  let done=false, zx=null;
-  const stop=()=>{ if(done) return; done=true; try{ if(zx) zx.reset(); }catch(_){} stream.getTracks().forEach(t=>t.stop()); ov.remove(); };
+  let done=false, zx=null, stream=null;
+  const stop=()=>{ if(done) return; done=true; try{ if(zx) zx.reset(); }catch(_){} if(stream){ stream.getTracks().forEach(t=>t.stop()); } ov.remove(); };
   const hit=code=>{ if(done) return; stop(); onCode(code); };
   cancel.onclick=stop;
   if(hasBD){
+    try{ stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}); }
+    catch(e){ toast('Camera blocked: '+e.message); stop(); return; }
+    v.srcObject=stream; await v.play().catch(()=>{});
     const det=new window.BarcodeDetector();
     const tick=async()=>{ if(done) return;
       try{ const codes=await det.detect(v); if(codes.length){ hit(codes[0].rawValue); return; } }catch(_){}
       requestAnimationFrame(tick); };
-    v.onloadedmetadata=()=>tick();
+    tick();
   } else {
-    try{ zx=new window.ZXing.BrowserMultiFormatReader();
-      zx.decodeFromVideoElement(v, (result)=>{ if(result) hit(result.getText()); });
-    }catch(e){ toast('Scanner error: '+e.message); stop(); }
+    try{
+      zx=new window.ZXing.BrowserMultiFormatReader();
+      // ZXing opens the (rear) camera itself and streams into the video element
+      zx.decodeFromConstraints({video:{facingMode:{ideal:'environment'}}}, v, (result)=>{ if(result) hit(result.getText()); });
+    }catch(e){ toast('Camera/scanner error: '+e.message); stop(); }
   }
 }
 
