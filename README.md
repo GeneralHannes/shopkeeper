@@ -110,6 +110,18 @@ from your phone; `WEB_HOST=127.0.0.1` restricts to this machine. Since it's on y
 set `WEB_TOKEN=<a password>` for the shop — the phone is asked for it once. Leave blank on a
 trusted home network.
 
+### AI provider: local (default) or Claude
+
+The AI parser sits behind a swappable interface:
+
+- **Local (default, free, offline)** — Ollama, kept warm so parses are fast after the first call.
+- **Claude cloud (paid, needs internet, smartest)** — set in `.env`: `AI_PROVIDER=claude`,
+  `ANTHROPIC_API_KEY=...`, optionally `CLAUDE_MODEL` (defaults to the fast/low-cost
+  `claude-haiku-4-5`; set `claude-opus-4-8` for max quality). Install with `pip install -e ".[claude]"`.
+
+For fast-paced selling, the quickest entry is **tap-to-add / quick items**, not any AI — the AI is
+for jotting a batch in your own words.
+
 ### Using the cashier
 
 ```
