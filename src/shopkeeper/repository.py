@@ -290,3 +290,57 @@ def void_sale(sale_id: int) -> Sale:
     result = get_sale(sale_id)
     assert result is not None  # just updated it
     return result
+
+
+# --------------------------------------------------------------------------- #
+# Reports
+# --------------------------------------------------------------------------- #
+
+def sales_summary(days: int = 7) -> list[dict]:
+    """Per-day sales count + total for the last `days` days (voided excluded)."""
+    with connection() as conn:
+        return conn.execute(
+            """
+            SELECT sold_at::date AS day, count(*) AS sales, coalesce(sum(total), 0) AS total
+            FROM sales
+            WHERE voided_at IS NULL AND sold_at::date >= CURRENT_DATE - (%(days)s::int - 1)
+            GROUP BY day
+            ORDER BY day DESC
+            """,
+            {"days": days},
+        ).fetchall()
+
+
+def best_sellers(days: int = 30, limit: int = 10) -> list[dict]:
+    """Top items by quantity sold over the last `days` days (voided excluded)."""
+    with connection() as conn:
+        return conn.execute(
+            """
+            SELECT coalesce(i.name, sl.description) AS name,
+                   sum(sl.quantity)   AS qty,
+                   sum(sl.line_total) AS revenue
+            FROM sale_lines sl
+            JOIN sales s ON s.id = sl.sale_id
+            LEFT JOIN items i ON i.id = sl.item_id
+            WHERE s.voided_at IS NULL AND s.sold_at::date >= CURRENT_DATE - (%(days)s::int - 1)
+            GROUP BY coalesce(i.name, sl.description)
+            ORDER BY qty DESC
+            LIMIT %(limit)s
+            """,
+            {"days": days, "limit": limit},
+        ).fetchall()
+
+
+def low_stock(threshold: Decimal = Decimal(5), limit: int = 50) -> list[Item]:
+    """Active items at or below `threshold` on hand — what to restock."""
+    with connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT * FROM items
+            WHERE active AND quantity_on_hand <= %s
+            ORDER BY quantity_on_hand ASC, lower(name)
+            LIMIT %s
+            """,
+            (threshold, limit),
+        ).fetchall()
+    return [Item(**r) for r in rows]

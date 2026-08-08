@@ -25,6 +25,10 @@ commands:
   sell                                     start a sale (cart mode)
   ai    TEXT                               parse free-text into a sale (local AI)
   today                                    today's sales + total
+ reports:
+  report [DAYS]                            sales per day (default 7)
+  best   [DAYS]                            best sellers (default 30)
+  low    [THRESHOLD]                       items low on stock (default <=5)
  corrections:
   adjust QUERY DELTA                       fix stock after a miscount (e.g. adjust rice -2)
   rename QUERY | NEWNAME                   rename an item
@@ -73,6 +77,16 @@ def _resolve(query: str) -> tuple[Item | None, str | None]:
         return matches[0], None
     listing = "\n".join(f"    #{m.id} {m.name}" for m in matches)
     return None, f"'{query}' matches several — use #id:\n{listing}"
+
+
+def _int_or(arg: str, default: int) -> int:
+    arg = arg.strip()
+    if not arg:
+        return default
+    try:
+        return int(arg)
+    except ValueError:
+        return default
 
 
 def _split_query_qty(arg: str, default: Decimal = Decimal(1)) -> tuple[str, Decimal] | None:
@@ -279,6 +293,48 @@ def cmd_today() -> None:
     print(f"  ---- {len(sales)} sale(s), TOTAL {_money(total)}")
 
 
+def cmd_report(arg: str) -> None:
+    days = _int_or(arg, 7)
+    rows = repo.sales_summary(days)
+    if not rows:
+        print(f"no sales in the last {days} day(s)")
+        return
+    print(f"sales — last {days} day(s):")
+    grand, n = Decimal(0), 0
+    for r in rows:
+        print(f"  {r['day']}   {r['sales']:>3} sale(s)   {_money(r['total'])}")
+        grand += r["total"]
+        n += r["sales"]
+    print(f"  ----  {n} sale(s), TOTAL {_money(grand)}")
+
+
+def cmd_best(arg: str) -> None:
+    days = _int_or(arg, 30)
+    rows = repo.best_sellers(days)
+    if not rows:
+        print(f"no sales in the last {days} day(s)")
+        return
+    print(f"best sellers — last {days} day(s):")
+    for i, r in enumerate(rows, 1):
+        print(f"  {i:>2}. {r['name']:<26} {_qty(r['qty']):>7} sold   {_money(r['revenue'])}")
+
+
+def cmd_low(arg: str) -> None:
+    arg = arg.strip()
+    try:
+        threshold = Decimal(arg) if arg else Decimal(5)
+    except InvalidOperation:
+        print("usage: low [THRESHOLD]")
+        return
+    items = repo.low_stock(threshold)
+    if not items:
+        print(f"nothing at or below {_qty(threshold)} in stock")
+        return
+    print(f"low stock (<= {_qty(threshold)}):")
+    for it in items:
+        print(f"  #{it.id:<3} {it.name:<26} {_qty(it.quantity_on_hand):>7} {it.unit}")
+
+
 def sell_mode(cart: list[SaleLine] | None = None) -> None:
     """Cart mode: add lines, then pay. Type 'ITEM QTY' (QTY optional, default 1).
 
@@ -458,6 +514,12 @@ def run_command(raw: str) -> None:
         cmd_void(arg)
     elif cmd == "today":
         cmd_today()
+    elif cmd == "report":
+        cmd_report(arg)
+    elif cmd == "best":
+        cmd_best(arg)
+    elif cmd == "low":
+        cmd_low(arg)
     elif cmd in ("help", "?"):
         print(HELP)
     else:

@@ -67,8 +67,8 @@ model turns it into a reviewable cart. All verified against the live database.
 - [x] Price lookup ("cashier" Q&A) over the DB (`price` command)
 - [x] Smarter name matching (aliases + trigram fuzzy — "coke"/"cocacola" → "Coca-Cola")
 - [x] Corrections: void sale (restores stock), rename/remove item, adjust stock
-- [ ] Automatic daily backups
-- [ ] Daily reports (totals, best sellers, low-stock alerts)
+- [x] Automatic daily backups (rotating + restore + cron)
+- [x] Daily reports (sales/day, best sellers, low-stock alerts)
 - [ ] Local web UI
 
 ## Getting started
@@ -104,6 +104,9 @@ alias    QUERY | NICKNAME                teach a nickname (e.g. coca-cola | coke
 sell                                     start a sale, then 'ITEM QTY' lines, then 'pay cash'
 ai       TEXT                            free-text -> reviewable cart (local AI)
 today                                    today's sales + total
+report   [DAYS]                          sales per day (default 7)
+best     [DAYS]                          best sellers (default 30)
+low      [THRESHOLD]                     low-stock items (default <=5)
 adjust   QUERY DELTA                     fix stock after a miscount (e.g. adjust rice -2)
 rename   QUERY | NEWNAME                 rename an item
 remove   QUERY                           hide an item (keeps history)
