@@ -158,6 +158,11 @@
         <input id="ni-cost" placeholder="cost (buy)" inputmode="decimal">
         <input id="ni-stock" placeholder="stock qty" inputmode="decimal">
       </div>
+      <div class="row" style="margin-bottom:.4rem">
+        <button class="mini" onclick="pickImageForNew()">📷 Add photo</button>
+        <img id="ni-photo-preview" class="thumb" style="display:none" alt="">
+        <span class="muted" id="ni-photo-note"></span>
+      </div>
       <div class="row">
         <input id="ni-supplier" placeholder="supplier / note">
         <button class="act" onclick="addItem()">Add item</button>
@@ -388,6 +393,17 @@ async function uploadImage(id,dataURL){
   }catch(e){ toast('Error: '+e.message); }
 }
 
+// photo attached while adding a new item (uploaded after the item is created)
+let newItemPhoto=null;
+function pickImageForNew(){
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.capture='environment';
+  inp.onchange=()=>{ const f=inp.files&&inp.files[0]; if(!f) return;
+    resizeDataURL(f,1000,0.8).then(u=>{ newItemPhoto=u; const p=$('#ni-photo-preview'); p.src=u; p.style.display=''; $('#ni-photo-note').textContent='photo attached'; })
+      .catch(()=>toast('Could not read that image')); };
+  inp.click();
+}
+function clearNewPhoto(){ newItemPhoto=null; const p=$('#ni-photo-preview'); if(p){ p.style.display='none'; p.removeAttribute('src'); } const n=$('#ni-photo-note'); if(n) n.textContent=''; }
+
 // ---- Stock: fast deterministic add ----
 async function fastAdd(){
   const text=$('#fast-input').value.trim(); if(!text) return;
@@ -475,9 +491,12 @@ async function addItem(){
   if(wholesale) body.wholesale=wholesale;
   if(cost) body.cost=cost;
   if(stock) body.stock=stock;
-  try{ await api('/api/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  try{ const created=await api('/api/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(newItemPhoto && created && created.id){
+      try{ await api('/api/items/'+created.id+'/image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:newItemPhoto.split(',')[1],content_type:'image/jpeg'})}); }catch(_){}
+    }
     for(const id of ['ni-name','ni-category','ni-retail','ni-wholesale','ni-cost','ni-stock','ni-supplier','ni-barcode']) $('#'+id).value='';
-    $('#ni-unit').value='each';
+    $('#ni-unit').value='each'; clearNewPhoto();
     toast('Added '+name); loadStock();
   }catch(e){ toast('Error: '+e.message); }
 }
