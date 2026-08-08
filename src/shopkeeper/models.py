@@ -60,4 +60,5 @@ class Sale(BaseModel):
     currency: str = "USD"
     payment_method: str | None = None
     note: str | None = None
+    voided_at: datetime | None = None
     lines: list[SaleLine] = Field(default_factory=list)

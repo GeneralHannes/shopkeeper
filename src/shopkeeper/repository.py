@@ -9,7 +9,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from .db import connection
-from .models import Item, Price, Sale
+from .models import Item, Price, Sale, SaleLine
 
 # --------------------------------------------------------------------------- #
 # Items
@@ -99,6 +99,17 @@ def list_items(limit: int = 500) -> list[Item]:
             "SELECT * FROM items WHERE active ORDER BY lower(name) LIMIT %s", (limit,)
         ).fetchall()
     return [Item(**r) for r in rows]
+
+
+def rename_item(item_id: int, name: str) -> None:
+    with connection() as conn:
+        conn.execute("UPDATE items SET name = %s WHERE id = %s", (name.strip(), item_id))
+
+
+def set_active(item_id: int, active: bool) -> None:
+    """Soft remove/restore — hides an item from lists/search but keeps its history."""
+    with connection() as conn:
+        conn.execute("UPDATE items SET active = %s WHERE id = %s", (active, item_id))
 
 
 # --------------------------------------------------------------------------- #
@@ -201,14 +212,81 @@ def record_sale(sale: Sale) -> Sale:
 
 
 def todays_sales() -> list[Sale]:
-    """Sales recorded today (local server date), oldest first. Lines not loaded."""
+    """Non-voided sales recorded today (local server date), oldest first. Lines not loaded."""
     with connection() as conn:
         rows = conn.execute(
             """
-            SELECT id, sold_at, total, currency, payment_method, note
+            SELECT id, sold_at, total, currency, payment_method, note, voided_at
             FROM sales
-            WHERE sold_at::date = CURRENT_DATE
+            WHERE sold_at::date = CURRENT_DATE AND voided_at IS NULL
             ORDER BY sold_at
             """
         ).fetchall()
     return [Sale(**r) for r in rows]
+
+
+def get_sale(sale_id: int) -> Sale | None:
+    """A full sale with its lines (for display / before voiding)."""
+    with connection() as conn:
+        head = conn.execute(
+            """
+            SELECT id, sold_at, total, currency, payment_method, note, voided_at
+            FROM sales WHERE id = %s
+            """,
+            (sale_id,),
+        ).fetchone()
+        if head is None:
+            return None
+        lines = conn.execute(
+            """
+            SELECT id, item_id, description, quantity, unit_price, line_total
+            FROM sale_lines WHERE sale_id = %s ORDER BY id
+            """,
+            (sale_id,),
+        ).fetchall()
+    sale = Sale(**head)
+    sale.lines = [SaleLine(**line) for line in lines]
+    return sale
+
+
+def last_sale_id() -> int | None:
+    """Id of the most recent non-voided sale (for 'void' with no argument)."""
+    with connection() as conn:
+        row = conn.execute(
+            "SELECT id FROM sales WHERE voided_at IS NULL ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+    return row["id"] if row else None
+
+
+def void_sale(sale_id: int) -> Sale:
+    """Void a sale: restore stock (with a 'void' ledger entry) and mark it voided.
+
+    Raises ValueError if the sale doesn't exist or is already voided.
+    """
+    with connection() as conn, conn.transaction():
+        head = conn.execute(
+            "SELECT id, voided_at FROM sales WHERE id = %s FOR UPDATE", (sale_id,)
+        ).fetchone()
+        if head is None:
+            raise ValueError(f"no sale #{sale_id}")
+        if head["voided_at"] is not None:
+            raise ValueError(f"sale #{sale_id} is already voided")
+
+        lines = conn.execute(
+            "SELECT item_id, quantity FROM sale_lines WHERE sale_id = %s", (sale_id,)
+        ).fetchall()
+        for line in lines:
+            if line["item_id"] is not None:
+                conn.execute(
+                    "INSERT INTO stock_movements (item_id, change, reason, ref) VALUES (%s, %s, 'void', %s)",
+                    (line["item_id"], line["quantity"], f"void:{sale_id}"),
+                )
+                conn.execute(
+                    "UPDATE items SET quantity_on_hand = quantity_on_hand + %s WHERE id = %s",
+                    (line["quantity"], line["item_id"]),
+                )
+        conn.execute("UPDATE sales SET voided_at = now() WHERE id = %s", (sale_id,))
+
+    result = get_sale(sale_id)
+    assert result is not None  # just updated it
+    return result

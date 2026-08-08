@@ -66,8 +66,10 @@ model turns it into a reviewable cart. All verified against the live database.
 - [x] Ollama integration: parse typed entries → structured cart (via the `ai` command)
 - [x] Price lookup ("cashier" Q&A) over the DB (`price` command)
 - [x] Smarter name matching (aliases + trigram fuzzy — "coke"/"cocacola" → "Coca-Cola")
-- [ ] Daily sales recording + simple reports
-- [ ] Local web UI (later)
+- [x] Corrections: void sale (restores stock), rename/remove item, adjust stock
+- [ ] Automatic daily backups
+- [ ] Daily reports (totals, best sellers, low-stock alerts)
+- [ ] Local web UI
 
 ## Getting started
 
@@ -102,6 +104,11 @@ alias    QUERY | NICKNAME                teach a nickname (e.g. coca-cola | coke
 sell                                     start a sale, then 'ITEM QTY' lines, then 'pay cash'
 ai       TEXT                            free-text -> reviewable cart (local AI)
 today                                    today's sales + total
+adjust   QUERY DELTA                     fix stock after a miscount (e.g. adjust rice -2)
+rename   QUERY | NEWNAME                 rename an item
+remove   QUERY                           hide an item (keeps history)
+sale     SALEID                          show a sale's detail
+void     [SALEID]                        void a sale, restore stock (no id = last sale)
 quit                                     leave
 ```
 

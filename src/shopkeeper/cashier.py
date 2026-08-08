@@ -25,6 +25,13 @@ commands:
   sell                                     start a sale (cart mode)
   ai    TEXT                               parse free-text into a sale (local AI)
   today                                    today's sales + total
+ corrections:
+  adjust QUERY DELTA                       fix stock after a miscount (e.g. adjust rice -2)
+  rename QUERY | NEWNAME                   rename an item
+  remove QUERY                             hide an item (keeps history)
+  sale  SALEID                             show a sale's detail
+  void  [SALEID]                           void a sale (restores stock); no id = last sale
+ other:
   help | ?                                 this help
   quit | exit                              leave
 
@@ -177,6 +184,86 @@ def cmd_alias(arg: str) -> None:
         return
     repo.add_alias(item.id, nick)
     print(f"alias '{nick}' -> {item.name}")
+
+
+def cmd_adjust(arg: str) -> None:
+    parsed = _split_query_qty(arg)
+    if not parsed:
+        print("usage: adjust QUERY DELTA  (e.g. adjust rice -2)")
+        return
+    query, delta = parsed
+    item, err = _resolve(query)
+    if err:
+        print(err)
+        return
+    repo.adjust_stock(item.id, delta, reason="adjustment")
+    fresh = repo.get_item(item.id)
+    print(f"adjusted {item.name} by {_qty(delta)} -> now {_qty(fresh.quantity_on_hand)} {fresh.unit}")
+
+
+def cmd_rename(arg: str) -> None:
+    if "|" not in arg:
+        print("usage: rename QUERY | NEWNAME")
+        return
+    left, _, new = arg.partition("|")
+    new = new.strip()
+    if not new:
+        print("new name is empty")
+        return
+    item, err = _resolve(left.strip())
+    if err:
+        print(err)
+        return
+    repo.rename_item(item.id, new)
+    print(f"renamed #{item.id}: {item.name} -> {new}")
+
+
+def cmd_remove(arg: str) -> None:
+    item, err = _resolve(arg)
+    if err:
+        print(err)
+        return
+    repo.set_active(item.id, False)
+    print(f"removed {item.name} (hidden from lists; history kept; re-add with 'add')")
+
+
+def cmd_show_sale(arg: str) -> None:
+    try:
+        sale_id = int(arg.strip().lstrip("#"))
+    except ValueError:
+        print("usage: sale SALEID")
+        return
+    sale = repo.get_sale(sale_id)
+    if sale is None:
+        print(f"no sale #{sale_id}")
+        return
+    tag = "  (VOIDED)" if sale.voided_at else ""
+    when = sale.sold_at.astimezone().strftime("%Y-%m-%d %H:%M") if sale.sold_at else "?"
+    print(f"sale #{sale.id}{tag} — {when} — {sale.payment_method or ''}")
+    for ln in sale.lines:
+        print(f"    {_qty(ln.quantity)} x {ln.description} @ {_money(ln.unit_price)} = {_money(ln.resolved_total())}")
+    print(f"  total {_money(sale.total, sale.currency)}")
+
+
+def cmd_void(arg: str) -> None:
+    arg = arg.strip()
+    if arg:
+        try:
+            sale_id = int(arg.lstrip("#"))
+        except ValueError:
+            print("usage: void [SALEID]   (no id voids the last sale)")
+            return
+    else:
+        sale_id = repo.last_sale_id()
+        if sale_id is None:
+            print("no sale to void")
+            return
+    try:
+        sale = repo.void_sale(sale_id)
+    except ValueError as exc:
+        print(exc)
+        return
+    print(f"voided sale #{sale_id} — stock restored, {_money(sale.total, sale.currency)} removed from totals")
 
 
 def cmd_today() -> None:
@@ -359,6 +446,16 @@ def run_command(raw: str) -> None:
         sell_mode()
     elif cmd == "ai":
         cmd_ai(arg)
+    elif cmd == "adjust":
+        cmd_adjust(arg)
+    elif cmd == "rename":
+        cmd_rename(arg)
+    elif cmd == "remove":
+        cmd_remove(arg)
+    elif cmd == "sale":
+        cmd_show_sale(arg)
+    elif cmd == "void":
+        cmd_void(arg)
     elif cmd == "today":
         cmd_today()
     elif cmd in ("help", "?"):
