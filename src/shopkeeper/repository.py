@@ -98,6 +98,36 @@ def get_item_image(item_id: int) -> tuple[bytes, str] | None:
     return (bytes(row["data"]), row["content_type"]) if row else None
 
 
+def add_option(item_id: int, name: str, price: Decimal,
+               amount: Decimal = Decimal(1), currency: str = "USD") -> dict:
+    """Add a sell option (e.g. Cold / Normal / Set of 24) — separate from retail/wholesale."""
+    with connection() as conn:
+        row = conn.execute(
+            """
+            INSERT INTO item_options (item_id, name, price, amount, currency)
+            VALUES (%s, %s, %s, %s, %s) RETURNING id
+            """,
+            (item_id, name.strip(), price, amount, currency),
+        ).fetchone()
+    return {"id": row["id"], "item_id": item_id, "name": name.strip(),
+            "price": float(price), "amount": float(amount), "currency": currency}
+
+
+def get_options(item_id: int) -> list[dict]:
+    with connection() as conn:
+        rows = conn.execute(
+            "SELECT id, name, price, amount, currency FROM item_options WHERE item_id = %s ORDER BY id",
+            (item_id,),
+        ).fetchall()
+    return [{"id": r["id"], "name": r["name"], "price": float(r["price"]),
+             "amount": float(r["amount"]), "currency": r["currency"]} for r in rows]
+
+
+def delete_option(option_id: int) -> None:
+    with connection() as conn:
+        conn.execute("DELETE FROM item_options WHERE id = %s", (option_id,))
+
+
 def get_item_by_barcode(code: str) -> Item | None:
     with connection() as conn:
         row = conn.execute("SELECT * FROM items WHERE barcode = %s", (code.strip(),)).fetchone()

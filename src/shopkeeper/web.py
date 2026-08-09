@@ -302,6 +302,34 @@ def api_delete_item(item_id: int) -> dict:
     return {"deleted": item_id}
 
 
+@api.get("/items/{item_id}/options")
+def api_get_options(item_id: int) -> list[dict]:
+    if repo.get_item(item_id) is None:
+        raise HTTPException(404, f"no item #{item_id}")
+    return repo.get_options(item_id)
+
+
+class OptionIn(BaseModel):
+    name: str
+    price: Decimal = Field(ge=0)
+    amount: Decimal = Field(default=Decimal(1), gt=0)
+
+
+@api.post("/items/{item_id}/options")
+def api_add_option(item_id: int, body: OptionIn) -> dict:
+    if repo.get_item(item_id) is None:
+        raise HTTPException(404, f"no item #{item_id}")
+    if not body.name.strip():
+        raise HTTPException(400, "option name required")
+    return repo.add_option(item_id, body.name, body.price, body.amount)
+
+
+@api.delete("/options/{option_id}")
+def api_delete_option(option_id: int) -> dict:
+    repo.delete_option(option_id)
+    return {"deleted": option_id}
+
+
 class CategoryRenameIn(BaseModel):
     old_name: str | None = None
     new: str

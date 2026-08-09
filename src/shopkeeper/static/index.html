@@ -476,6 +476,36 @@ async function deleteItem(id, name){
   try{ await api('/api/items/'+id,{method:'DELETE'}); toast('Deleted '+name); loadStock(); }
   catch(e){ toast('Error: '+e.message); }
 }
+async function openOptions(id, name){
+  let opts=[];
+  try{ opts=await api('/api/items/'+id+'/options'); }catch(e){ toast('Error: '+e.message); return; }
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:25;display:flex;align-items:center;justify-content:center;padding:1rem';
+  const card=document.createElement('div'); card.className='card'; card.style.cssText='max-width:26rem;width:100%;max-height:85vh;overflow:auto';
+  const render=()=>{
+    let rows = opts.length ? '' : '<li class="empty">no options yet</li>';
+    for(const o of opts){
+      rows+=`<li><span class="name">${esc(o.name)}</span><span class="muted">${o.amount!=1?('×'+money(o.amount)):'single'}</span>
+        <span class="price">${money(o.price)}</span>
+        <button class="mini" style="color:var(--warn)" onclick="delOption(${o.id},this)">✕</button></li>`;
+    }
+    card.innerHTML=`<h2>Options — ${esc(name)}</h2>
+      <div class="muted" style="margin-bottom:.3rem">separate from retail/wholesale · e.g. Cold, Normal, Set(24)</div>
+      <ul>${rows}</ul>
+      <div class="row" style="margin:.6rem 0 .3rem"><input id="o-name" placeholder="name (Cold)"><input id="o-amt" placeholder="units" inputmode="decimal" value="1" style="max-width:5rem"></div>
+      <div class="row"><input id="o-price" placeholder="price" inputmode="decimal"><button class="act" id="o-add">Add</button></div>
+      <div class="row" style="margin-top:.6rem"><button class="mini" id="o-close" style="margin-left:auto">Close</button></div>`;
+    card.querySelector('#o-add').onclick=async()=>{
+      const nm=card.querySelector('#o-name').value.trim(), pr=card.querySelector('#o-price').value.trim(), am=card.querySelector('#o-amt').value.trim()||'1';
+      if(!nm||!pr){ toast('name and price needed'); return; }
+      try{ const o=await api('/api/items/'+id+'/options',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:nm,price:pr,amount:am})}); opts.push(o); render(); }
+      catch(e){ toast('Error: '+e.message); }
+    };
+    card.querySelector('#o-close').onclick=()=>ov.remove();
+  };
+  window.delOption=async(oid,btn)=>{ try{ await api('/api/options/'+oid,{method:'DELETE'}); opts=opts.filter(x=>x.id!==oid); render(); }catch(e){ toast('Error: '+e.message); } };
+  render(); ov.appendChild(card); ov.onclick=e=>{ if(e.target===ov) ov.remove(); }; document.body.appendChild(ov);
+}
 async function setBarcode(id){
   const code=prompt('Scan or type a barcode for this item:'); if(!code||!code.trim()) return;
   try{ await api('/api/items/'+id+'/barcode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({barcode:code.trim()})});
@@ -534,6 +564,7 @@ async function loadStock(){
       <input type="number" placeholder="+qty" inputmode="decimal" style="max-width:4.5rem" id="rs-${it.id}">
       <button class="mini" onclick="restock(${it.id})">restock</button>
       <button class="mini" onclick="setPrices(${it.id},'${esc(it.name)}')">prices</button>
+      <button class="mini" onclick="openOptions(${it.id},'${esc(it.name)}')">options</button>
       <button class="mini" onclick="setBarcode(${it.id})">barcode</button>
       <button class="mini" onclick="pickImage(${it.id})">photo</button>
       <button class="mini" onclick="deleteItem(${it.id},'${esc(it.name)}')" style="color:var(--warn)">delete</button>`;
