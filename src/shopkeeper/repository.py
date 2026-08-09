@@ -75,27 +75,68 @@ def find_items(query: str, limit: int = 10, threshold: float = 0.3) -> list[Item
     return [Item(**r) for r in rows]
 
 
-def set_item_image(item_id: int, data: bytes, content_type: str = "image/jpeg") -> None:
-    """Store (or replace) an item's photo and flag the item as having one."""
+def add_item_image(item_id: int, data: bytes, content_type: str = "image/jpeg") -> int:
+    """Append a photo to an item (items can have several). Returns the new image id."""
     with connection() as conn, conn.transaction():
-        conn.execute(
+        row = conn.execute(
             """
-            INSERT INTO item_images (item_id, data, content_type, updated_at)
-            VALUES (%s, %s, %s, now())
-            ON CONFLICT (item_id) DO UPDATE
-              SET data = EXCLUDED.data, content_type = EXCLUDED.content_type, updated_at = now()
+            INSERT INTO item_images (item_id, data, content_type, sort, updated_at)
+            VALUES (%s, %s, %s,
+                    COALESCE((SELECT max(sort) + 1 FROM item_images WHERE item_id = %s), 0),
+                    now())
+            RETURNING id
             """,
-            (item_id, data, content_type),
-        )
+            (item_id, data, content_type, item_id),
+        ).fetchone()
         conn.execute("UPDATE items SET has_image = true WHERE id = %s", (item_id,))
+    return row["id"]
+
+
+def list_item_images(item_id: int) -> list[dict]:
+    """An item's photos in display order — ids and content types only, no bytes."""
+    with connection() as conn:
+        rows = conn.execute(
+            "SELECT id, content_type FROM item_images WHERE item_id = %s ORDER BY sort, id",
+            (item_id,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_image(image_id: int) -> tuple[bytes, str] | None:
+    """One image by its own id (for the gallery / full-size viewer)."""
+    with connection() as conn:
+        row = conn.execute(
+            "SELECT data, content_type FROM item_images WHERE id = %s", (image_id,)
+        ).fetchone()
+    return (bytes(row["data"]), row["content_type"]) if row else None
 
 
 def get_item_image(item_id: int) -> tuple[bytes, str] | None:
+    """The item's first photo — used for list thumbnails."""
     with connection() as conn:
         row = conn.execute(
-            "SELECT data, content_type FROM item_images WHERE item_id = %s", (item_id,)
+            "SELECT data, content_type FROM item_images WHERE item_id = %s ORDER BY sort, id LIMIT 1",
+            (item_id,),
         ).fetchone()
     return (bytes(row["data"]), row["content_type"]) if row else None
+
+
+def delete_image(image_id: int) -> int | None:
+    """Remove one photo; clear the item's has_image flag if it was the last one.
+    Returns the affected item_id (or None if the image did not exist)."""
+    with connection() as conn, conn.transaction():
+        row = conn.execute(
+            "DELETE FROM item_images WHERE id = %s RETURNING item_id", (image_id,)
+        ).fetchone()
+        if not row:
+            return None
+        item_id = row["item_id"]
+        still = conn.execute(
+            "SELECT 1 FROM item_images WHERE item_id = %s LIMIT 1", (item_id,)
+        ).fetchone()
+        if not still:
+            conn.execute("UPDATE items SET has_image = false WHERE id = %s", (item_id,))
+    return item_id
 
 
 def add_option(item_id: int, name: str, price: Decimal,
@@ -241,6 +282,27 @@ def current_price(item_id: int, kind: str = "retail") -> Price | None:
             (item_id, kind),
         ).fetchone()
     return Price(**row) if row else None
+
+
+def current_prices_for(item_ids: list[int]) -> dict[int, dict[str, Price]]:
+    """Batch version of current_price: every active price kind for many items in a
+    single query, returned as {item_id: {kind: Price}}. Used when rendering item
+    lists so a 500-item page costs one query instead of 1500 (the N+1 fix)."""
+    ids = [i for i in item_ids if i is not None]
+    if not ids:
+        return {}
+    with connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT item_id, kind, price, currency, effective_from
+            FROM item_current_price WHERE item_id = ANY(%s)
+            """,
+            (ids,),
+        ).fetchall()
+    out: dict[int, dict[str, Price]] = {}
+    for r in rows:
+        out.setdefault(r["item_id"], {})[r["kind"]] = Price(**r)
+    return out
 
 
 # --------------------------------------------------------------------------- #

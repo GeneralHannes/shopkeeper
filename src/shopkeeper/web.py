@@ -42,10 +42,19 @@ def require_token(token: str | None = Query(None), x_token: str | None = Header(
 api = APIRouter(prefix="/api", dependencies=[Depends(require_token)])
 
 
-def _item_dict(it: Item) -> dict:
-    r = repo.current_price(it.id, "retail") if it.id is not None else None
-    w = repo.current_price(it.id, "wholesale") if it.id is not None else None
-    c = repo.current_price(it.id, "cost") if it.id is not None else None
+def _item_dict(it: Item, prices: dict | None = None) -> dict:
+    # `prices` = {kind: Price} prefetched in bulk by _item_list (avoids the N+1).
+    # When absent (single-item callers), fall back to per-kind lookups.
+    if prices is None:
+        prices = {}
+        if it.id is not None:
+            for k in ("retail", "wholesale", "cost"):
+                p = repo.current_price(it.id, k)
+                if p:
+                    prices[k] = p
+    r = prices.get("retail")
+    w = prices.get("wholesale")
+    c = prices.get("cost")
     retail = float(r.price) if r else None
     cost = float(c.price) if c else None
     any_price = r or w or c
@@ -66,6 +75,12 @@ def _item_dict(it: Item) -> dict:
     }
 
 
+def _item_list(items: list[Item]) -> list[dict]:
+    """Render a list of items with prices fetched in one bulk query, not per-item."""
+    pmap = repo.current_prices_for([it.id for it in items if it.id is not None])
+    return [_item_dict(it, pmap.get(it.id, {})) for it in items]
+
+
 @app.get("/", response_class=HTMLResponse)
 def index() -> str:
     return (_STATIC / "index.html").read_text(encoding="utf-8")
@@ -79,18 +94,18 @@ def auth_needed() -> dict:
 
 @api.get("/items")
 def api_items() -> list[dict]:
-    return [_item_dict(it) for it in repo.list_items()]
+    return _item_list(repo.list_items())
 
 
 @api.get("/quick")
 def api_quick() -> list[dict]:
     """A short list of frequently-sold items for one-tap selling."""
-    return [_item_dict(it) for it in repo.frequent_items(limit=12)]
+    return _item_list(repo.frequent_items(limit=12))
 
 
 @api.get("/search")
 def api_search(q: str) -> list[dict]:
-    return [_item_dict(it) for it in repo.find_items(q)]
+    return _item_list(repo.find_items(q))
 
 
 def _cur(value: str | None) -> str:
@@ -384,7 +399,8 @@ class ImageIn(BaseModel):
 
 
 @api.post("/items/{item_id}/image")
-def api_set_image(item_id: int, body: ImageIn) -> dict:
+def api_add_image(item_id: int, body: ImageIn) -> dict:
+    """Append a photo to an item (items may have several). Returns the new image id."""
     if repo.get_item(item_id) is None:
         raise HTTPException(404, f"no item #{item_id}")
     try:
@@ -393,12 +409,19 @@ def api_set_image(item_id: int, body: ImageIn) -> dict:
         raise HTTPException(400, "invalid image data") from exc
     if len(raw) > 6_000_000:
         raise HTTPException(413, "image too large (resize on the client)")
-    repo.set_item_image(item_id, raw, body.content_type)
-    return {"ok": True}
+    image_id = repo.add_item_image(item_id, raw, body.content_type)
+    return {"ok": True, "id": image_id}
+
+
+@api.get("/items/{item_id}/images")
+def api_list_images(item_id: int) -> list[dict]:
+    """The item's photo ids, in display order (for the gallery)."""
+    return repo.list_item_images(item_id)
 
 
 @api.get("/items/{item_id}/image")
-def api_get_image(item_id: int) -> Response:
+def api_get_item_image(item_id: int) -> Response:
+    """The item's first photo — the list thumbnail. Kept for back-compat."""
     img = repo.get_item_image(item_id)
     if img is None:
         raise HTTPException(404, "no image")
@@ -407,9 +430,29 @@ def api_get_image(item_id: int) -> Response:
                     headers={"Cache-Control": "no-cache"})
 
 
+@api.get("/images/{image_id}")
+def api_get_image(image_id: int) -> Response:
+    """One photo by its own id. Immutable, so cache it hard."""
+    img = repo.get_image(image_id)
+    if img is None:
+        raise HTTPException(404, "no image")
+    data, content_type = img
+    return Response(content=data, media_type=content_type,
+                    headers={"Cache-Control": "public, max-age=31536000, immutable"})
+
+
+@api.delete("/images/{image_id}")
+def api_delete_image(image_id: int) -> dict:
+    item_id = repo.delete_image(image_id)
+    if item_id is None:
+        raise HTTPException(404, "no image")
+    return {"ok": True, "item_id": item_id}
+
+
 class PriceIn(BaseModel):
     price: Decimal = Field(ge=0)
-    kind: str = "retail"  # retail | wholesale | cost
+    kind: str = "retail"           # retail | wholesale | cost
+    currency: str | None = None    # None = keep the item's existing currency
 
 
 @api.post("/items/{item_id}/price")
@@ -418,7 +461,13 @@ def api_set_price(item_id: int, body: PriceIn) -> dict:
         raise HTTPException(404, f"no item #{item_id}")
     if body.kind not in ("retail", "wholesale", "cost"):
         raise HTTPException(400, "kind must be retail, wholesale, or cost")
-    repo.set_price(item_id, body.price, body.kind)
+    # Preserve currency unless one is given: explicit → same-kind price → retail → USD.
+    if body.currency:
+        cur = _cur(body.currency)
+    else:
+        existing = repo.current_price(item_id, body.kind) or repo.current_price(item_id, "retail")
+        cur = existing.currency if existing else "USD"
+    repo.set_price(item_id, body.price, body.kind, cur)
     return _item_dict(repo.get_item(item_id))
 
 
@@ -665,7 +714,7 @@ def api_best(days: int = 30) -> list[dict]:
 
 @api.get("/low")
 def api_low(threshold: float = 5) -> list[dict]:
-    return [_item_dict(it) for it in repo.low_stock(Decimal(str(threshold)))]
+    return _item_list(repo.low_stock(Decimal(str(threshold))))
 
 
 app.include_router(api)
