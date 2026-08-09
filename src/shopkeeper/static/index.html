@@ -154,13 +154,25 @@
         <input id="ni-category" placeholder="category (drinks, snacks…)">
         <input id="ni-unit" placeholder="unit" value="each" style="max-width:6rem">
       </div>
+      <!-- BASE price = single, with currency, + stock -->
       <div class="row" style="margin-bottom:.4rem">
-        <input id="ni-retail" placeholder="retail (sell 1)" inputmode="decimal">
-        <input id="ni-wholesale" placeholder="wholesale" inputmode="decimal">
+        <input id="ni-retail" placeholder="single price" inputmode="decimal">
+        <select id="ni-currency" style="max-width:6rem"><option value="KHR">៛ Riel</option><option value="USD">$ USD</option></select>
+        <input id="ni-stock" placeholder="stock qty" inputmode="decimal" style="max-width:6rem">
       </div>
+      <!-- custom amount options (Cold / Normal / Set…) via a button -->
+      <div id="ni-opts"></div>
       <div class="row" style="margin-bottom:.4rem">
-        <input id="ni-cost" placeholder="cost (buy)" inputmode="decimal">
-        <input id="ni-stock" placeholder="stock qty" inputmode="decimal">
+        <button class="mini" onclick="addOptRow()">+ amount option</button>
+        <span class="muted">e.g. Cold, Normal, Set(24)</span>
+      </div>
+      <!-- wholesale / cost as a separate section -->
+      <div class="muted" style="margin-bottom:.4rem;cursor:pointer" onclick="toggleWholesale()"><span id="ni-wsec-caret">▸</span> Wholesale / cost (optional)</div>
+      <div id="ni-wsec" style="display:none">
+        <div class="row" style="margin-bottom:.4rem">
+          <input id="ni-wholesale" placeholder="wholesale price" inputmode="decimal">
+          <input id="ni-cost" placeholder="cost (buy)" inputmode="decimal">
+        </div>
       </div>
       <div class="row" style="margin-bottom:.4rem">
         <button class="mini" onclick="pickImageForNew()">📷 Add photo</button>
@@ -222,6 +234,7 @@
 <script>
 const $ = s => document.querySelector(s);
 const money = n => (n==null? '—' : Number(n).toFixed(2));
+const fmt = (p,c) => (p==null? '—' : (c==='KHR' ? '៛'+Math.round(Number(p)).toLocaleString() : '$'+Number(p).toFixed(2)));
 const esc = s => (s??'').toString().replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let cart = [];
 let priceMode = 'retail';   // 'retail' | 'wholesale'
@@ -267,7 +280,7 @@ async function loadQuick(){
       const price = modePrice(it);
       if(price==null) continue;
       const b=document.createElement('button'); b.className='qbtn';
-      b.innerHTML=`${thumb(it)}<b>${esc(it.name)}</b><span>${money(price)}</span>`;
+      b.innerHTML=`${thumb(it)}<b>${esc(it.name)}</b><span>${fmt(price,it.currency)}</span>`;
       b.onclick=()=>{ addToCart(it); };
       el.appendChild(b);
     }
@@ -286,7 +299,7 @@ async function doSearch(){
     const li=document.createElement('li'); li.className='add';
     const price = modePrice(it);
     li.innerHTML=`${thumb(it)}<span class="name">${esc(it.name)}</span><span class="muted">${money(it.quantity_on_hand)} ${esc(it.unit)}</span>
-      <span class="price">${price==null?'<span class=warn>no price</span>':money(price)+' '+it.currency}</span>`;
+      <span class="price">${price==null?'<span class=warn>no price</span>':fmt(price,it.currency)}</span>`;
     li.onclick=()=>addToCart(it); ul.appendChild(li);
   }
 }
@@ -476,7 +489,8 @@ async function deleteItem(id, name){
   try{ await api('/api/items/'+id,{method:'DELETE'}); toast('Deleted '+name); loadStock(); }
   catch(e){ toast('Error: '+e.message); }
 }
-async function openOptions(id, name){
+async function openOptions(id, name, currency){
+  currency = currency || 'USD';
   let opts=[];
   try{ opts=await api('/api/items/'+id+'/options'); }catch(e){ toast('Error: '+e.message); return; }
   const ov=document.createElement('div');
@@ -486,7 +500,7 @@ async function openOptions(id, name){
     let rows = opts.length ? '' : '<li class="empty">no options yet</li>';
     for(const o of opts){
       rows+=`<li><span class="name">${esc(o.name)}</span><span class="muted">${o.amount!=1?('×'+money(o.amount)):'single'}</span>
-        <span class="price">${money(o.price)}</span>
+        <span class="price">${fmt(o.price,o.currency||currency)}</span>
         <button class="mini" style="color:var(--warn)" onclick="delOption(${o.id},this)">✕</button></li>`;
     }
     card.innerHTML=`<h2>Options — ${esc(name)}</h2>
@@ -498,7 +512,7 @@ async function openOptions(id, name){
     card.querySelector('#o-add').onclick=async()=>{
       const nm=card.querySelector('#o-name').value.trim(), pr=card.querySelector('#o-price').value.trim(), am=card.querySelector('#o-amt').value.trim()||'1';
       if(!nm||!pr){ toast('name and price needed'); return; }
-      try{ const o=await api('/api/items/'+id+'/options',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:nm,price:pr,amount:am})}); opts.push(o); render(); }
+      try{ const o=await api('/api/items/'+id+'/options',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:nm,price:pr,amount:am,currency})}); opts.push(o); render(); }
       catch(e){ toast('Error: '+e.message); }
     };
     card.querySelector('#o-close').onclick=()=>ov.remove();
@@ -522,10 +536,17 @@ async function lookupBarcode(){
     else { toast('Not in product database — type the name'); $('#ni-name').focus(); }
   }catch(e){ toast('Lookup needs internet: '+e.message); }
 }
+function toggleWholesale(){ const s=$('#ni-wsec'), c=$('#ni-wsec-caret'); const open=s.style.display==='none'; s.style.display=open?'':'none'; if(c) c.textContent=open?'▾':'▸'; }
+function addOptRow(){
+  const box=$('#ni-opts'); const row=document.createElement('div'); row.className='row opt-row'; row.style.marginBottom='.4rem';
+  row.innerHTML=`<input class="o-name" placeholder="option (Cold)"><input class="o-amt" placeholder="units" inputmode="decimal" value="1" style="max-width:4.5rem"><input class="o-price" placeholder="price" inputmode="decimal" style="max-width:5.5rem"><button class="mini" onclick="this.parentElement.remove()">✕</button>`;
+  box.appendChild(row);
+}
 async function addItem(){
   const name=$('#ni-name').value.trim();
   if(!name){ toast('Name required'); return; }
-  const body={ name,
+  const currency=$('#ni-currency').value;
+  const body={ name, currency,
     category: $('#ni-category').value.trim()||null,
     unit: $('#ni-unit').value.trim()||'each',
     supplier: $('#ni-supplier').value.trim()||null,
@@ -536,14 +557,18 @@ async function addItem(){
   if(wholesale) body.wholesale=wholesale;
   if(cost) body.cost=cost;
   if(stock) body.stock=stock;
+  const optRows=[...document.querySelectorAll('#ni-opts .opt-row')].map(r=>({
+    name:r.querySelector('.o-name').value.trim(), amount:r.querySelector('.o-amt').value.trim()||'1',
+    price:r.querySelector('.o-price').value.trim(), currency})).filter(o=>o.name&&o.price);
   try{ const created=await api('/api/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(newItemPhoto && created && created.id){
-      try{ await api('/api/items/'+created.id+'/image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:newItemPhoto.split(',')[1],content_type:'image/jpeg'})}); }catch(_){}
+    if(created && created.id){
+      if(newItemPhoto){ try{ await api('/api/items/'+created.id+'/image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:newItemPhoto.split(',')[1],content_type:'image/jpeg'})}); }catch(_){} }
+      for(const o of optRows){ try{ await api('/api/items/'+created.id+'/options',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o)}); }catch(_){} }
     }
-    // Keep category / unit / supplier for fast successive entry; clear the rest.
+    // Keep category / unit / supplier / currency for fast successive entry; clear the rest.
     for(const id of ['ni-name','ni-retail','ni-wholesale','ni-cost','ni-stock','ni-barcode']) $('#'+id).value='';
-    clearNewPhoto(); $('#ni-name').focus();
-    toast('Added '+name+' (category & supplier kept)'); loadStock();
+    $('#ni-opts').innerHTML=''; clearNewPhoto(); $('#ni-name').focus();
+    toast('Added '+name); loadStock();
   }catch(e){ toast('Error: '+e.message); }
 }
 async function loadStock(){
@@ -556,15 +581,15 @@ async function loadStock(){
       h.innerHTML=`<span class="muted" style="text-transform:uppercase;letter-spacing:.04em">${esc(cat)}</span>`;
       ul.appendChild(h); }
     const li=document.createElement('li'); li.style.flexWrap='wrap';
-    const m = it.margin!=null ? ` · margin ${money(it.margin)}` : '';
+    const m = it.margin!=null ? ` · margin ${fmt(it.margin,it.currency)}` : '';
     li.innerHTML=`<div style="flex:1 1 100%">
         ${thumb(it)}<span class="name">${esc(it.name)}</span>
         <span class="muted">${money(it.quantity_on_hand)} ${esc(it.unit)}${it.supplier?' · '+esc(it.supplier):''}</span></div>
-      <div style="flex:1 1 100%" class="muted">retail ${it.retail!=null?money(it.retail):'—'} · wholesale ${it.wholesale!=null?money(it.wholesale):'—'} · cost ${it.cost!=null?money(it.cost):'—'}${m}</div>
+      <div style="flex:1 1 100%" class="muted">single ${fmt(it.retail,it.currency)} · wholesale ${fmt(it.wholesale,it.currency)} · cost ${fmt(it.cost,it.currency)}${m}</div>
       <input type="number" placeholder="+qty" inputmode="decimal" style="max-width:4.5rem" id="rs-${it.id}">
       <button class="mini" onclick="restock(${it.id})">restock</button>
       <button class="mini" onclick="setPrices(${it.id},'${esc(it.name)}')">prices</button>
-      <button class="mini" onclick="openOptions(${it.id},'${esc(it.name)}')">options</button>
+      <button class="mini" onclick="openOptions(${it.id},'${esc(it.name)}','${it.currency}')">options</button>
       <button class="mini" onclick="setBarcode(${it.id})">barcode</button>
       <button class="mini" onclick="pickImage(${it.id})">photo</button>
       <button class="mini" onclick="deleteItem(${it.id},'${esc(it.name)}')" style="color:var(--warn)">delete</button>`;
@@ -602,18 +627,20 @@ async function loadCats(){
     const stock=list.reduce((s,i)=>s+(i.quantity_on_hand||0),0);
     const retailVal=list.reduce((s,i)=>s+((i.retail||0)*(i.quantity_on_hand||0)),0);
     const costVal=list.reduce((s,i)=>s+((i.cost||0)*(i.quantity_on_hand||0)),0);
+    const curs=new Set(list.map(i=>i.currency)); const cc=curs.size===1?[...curs][0]:null;
+    const val=v=> cc?fmt(v,cc):money(v);
     let itemsHtml='';
     for(const it of list){
       itemsHtml+=`<li>${thumb(it)}<span class="name">${esc(it.name)}</span>
         <span class="muted">${money(it.quantity_on_hand)} ${esc(it.unit)}</span>
-        <span class="price">${it.retail!=null?money(it.retail):'—'}</span>
+        <span class="price">${fmt(it.retail,it.currency)}</span>
         <button class="mini" onclick="deleteItem(${it.id},'${esc(it.name)}')" style="color:var(--warn)">delete</button></li>`;
     }
     const d=document.createElement('div'); d.style.cssText='border:1px solid var(--line);border-radius:10px;padding:.6rem;margin:.5rem 0';
     d.innerHTML=`<div class="row" onclick="toggleCat(this)" style="cursor:pointer">
         <span class="name">${esc(c)}</span>
         <span class="muted" style="margin-left:auto">${list.length} item(s) · stock ${money(stock)}</span></div>
-      <div class="row muted" style="margin-top:.2rem"><span>retail value ${money(retailVal)} · cost value ${money(costVal)}</span>
+      <div class="row muted" style="margin-top:.2rem"><span>retail value ${val(retailVal)} · cost value ${val(costVal)}</span>
         <button class="mini" onclick="renameCategory('${esc(c)}')" style="margin-left:auto">rename</button></div>
       <ul class="cat-items" style="display:none;margin-top:.4rem">${itemsHtml}</ul>`;
     box.appendChild(d);

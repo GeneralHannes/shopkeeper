@@ -93,12 +93,18 @@ def api_search(q: str) -> list[dict]:
     return [_item_dict(it) for it in repo.find_items(q)]
 
 
+def _cur(value: str | None) -> str:
+    v = (value or "USD").strip().upper()
+    return v if v in ("USD", "KHR") else "USD"
+
+
 class ItemIn(BaseModel):
     name: str
     category: str | None = None
     unit: str = "each"
     supplier: str | None = None
     barcode: str | None = None
+    currency: str = "USD"
     retail: Decimal | None = Field(default=None, ge=0)
     wholesale: Decimal | None = Field(default=None, ge=0)
     cost: Decimal | None = Field(default=None, ge=0)
@@ -108,14 +114,15 @@ class ItemIn(BaseModel):
 @api.post("/items")
 def api_add_item(body: ItemIn) -> dict:
     barcode = (body.barcode or "").strip() or None
+    cur = _cur(body.currency)
     item = repo.add_item(Item(name=body.name, category=body.category, unit=body.unit,
                               supplier=body.supplier, barcode=barcode))
     if body.retail is not None:
-        repo.set_price(item.id, body.retail, "retail")
+        repo.set_price(item.id, body.retail, "retail", cur)
     if body.wholesale is not None:
-        repo.set_price(item.id, body.wholesale, "wholesale")
+        repo.set_price(item.id, body.wholesale, "wholesale", cur)
     if body.cost is not None:
-        repo.set_price(item.id, body.cost, "cost")
+        repo.set_price(item.id, body.cost, "cost", cur)
     if body.stock:
         repo.restock(item.id, body.stock)
     return _item_dict(repo.get_item(item.id))
@@ -175,8 +182,10 @@ _IMPORT_COLS = {
     "category": ["category", "cat"],
     "supplier": ["supplier", "note"],
     "barcode": ["barcode", "code"],
+    "currency": ["currency", "cur"],
 }
-_IMPORT_DEFAULT_ORDER = ["name", "retail", "wholesale", "cost", "qty", "category", "supplier", "barcode"]
+_IMPORT_DEFAULT_ORDER = ["name", "retail", "wholesale", "cost", "qty",
+                        "category", "supplier", "barcode", "currency"]
 
 
 @api.post("/import")
@@ -230,15 +239,16 @@ def api_import(body: QuickAddIn) -> dict:
         except InvalidOperation:
             errors.append({"row": i, "reason": "price/qty not a number"})
             continue
+        cur = _cur(cell(row, "currency"))
         item = repo.add_item(Item(name=name, category=cell(row, "category") or None, unit="each",
                                   supplier=cell(row, "supplier") or None,
                                   barcode=cell(row, "barcode") or None))
         if retail is not None:
-            repo.set_price(item.id, retail, "retail")
+            repo.set_price(item.id, retail, "retail", cur)
         if wholesale is not None:
-            repo.set_price(item.id, wholesale, "wholesale")
+            repo.set_price(item.id, wholesale, "wholesale", cur)
         if cost is not None:
-            repo.set_price(item.id, cost, "cost")
+            repo.set_price(item.id, cost, "cost", cur)
         if qty:
             repo.restock(item.id, qty)
         created.append(name)
@@ -313,6 +323,7 @@ class OptionIn(BaseModel):
     name: str
     price: Decimal = Field(ge=0)
     amount: Decimal = Field(default=Decimal(1), gt=0)
+    currency: str = "USD"
 
 
 @api.post("/items/{item_id}/options")
@@ -321,7 +332,7 @@ def api_add_option(item_id: int, body: OptionIn) -> dict:
         raise HTTPException(404, f"no item #{item_id}")
     if not body.name.strip():
         raise HTTPException(400, "option name required")
-    return repo.add_option(item_id, body.name, body.price, body.amount)
+    return repo.add_option(item_id, body.name, body.price, body.amount, _cur(body.currency))
 
 
 @api.delete("/options/{option_id}")
