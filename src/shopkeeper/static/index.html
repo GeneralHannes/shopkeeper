@@ -124,10 +124,14 @@
   <!-- STOCK -->
   <section id="view-stock" style="display:none">
     <div class="card">
-      <h2>Fast add — one item per line (instant)</h2>
-      <div class="muted" style="margin-bottom:.4rem">name | retail | wholesale | cost | qty | category | supplier &nbsp;(blanks ok)</div>
-      <textarea id="fast-input" placeholder="Coke | 1.75 | 1.40 | 1.10 | 24 | drinks&#10;Rice | 0.90 | | 0.70 | 50 | staples" style="min-height:5rem"></textarea>
-      <div class="row" style="margin-top:.5rem"><button class="act" onclick="fastAdd()">Add all</button><span class="muted" id="fast-note"></span></div>
+      <h2>Bulk add / import (fast)</h2>
+      <div class="muted" style="margin-bottom:.4rem">columns: name, retail, wholesale, cost, qty, category, supplier, barcode — comma or | separated · header row optional</div>
+      <div class="row" style="margin-bottom:.4rem">
+        <input type="file" id="import-file" accept=".csv,.txt" onchange="loadImportFile()">
+        <button class="mini" onclick="downloadTemplate()">template</button>
+      </div>
+      <textarea id="fast-input" placeholder="Coke, 1.75, 1.40, 1.10, 24, drinks&#10;Rice, 0.90, , 0.70, 50, staples" style="min-height:5rem"></textarea>
+      <div class="row" style="margin-top:.5rem"><button class="act" onclick="fastAdd()">Import all</button><span class="muted" id="fast-note"></span></div>
     </div>
     <div class="card">
       <h2>AI add — type or paste items (local AI)</h2>
@@ -407,15 +411,26 @@ function clearNewPhoto(){ newItemPhoto=null; const p=$('#ni-photo-preview'); if(
 // ---- Stock: fast deterministic add ----
 async function fastAdd(){
   const text=$('#fast-input').value.trim(); if(!text) return;
-  $('#fast-note').textContent='adding…';
+  $('#fast-note').textContent='importing…';
   try{
-    const r=await api('/api/quick-add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
-    let msg='Added '+r.created.length;
-    if(r.errors.length) msg+=' · '+r.errors.length+' skipped (line '+r.errors.map(e=>e.line).join(', ')+')';
+    const r=await api('/api/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+    let msg='Imported '+r.created.length;
+    if(r.errors.length) msg+=' · '+r.errors.length+' skipped (row '+r.errors.map(e=>e.row).join(', ')+')';
     $('#fast-note').textContent=msg;
-    if(!r.errors.length) $('#fast-input').value='';
+    if(!r.errors.length){ $('#fast-input').value=''; const f=$('#import-file'); if(f) f.value=''; }
     loadStock();
   }catch(e){ $('#fast-note').textContent=''; toast('Error: '+e.message); }
+}
+function loadImportFile(){
+  const f=$('#import-file').files && $('#import-file').files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ $('#fast-input').value=rd.result; $('#fast-note').textContent='loaded '+f.name+' — tap “Import all”'; };
+  rd.readAsText(f);
+}
+function downloadTemplate(){
+  const csv='name,retail,wholesale,cost,qty,category,supplier,barcode\nCoke,1.75,1.40,1.10,24,drinks,ABC,\nRice,0.90,,0.70,50,staples,,\n';
+  const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='shopkeeper-template.csv'; document.body.appendChild(a); a.click(); a.remove();
 }
 
 // ---- Stock: AI add ----
@@ -495,9 +510,10 @@ async function addItem(){
     if(newItemPhoto && created && created.id){
       try{ await api('/api/items/'+created.id+'/image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:newItemPhoto.split(',')[1],content_type:'image/jpeg'})}); }catch(_){}
     }
-    for(const id of ['ni-name','ni-category','ni-retail','ni-wholesale','ni-cost','ni-stock','ni-supplier','ni-barcode']) $('#'+id).value='';
-    $('#ni-unit').value='each'; clearNewPhoto();
-    toast('Added '+name); loadStock();
+    // Keep category / unit / supplier for fast successive entry; clear the rest.
+    for(const id of ['ni-name','ni-retail','ni-wholesale','ni-cost','ni-stock','ni-barcode']) $('#'+id).value='';
+    clearNewPhoto(); $('#ni-name').focus();
+    toast('Added '+name+' (category & supplier kept)'); loadStock();
   }catch(e){ toast('Error: '+e.message); }
 }
 async function loadStock(){

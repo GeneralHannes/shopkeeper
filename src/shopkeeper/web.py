@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import base64
 import binascii
+import csv
+import io
 import json
 import socket
 import urllib.request
@@ -152,6 +154,85 @@ def api_quick_add(body: QuickAddIn) -> dict:
         category = parts[5] if len(parts) > 5 and parts[5] else None
         supplier = parts[6] if len(parts) > 6 and parts[6] else None
         item = repo.add_item(Item(name=name, category=category, unit="each", supplier=supplier))
+        if retail is not None:
+            repo.set_price(item.id, retail, "retail")
+        if wholesale is not None:
+            repo.set_price(item.id, wholesale, "wholesale")
+        if cost is not None:
+            repo.set_price(item.id, cost, "cost")
+        if qty:
+            repo.restock(item.id, qty)
+        created.append(name)
+    return {"created": created, "errors": errors}
+
+
+_IMPORT_COLS = {
+    "name": ["name", "item", "product"],
+    "retail": ["retail", "price", "sell"],
+    "wholesale": ["wholesale", "bulk"],
+    "cost": ["cost", "buy"],
+    "qty": ["qty", "quantity", "stock"],
+    "category": ["category", "cat"],
+    "supplier": ["supplier", "note"],
+    "barcode": ["barcode", "code"],
+}
+_IMPORT_DEFAULT_ORDER = ["name", "retail", "wholesale", "cost", "qty", "category", "supplier", "barcode"]
+
+
+@api.post("/import")
+def api_import(body: QuickAddIn) -> dict:
+    """Bulk import items from CSV/pasted text. Accepts comma, pipe, or tab separators;
+    an optional header row (columns matched by name, any order) or the fixed order
+    name, retail, wholesale, cost, qty, category, supplier, barcode."""
+    text = body.text
+    sample = text[:2000]
+    delim = ","
+    for d in ("|", "\t", ","):
+        if d in sample:
+            delim = d
+            break
+    rows = [r for r in csv.reader(io.StringIO(text), delimiter=delim) if any(c.strip() for c in r)]
+    if not rows:
+        return {"created": [], "errors": []}
+
+    header = None
+    first = [c.strip().lower() for c in rows[0]]
+    if any(any(c in aliases for aliases in _IMPORT_COLS.values()) for c in first):
+        header = first
+        rows = rows[1:]
+
+    def col_index(field: str) -> int:
+        if header:
+            for alias in _IMPORT_COLS[field]:
+                if alias in header:
+                    return header.index(alias)
+            return -1
+        return _IMPORT_DEFAULT_ORDER.index(field)
+
+    idx = {f: col_index(f) for f in _IMPORT_COLS}
+
+    def cell(row: list[str], field: str) -> str:
+        j = idx[field]
+        return row[j].strip() if 0 <= j < len(row) else ""
+
+    created: list[str] = []
+    errors: list[dict] = []
+    for i, row in enumerate(rows, 1):
+        name = cell(row, "name")
+        if not name:
+            errors.append({"row": i, "reason": "no name"})
+            continue
+        try:
+            retail = Decimal(cell(row, "retail")) if cell(row, "retail") else None
+            wholesale = Decimal(cell(row, "wholesale")) if cell(row, "wholesale") else None
+            cost = Decimal(cell(row, "cost")) if cell(row, "cost") else None
+            qty = Decimal(cell(row, "qty")) if cell(row, "qty") else None
+        except InvalidOperation:
+            errors.append({"row": i, "reason": "price/qty not a number"})
+            continue
+        item = repo.add_item(Item(name=name, category=cell(row, "category") or None, unit="each",
+                                  supplier=cell(row, "supplier") or None,
+                                  barcode=cell(row, "barcode") or None))
         if retail is not None:
             repo.set_price(item.id, retail, "retail")
         if wholesale is not None:
