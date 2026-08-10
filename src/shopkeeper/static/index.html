@@ -337,7 +337,13 @@
       <div id="ai-drafts"></div>
     </div>
     <div class="card add-card">
-      <h2>＋ Add item</h2>
+      <h2 id="add-title">＋ Add item</h2>
+      <div class="row" style="margin-bottom:.5rem">
+        <button class="mini active" id="am-general" onclick="setAddMode('general')">General</button>
+        <button class="mini" id="am-alcohol" onclick="setAddMode('alcohol')">🍷 Alcohol</button>
+        <span class="muted" style="font-size:.8rem">beer &amp; sodas → General</span>
+      </div>
+      <div id="alc-types" class="chips" style="display:none;margin-bottom:.55rem"></div>
       <div class="row" style="margin-bottom:.4rem">
         <input id="ni-barcode" placeholder="barcode — scan or type, Enter to look up" inputmode="numeric"
                autocomplete="off" onkeydown="if(event.key==='Enter')lookupBarcode()">
@@ -897,6 +903,26 @@ async function lookupBarcode(){
 }
 function toggleWholesale(){ const s=$('#ni-wsec'), c=$('#ni-wsec-caret'); const open=s.style.display==='none'; s.style.display=open?'':'none'; if(c) c.textContent=open?'▾':'▸'; }
 function toggleDrink(){ const s=$('#ni-dsec'), c=$('#ni-dsec-caret'); const open=s.style.display==='none'; s.style.display=open?'':'none'; if(c) c.textContent=open?'▾':'▸'; }
+// ---- Add mode: General vs premium Alcohol (beer stays General) ----
+const ALC_TYPES=['Wine','Whisky','Vodka','Rum','Gin','Brandy','Tequila','Cognac','Liqueur','Sake','Soju','Spirits'];
+let addMode='general';
+function drinkSection(open){ const d=$('#ni-dsec'), c=$('#ni-dsec-caret'); if(d) d.style.display=open?'':'none'; if(c) c.textContent=open?'▾':'▸'; }
+function setAddMode(m){
+  addMode=m; const alc=m==='alcohol';
+  $('#am-general').classList.toggle('active', !alc);
+  $('#am-alcohol').classList.toggle('active', alc);
+  const t=$('#add-title'); if(t) t.textContent = alc ? '🍷 Add alcohol' : '＋ Add item';
+  const at=$('#alc-types');
+  if(at){ at.style.display = alc?'':'none';
+    if(alc && !at.dataset.filled){ at.innerHTML=ALC_TYPES.map(x=>`<button class="chip" onclick="pickAlcType('${x}')">${x}</button>`).join(''); at.dataset.filled='1'; } }
+  drinkSection(alc);                                  // premium alcohol => show drink info up front
+  const b=$('#ni-brand'); if(b) b.focus();
+}
+function pickAlcType(t){
+  const c=$('#ni-category'); if(c) c.value=t.toLowerCase();
+  document.querySelectorAll('#alc-types .chip').forEach(b=>b.classList.toggle('active', b.textContent===t));
+}
+function drinkLineCompact(it){ return [it.style, it.vintage].filter(Boolean).join(' · '); }
 // compact drink-info line, e.g. "14.5% · 2022 · Shiraz · Coonawarra"
 function drinkLine(it){
   const p=[];
@@ -934,8 +960,8 @@ function resetAddForm(){
   $('#ni-opts').innerHTML=''; clearNewPhoto();
   const w=$('#ni-wsec'); if(w) w.style.display='none';        // collapse pack/wholesale/cost
   const c=$('#ni-wsec-caret'); if(c) c.textContent='▸';
-  const d=$('#ni-dsec'); if(d) d.style.display='none';        // collapse drink info
-  const dc=$('#ni-dsec-caret'); if(dc) dc.textContent='▸';
+  drinkSection(addMode==='alcohol');                          // keep drink info open in Alcohol mode
+  document.querySelectorAll('#alc-types .chip').forEach(b=>b.classList.remove('active'));
   const b=$('#ni-brand'); if(b) b.focus();
 }
 async function addItem(){
@@ -1116,7 +1142,8 @@ const prodCard = it => {
   return `<div class="prod"><div onclick="openGallery(${it.id},'${esc(it.name)}')">${media}</div>
     <div class="body"><div class="nm" onclick="openGallery(${it.id},'${esc(it.name)}')">${itemLabel(it)}</div>
       <div class="pr" title="tap to edit" data-raw="${it.retail??''}"
-           onclick="editCatPrice(event,${it.id},'${it.currency}',this)">${fmt(it.retail,it.currency)} ✎</div></div></div>`;
+           onclick="editCatPrice(event,${it.id},'${it.currency}',this)">${fmt(it.retail,it.currency)} ✎</div>
+      ${drinkLineCompact(it)?`<div class="muted" style="font-size:.72rem;margin-top:.15rem;line-height:1.25">🍷 ${drinkLineCompact(it)}</div>`:''}</div></div>`;
 };
 // Catalog sorting. Prices can be in KHR or USD, so for a meaningful low→high across
 // both we compare a rough USD-equivalent (display is never converted).
