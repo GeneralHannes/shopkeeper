@@ -5,120 +5,172 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>shopkeeper</title>
 <style>
-  :root { --bg:#eef1f5; --card:#fff; --line:#e3e6ea; --ink:#1c2430; --muted:#6b7686;
-          --accent:#2563eb; --accent-soft:rgba(37,99,235,.10); --good:#16a34a; --warn:#c2410c;
-          --shadow:0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.05); --radius:14px; }
-  @media (prefers-color-scheme: dark){ :root{ --bg:#0d1117; --card:#161c24; --line:#262f3a;
-          --ink:#e7ecf2; --muted:#93a0b0; --accent:#5b9bff; --accent-soft:rgba(91,155,255,.14);
-          --good:#4ade80; --warn:#fb923c; --shadow:0 1px 2px rgba(0,0,0,.3), 0 2px 6px rgba(0,0,0,.25); } }
+  :root { --bg:#f2f2f7; --card:#fff; --card-2:#fff; --fill:rgba(120,120,128,.12); --fill-2:rgba(118,118,128,.20);
+          --line:rgba(60,60,67,.18); --ink:#1c1c1e; --muted:rgba(60,60,67,.6);
+          --accent:#007aff; --accent-soft:rgba(0,122,255,.12); --good:#34c759; --warn:#ff9500;
+          --nav:rgba(249,249,249,.72); --radius:14px; --radius-lg:18px; --shadow:0 1px 2px rgba(0,0,0,.05); }
+  @media (prefers-color-scheme: dark){ :root{ --bg:#000; --card:#1c1c1e; --card-2:#2c2c2e; --fill:rgba(120,120,128,.24); --fill-2:rgba(120,120,128,.32);
+          --line:rgba(84,84,88,.55); --ink:#fff; --muted:rgba(235,235,245,.6);
+          --accent:#0a84ff; --accent-soft:rgba(10,132,255,.24); --good:#30d158; --warn:#ff9f0a;
+          --nav:rgba(30,30,30,.66); --shadow:0 1px 2px rgba(0,0,0,.4); } }
   * { box-sizing:border-box; }
-  body { margin:0; font:16px/1.45 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-         background:var(--bg); color:var(--ink); -webkit-text-size-adjust:100%; }
-  header { background:var(--card); border-bottom:1px solid var(--line); padding:.55rem .9rem;
-           display:flex; align-items:center; gap:.6rem; position:sticky; top:0; z-index:5; box-shadow:var(--shadow); }
-  header h1 { font-size:1.1rem; margin:0; font-weight:700; letter-spacing:-.01em; }
-  .tabs { margin-left:auto; display:flex; gap:.25rem; background:var(--bg); padding:.25rem; border-radius:11px;
-          overflow-x:auto; max-width:100%; }
-  .tabs button { border:none; background:transparent; color:var(--muted); white-space:nowrap;
-                 padding:.45rem .75rem; border-radius:8px; cursor:pointer; font-size:.88rem; font-weight:600; transition:.15s; }
-  .tabs button.active { background:var(--card); color:var(--accent); box-shadow:var(--shadow); }
-  main { max-width:980px; margin:1rem auto; padding:0 .9rem; }
-  .grid { display:grid; grid-template-columns:1fr 1fr; gap:.9rem; }
+  body { margin:0; font:17px/1.47 -apple-system,"SF Pro Text",system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         background:var(--bg); color:var(--ink); -webkit-text-size-adjust:100%; -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent; }
+  header { background:var(--nav); -webkit-backdrop-filter:saturate(180%) blur(20px); backdrop-filter:saturate(180%) blur(20px);
+           border-bottom:.5px solid var(--line); padding:.5rem .9rem; display:flex; align-items:center; gap:.6rem;
+           position:sticky; top:0; z-index:5; }
+  header h1 { font-size:1.3rem; margin:0; font-weight:700; letter-spacing:-.022em; }
+  header h1 .brand { color:var(--ink); }
+  .tabs { margin-left:auto; display:flex; gap:2px; background:var(--fill); padding:2px; border-radius:9px; overflow-x:auto; max-width:100%; }
+  .tabs button { border:none; background:transparent; color:var(--ink); white-space:nowrap;
+                 padding:.4rem .7rem; border-radius:7px; cursor:pointer; font-size:.9rem; font-weight:500; transition:.2s; }
+  .tabs button.active { background:var(--card); color:var(--ink); font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,.12),0 1px 1px rgba(0,0,0,.04); }
+  main { max-width:980px; margin:1.1rem auto; padding:0 1rem; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
   @media (max-width:720px){ .grid { grid-template-columns:1fr; } }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-          padding:1rem; margin-bottom:.9rem; box-shadow:var(--shadow); }
-  .card h2 { font-size:.72rem; margin:0 0 .7rem; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; font-weight:700; }
-  input, select, textarea { font:inherit; padding:.62rem .7rem; border:1px solid var(--line); border-radius:10px;
-                            width:100%; background:var(--bg); color:var(--ink); transition:border-color .15s, box-shadow .15s; }
-  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
-  textarea { resize:vertical; min-height:2.6rem; }
-  button.act { background:var(--accent); color:#fff; border:none; padding:.62rem 1.05rem; border-radius:10px;
-               cursor:pointer; font:inherit; font-weight:600; transition:filter .15s; }
-  button.act:hover { filter:brightness(1.05); }
-  button.act:disabled { opacity:.5; cursor:default; }
-  button.mini { border:1px solid var(--line); background:var(--card); color:var(--ink); padding:.42rem .65rem;
-                border-radius:9px; cursor:pointer; font-size:.85rem; transition:.15s; }
-  button.mini:hover { border-color:var(--accent); color:var(--accent); }
-  button.mini.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .card { background:var(--card); border:none; border-radius:var(--radius-lg); padding:1.05rem; margin-bottom:1rem; box-shadow:var(--shadow); }
+  .card h2 { font-size:.95rem; margin:0 0 .7rem; color:var(--ink); letter-spacing:-.01em; font-weight:700; text-transform:none; }
+  input, select, textarea { font:inherit; font-size:1rem; padding:.6rem .75rem; border:none; border-radius:11px;
+                            width:100%; background:var(--fill); color:var(--ink); transition:box-shadow .15s; }
+  input:focus, select:focus, textarea:focus { outline:none; box-shadow:0 0 0 3.5px var(--accent-soft); }
+  textarea { resize:vertical; min-height:2.7rem; }
+  button.act { background:var(--accent); color:#fff; border:none; padding:.62rem 1.1rem; border-radius:12px;
+               cursor:pointer; font:inherit; font-size:1rem; font-weight:600; transition:opacity .15s, transform .08s; }
+  button.act:hover { opacity:.9; }
+  button.act:active { transform:scale(.97); }
+  button.act:disabled { opacity:.4; cursor:default; }
+  button.mini { border:none; background:var(--fill); color:var(--accent); padding:.42rem .7rem;
+                border-radius:9px; cursor:pointer; font-size:.88rem; font-weight:500; transition:.15s; }
+  button.mini:hover { background:var(--fill-2); }
+  button.mini.active { background:var(--accent); color:#fff; }
   .row { display:flex; gap:.5rem; align-items:center; }
   ul { list-style:none; margin:.4rem 0 0; padding:0; }
-  li { padding:.6rem .2rem; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
+  li { padding:.65rem .1rem; border-bottom:.5px solid var(--line); display:flex; align-items:center; gap:.55rem; flex-wrap:wrap; }
   li:last-child { border-bottom:none; }
   .name { font-weight:600; }
-  .muted { color:var(--muted); font-size:.85rem; }
+  .muted { color:var(--muted); font-size:.9rem; }
   .price { margin-left:auto; font-variant-numeric:tabular-nums; font-weight:600; }
-  .pill { font-size:.7rem; padding:.12rem .45rem; border-radius:20px; background:var(--accent-soft); color:var(--accent); font-weight:600; }
+  .pill { font-size:.72rem; padding:.14rem .5rem; border-radius:20px; background:var(--fill); color:var(--muted); font-weight:600; }
   .add { cursor:pointer; }
-  .total { font-size:1.6rem; font-weight:800; letter-spacing:-.02em; }
+  .total { font-size:1.7rem; font-weight:700; letter-spacing:-.03em; }
   .warn { color:var(--warn); }
   .good { color:var(--good); }
   .empty { color:var(--muted); padding:.6rem .2rem; }
   /* ---- thumbnails & photos ---- */
   img.thumb { width:2.6rem; height:2.6rem; object-fit:cover; border-radius:9px; vertical-align:middle;
-              margin-right:.5rem; border:1px solid var(--line); background:var(--bg); }
+              margin-right:.55rem; background:var(--fill); }
   img.thumb.tap { cursor:pointer; transition:transform .12s; }
   img.thumb.tap:active { transform:scale(.94); }
   .thumb-ph { display:inline-flex; align-items:center; justify-content:center; width:2.6rem; height:2.6rem;
-              border-radius:9px; margin-right:.5rem; background:var(--bg); border:1px dashed var(--line);
+              border-radius:9px; margin-right:.55rem; background:var(--fill);
               color:var(--muted); font-size:1.1rem; vertical-align:middle; }
-  .photo-strip { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.2rem; }
+  .photo-strip { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.3rem; }
   .photo-strip .cell { position:relative; }
-  .photo-strip img { width:3.6rem; height:3.6rem; object-fit:cover; border-radius:10px; border:1px solid var(--line); }
-  .photo-strip .x { position:absolute; top:-.4rem; right:-.4rem; width:1.3rem; height:1.3rem; border-radius:50%;
-                    background:var(--warn); color:#fff; border:none; font-size:.8rem; line-height:1; cursor:pointer; box-shadow:var(--shadow); }
+  .photo-strip img { width:3.6rem; height:3.6rem; object-fit:cover; border-radius:11px; background:var(--fill); }
+  .photo-strip .x { position:absolute; top:-.4rem; right:-.4rem; width:1.35rem; height:1.35rem; border-radius:50%;
+                    background:var(--warn); color:#fff; border:2px solid var(--card); font-size:.72rem; line-height:1; cursor:pointer; }
   /* ---- photo gallery modal ---- */
-  .modal-ov { position:fixed; inset:0; background:rgba(8,12,18,.55); backdrop-filter:blur(2px);
+  .modal-ov { position:fixed; inset:0; background:rgba(0,0,0,.4); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
               z-index:25; display:flex; align-items:center; justify-content:center; padding:1rem; }
-  .modal-card { background:var(--card); border-radius:var(--radius); box-shadow:0 12px 40px rgba(0,0,0,.35);
-                max-width:30rem; width:100%; max-height:88vh; overflow:auto; padding:1.1rem; }
-  .gallery { display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:.6rem; margin:.4rem 0 .8rem; }
+  .modal-card { background:var(--card); border-radius:20px; box-shadow:0 20px 60px rgba(0,0,0,.35);
+                max-width:30rem; width:100%; max-height:88vh; overflow:auto; padding:1.2rem; }
+  .gallery { display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:.6rem; margin:.5rem 0 .9rem; }
   .gallery .cell { position:relative; aspect-ratio:1; }
-  .gallery img { width:100%; height:100%; object-fit:cover; border-radius:11px; border:1px solid var(--line); cursor:pointer; }
-  .gallery .x { position:absolute; top:.3rem; right:.3rem; width:1.6rem; height:1.6rem; border-radius:50%;
-                background:rgba(0,0,0,.6); color:#fff; border:none; cursor:pointer; font-size:.9rem; line-height:1; }
+  .gallery img { width:100%; height:100%; object-fit:cover; border-radius:12px; background:var(--fill); cursor:pointer; }
+  .gallery .x { position:absolute; top:.3rem; right:.3rem; width:1.65rem; height:1.65rem; border-radius:50%;
+                background:rgba(0,0,0,.55); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); color:#fff; border:none; cursor:pointer; font-size:.9rem; line-height:1; }
   /* ---- fullscreen lightbox ---- */
-  .lightbox { position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:40; display:flex;
+  .lightbox { position:fixed; inset:0; background:rgba(0,0,0,.94); z-index:40; display:flex;
               align-items:center; justify-content:center; touch-action:none; }
-  .lightbox img { max-width:94vw; max-height:88vh; object-fit:contain; border-radius:6px; }
-  .lightbox .nav { position:absolute; top:50%; transform:translateY(-50%); background:rgba(255,255,255,.14);
-                   color:#fff; border:none; width:3rem; height:3rem; border-radius:50%; font-size:1.5rem; cursor:pointer; }
+  .lightbox img { max-width:94vw; max-height:88vh; object-fit:contain; border-radius:8px; }
+  .lightbox .nav { position:absolute; top:50%; transform:translateY(-50%); background:rgba(255,255,255,.16);
+                   -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); color:#fff; border:none; width:3rem; height:3rem; border-radius:50%; font-size:1.5rem; cursor:pointer; }
   .lightbox .prev { left:1rem; } .lightbox .next { right:1rem; }
-  .lightbox .close { position:absolute; top:1rem; right:1rem; background:rgba(255,255,255,.14); color:#fff;
-                     border:none; width:2.6rem; height:2.6rem; border-radius:50%; font-size:1.3rem; cursor:pointer; }
-  .lightbox .count { position:absolute; bottom:1.2rem; left:50%; transform:translateX(-50%); color:#fff;
-                     background:rgba(0,0,0,.5); padding:.3rem .8rem; border-radius:20px; font-size:.85rem; }
+  .lightbox .close { position:absolute; top:1rem; right:1rem; background:rgba(255,255,255,.16); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+                     color:#fff; border:none; width:2.6rem; height:2.6rem; border-radius:50%; font-size:1.3rem; cursor:pointer; }
+  .lightbox .count { position:absolute; bottom:1.3rem; left:50%; transform:translateX(-50%); color:#fff;
+                     background:rgba(0,0,0,.5); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); padding:.3rem .85rem; border-radius:20px; font-size:.85rem; }
   /* ---- quick sell buttons ---- */
-  .quickgrid { display:flex; flex-wrap:wrap; gap:.5rem; }
-  .qbtn { border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:12px;
-          padding:.6rem .75rem; cursor:pointer; text-align:left; min-width:6.5rem; font:inherit; box-shadow:var(--shadow); transition:.12s; }
-  .qbtn:hover { border-color:var(--accent); }
+  .quickgrid { display:flex; flex-wrap:wrap; gap:.55rem; }
+  .qbtn { border:none; background:var(--fill); color:var(--ink); border-radius:13px;
+          padding:.65rem .8rem; cursor:pointer; text-align:left; min-width:6.5rem; font:inherit; transition:.12s; }
+  .qbtn:hover { background:var(--fill-2); }
   .qbtn:active { background:var(--accent); color:#fff; }
-  .qbtn b { display:block; font-size:.95rem; }
-  .qbtn span { font-size:.8rem; color:var(--muted); }
+  .qbtn b { display:block; font-size:.95rem; font-weight:600; }
+  .qbtn span { font-size:.82rem; color:var(--muted); }
   /* ---- dash metrics + catalog ---- */
-  .metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(7rem,1fr)); gap:.7rem; }
-  .metric { background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:.9rem 1rem; box-shadow:var(--shadow); }
-  .metric .n { font-size:1.7rem; font-weight:800; letter-spacing:-.02em; line-height:1.1; }
-  .metric .l { font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:700; margin-top:.2rem; }
-  .catalog { display:grid; grid-template-columns:repeat(auto-fill,minmax(9rem,1fr)); gap:.8rem; margin-top:.5rem; }
-  .prod { border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; background:var(--card);
-          box-shadow:var(--shadow); cursor:pointer; transition:transform .12s; }
+  .metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(7rem,1fr)); gap:.8rem; }
+  .metric { background:var(--card); border:none; border-radius:var(--radius); padding:1rem 1.1rem; box-shadow:var(--shadow); }
+  .metric .n { font-size:2.1rem; font-weight:700; letter-spacing:-.04em; line-height:1.02; }
+  .metric .l { font-size:.82rem; color:var(--muted); font-weight:500; margin-top:.3rem; }
+  /* ---- category sections (Apple: bold titles + hairline + whitespace) ---- */
+  .cat-group { margin-bottom:1.8rem; } .cat-group:last-child { margin-bottom:.2rem; }
+  .cat-head { display:flex; align-items:baseline; gap:.5rem; font-size:1.4rem; font-weight:700; letter-spacing:-.028em;
+              color:var(--ink); text-transform:capitalize; margin:0 0 .9rem; padding-bottom:.55rem; border-bottom:.5px solid var(--line); }
+  .cat-n { font-size:.95rem; font-weight:500; color:var(--muted); }
+  .catalog { display:grid; grid-template-columns:repeat(auto-fill,minmax(9.5rem,1fr)); gap:1rem; margin-top:.2rem; }
+  .prod { border:none; border-radius:var(--radius); overflow:hidden; background:var(--card);
+          box-shadow:var(--shadow); transition:transform .12s; }
   .prod:active { transform:scale(.98); }
-  .prod .ph { width:100%; aspect-ratio:1; object-fit:cover; display:block; background:var(--bg); }
+  .prod > div:first-child { cursor:pointer; }
+  /* ---- inline price editor ---- */
+  .pedit { display:inline-flex; gap:.25rem; align-items:center; }
+  .pedit input { width:4.2rem; padding:.22rem .35rem; font-size:.9rem; }
+  .pedit select { width:auto; padding:.22rem .3rem; font-size:.85rem; }
+  /* ---- vim keyboard focus + help ---- */
+  .vim-focus { outline:none; box-shadow:0 0 0 2px var(--accent), 0 0 0 6px var(--accent-soft); border-radius:14px; }
+  .kbdbtn { padding:.4rem .55rem; font-size:.95rem; line-height:1; }
+  .vim-help table { width:100%; border-collapse:collapse; margin-top:.3rem; }
+  .vim-help td { padding:.4rem .1rem; border-bottom:.5px solid var(--line); vertical-align:top; }
+  .vim-help tr:last-child td { border-bottom:none; }
+  .vim-help td.k { white-space:nowrap; width:8.5rem; }
+  .vim-help kbd { display:inline-block; min-width:1.4rem; text-align:center; padding:.1rem .4rem; margin-right:.25rem;
+                  border-radius:6px; background:var(--fill);
+                  font:600 .8rem ui-monospace,"SF Mono",Menlo,Consolas,monospace; color:var(--ink); }
+  .prod .ph { width:100%; aspect-ratio:1; object-fit:cover; display:block; background:var(--fill); }
   .prod .noimg { width:100%; aspect-ratio:1; display:flex; align-items:center; justify-content:center;
-                 background:var(--bg); color:var(--muted); font-size:2rem; }
-  .prod .body { padding:.55rem .65rem; }
-  .prod .body .nm { font-weight:600; font-size:.9rem; line-height:1.25; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-  .prod .body .pr { color:var(--accent); font-weight:700; font-size:.9rem; margin-top:.2rem; }
-  #toast { position:fixed; bottom:1.2rem; left:50%; transform:translateX(-50%); background:var(--ink);
-           color:var(--bg); padding:.7rem 1.1rem; border-radius:11px; opacity:0; transition:opacity .2s;
-           pointer-events:none; z-index:50; box-shadow:0 6px 20px rgba(0,0,0,.3); }
+                 background:var(--fill); color:var(--muted); font-size:2rem; }
+  .prod .body { padding:.7rem .75rem .8rem; }
+  .prod .body .nm { font-weight:600; font-size:.95rem; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .prod .body .pr { color:var(--accent); font-weight:600; font-size:1rem; margin-top:.35rem; cursor:pointer; letter-spacing:-.01em; }
+  #toast { position:fixed; bottom:1.4rem; left:50%; transform:translateX(-50%); background:rgba(40,40,40,.92);
+           -webkit-backdrop-filter:blur(20px); backdrop-filter:blur(20px); color:#fff; padding:.75rem 1.2rem; border-radius:14px;
+           opacity:0; transition:opacity .2s; pointer-events:none; z-index:50; box-shadow:0 8px 30px rgba(0,0,0,.3); }
   #toast.show { opacity:1; }
+  /* ============ motion / smoothness ============ */
+  :root { --ease-out:cubic-bezier(.16,1,.3,1); --ease-spring:cubic-bezier(.34,1.4,.64,1); }
+  html { scroll-behavior:smooth; }
+  @keyframes fadeUp { from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
+  @keyframes fadeIn { from{ opacity:0; } to{ opacity:1; } }
+  @keyframes popIn  { from{ opacity:0; transform:scale(.94) translateY(8px); } to{ opacity:1; transform:none; } }
+  @keyframes overlayIn { from{ opacity:0; } to{ opacity:1; } }
+  @keyframes zoomIn { from{ opacity:0; transform:scale(.9); } to{ opacity:1; transform:none; } }
+  /* view + content entrances */
+  main > section { animation:fadeUp .42s var(--ease-out) both; }
+  .prod { animation:fadeUp .4s var(--ease-out) both; }
+  .cat-group { animation:fadeIn .5s ease both; }
+  .modal-ov { animation:overlayIn .22s ease both; }
+  .modal-card { animation:popIn .4s var(--ease-out) both; }
+  .lightbox { animation:overlayIn .2s ease both; }
+  .lightbox img { animation:zoomIn .34s var(--ease-out) both; }
+  /* smooth, springy interactions */
+  button.act, button.mini, .tabs button, .qbtn, .prod, .metric, img.thumb.tap, .vim-focus, li {
+    transition:transform .2s var(--ease-spring), background-color .2s ease, color .2s ease, box-shadow .25s ease, opacity .2s ease; }
+  button.act:active { transform:scale(.96); }
+  .qbtn:active, .prod:active, img.thumb.tap:active { transform:scale(.96); }
+  /* toast slides up as it fades */
+  #toast { transform:translateX(-50%) translateY(14px); transition:opacity .28s var(--ease-out), transform .28s var(--ease-out); }
+  #toast.show { transform:translateX(-50%) translateY(0); }
+  /* respect users who prefer less motion */
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after { animation-duration:.001ms !important; animation-iteration-count:1 !important;
+                             transition-duration:.001ms !important; scroll-behavior:auto !important; } }
 </style>
 </head>
 <body>
 <header>
-  <h1>🛒 shopkeeper</h1>
+  <h1>🛒 <span class="brand">shopkeeper</span></h1>
+  <button class="mini kbdbtn" onclick="toggleVimHelp()" title="keyboard shortcuts (press ?)">⌨</button>
   <div class="tabs">
     <button id="tab-sell" class="active" onclick="show('sell')">Sell</button>
     <button id="tab-stock" onclick="show('stock')">Stock</button>
@@ -279,8 +331,18 @@
     </div>
     <div class="metrics" id="metrics" style="margin-bottom:.9rem"></div>
     <div class="card">
-      <h2>Catalog</h2>
-      <div class="catalog" id="catalog"><span class="empty">Loading…</span></div>
+      <div class="row" style="margin-bottom:.5rem">
+        <h2 style="margin:0">Catalog</h2>
+        <select id="dash-sort" onchange="renderCatalog()" style="margin-left:auto;max-width:11.5rem">
+          <option value="category">Group by category</option>
+          <option value="name-asc">Name · A → Z</option>
+          <option value="name-desc">Name · Z → A</option>
+          <option value="price-asc">Price · low → high</option>
+          <option value="price-desc">Price · high → low</option>
+          <option value="newest">Newest first</option>
+        </select>
+      </div>
+      <div id="catalog"><span class="empty">Loading…</span></div>
     </div>
     <div class="grid">
       <div class="card"><h2>Today's sales</h2>
@@ -792,6 +854,40 @@ async function renameCategory(c){
 }
 
 // ---- Dashboard ----
+// one Dash catalog card (photo + name open gallery; price is tap-to-edit)
+const prodCard = it => {
+  const media = it.has_image ? `<img class="ph" src="${itemThumbSrc(it.id)}" alt="">` : `<div class="noimg">📦</div>`;
+  return `<div class="prod"><div onclick="openGallery(${it.id},'${esc(it.name)}')">${media}</div>
+    <div class="body"><div class="nm" onclick="openGallery(${it.id},'${esc(it.name)}')">${esc(it.name)}</div>
+      <div class="pr" title="tap to edit" data-raw="${it.retail??''}"
+           onclick="editCatPrice(event,${it.id},'${it.currency}',this)">${fmt(it.retail,it.currency)} ✎</div></div></div>`;
+};
+// Catalog sorting. Prices can be in KHR or USD, so for a meaningful low→high across
+// both we compare a rough USD-equivalent (display is never converted).
+let dashItems=[];
+const RIEL_PER_USD=4100;   // approximate; only used to order mixed-currency prices
+const usdVal = it => { const p=it.retail; if(p==null) return null; return it.currency==='KHR' ? Number(p)/RIEL_PER_USD : Number(p); };
+function renderCatalog(){
+  const box=$('#catalog'); if(!box) return;
+  if(!dashItems.length){ box.innerHTML='<span class="empty">No items yet</span>'; return; }
+  const sort=($('#dash-sort')||{}).value || 'category';
+  if(sort==='category'){
+    const groups={};
+    for(const it of dashItems){ const c=it.category||'Uncategorised'; (groups[c]=groups[c]||[]).push(it); }
+    box.innerHTML=Object.keys(groups).sort((a,b)=>a.localeCompare(b)).map(c=>
+      `<div class="cat-group"><div class="cat-head">${esc(c)}<span class="cat-n">${groups[c].length}</span></div>
+        <div class="catalog">${groups[c].map(prodCard).join('')}</div></div>`).join('');
+    return;
+  }
+  const cmp={
+    'name-asc':  (a,b)=>a.name.localeCompare(b.name),
+    'name-desc': (a,b)=>b.name.localeCompare(a.name),
+    'price-asc': (a,b)=>(usdVal(a)??Infinity)-(usdVal(b)??Infinity),
+    'price-desc':(a,b)=>(usdVal(b)??-Infinity)-(usdVal(a)??-Infinity),
+    'newest':    (a,b)=>b.id-a.id,
+  }[sort] || (()=>0);
+  box.innerHTML=`<div class="catalog">${[...dashItems].sort(cmp).map(prodCard).join('')}</div>`;
+}
 async function loadDash(){
   const items=await api('/api/items');
   const t=await api('/api/today');
@@ -803,16 +899,9 @@ async function loadDash(){
   $('#metrics').innerHTML =
     M(items.length,'Items') + M(cats.size,'Categories') +
     M(money(t.total),"Today's sales",'good') + M(lowCount,'Low stock', lowCount?'warn':'');
-  // --- visual catalog (photos) ---
-  $('#catalog').innerHTML = items.length ? items.map(it=>{
-    const media = it.has_image
-      ? `<img class="ph" src="${itemThumbSrc(it.id)}" alt="">`
-      : `<div class="noimg">📦</div>`;
-    return `<div class="prod"><div onclick="openGallery(${it.id},'${esc(it.name)}')">${media}</div>
-      <div class="body"><div class="nm" onclick="openGallery(${it.id},'${esc(it.name)}')">${esc(it.name)}</div>
-        <div class="pr" title="tap to edit" data-raw="${it.retail??''}"
-             onclick="editCatPrice(event,${it.id},'${it.currency}',this)">${fmt(it.retail,it.currency)} ✎</div></div></div>`;
-  }).join('') : '<span class="empty">No items yet</span>';
+  // --- visual catalog (photos) — remembered so re-sorting needs no refetch ---
+  dashItems = items;
+  renderCatalog();
   // --- today's sales list ---
   $('#today-total').textContent=money(t.total); $('#today-count').textContent=t.count+' sale'+(t.count===1?'':'s');
   $('#today-list').innerHTML = t.sales.length ? t.sales.map(s=>
@@ -828,22 +917,28 @@ async function loadDash(){
   $('#best').innerHTML = best.length ? best.map((b,i)=>`<li><span class="muted">${i+1}.</span><span class="name">${esc(b.name)}</span><span class="price">${money(b.qty)} · ${money(b.revenue)}</span></li>`).join('')
     : '<li class="empty">No sales yet</li>';
 }
-// Inline single-price edit from the Dash catalog (currency is preserved).
+// Inline single-price edit from the Dash catalog — price + currency picker.
 function editCatPrice(ev, id, currency, el){
   ev.stopPropagation();
   if(el.dataset.editing) return;
   el.dataset.editing='1';
   const orig=el.innerHTML, raw=el.dataset.raw||'';
-  el.innerHTML=`<input inputmode="decimal" value="${raw}" style="width:5.5rem;padding:.2rem .4rem;font-size:.9rem">`;
-  const inp=el.querySelector('input'); inp.focus(); inp.select();
-  inp.onclick=e=>e.stopPropagation();
+  el.innerHTML=`<span class="pedit">
+      <input inputmode="decimal" value="${raw}">
+      <select>
+        <option value="KHR"${currency==='KHR'?' selected':''}>៛</option>
+        <option value="USD"${currency==='USD'?' selected':''}>$</option>
+      </select></span>`;
+  const wrap=el.querySelector('.pedit'), inp=el.querySelector('input'), sel=el.querySelector('select');
+  inp.focus(); inp.select();
+  wrap.onclick=e=>e.stopPropagation();
   let done=false;
   const finish=async(commit)=>{
     if(done) return; done=true;
-    const v=inp.value.trim();
+    const v=inp.value.trim(), cur=sel.value;
     if(commit && v){
       try{ const upd=await api('/api/items/'+id+'/price',{method:'POST',headers:{'Content-Type':'application/json'},
-             body:JSON.stringify({price:v,kind:'retail',currency})});
+             body:JSON.stringify({price:v,kind:'retail',currency:cur})});
         el.dataset.raw=(upd.retail!=null?upd.retail:''); el.dataset.editing='';
         el.innerHTML=fmt(upd.retail,upd.currency)+' ✎'; toast('Price updated'); return;
       }catch(e){ toast('Error: '+e.message); }
@@ -851,8 +946,108 @@ function editCatPrice(ev, id, currency, el){
     el.innerHTML=orig; el.dataset.editing='';
   };
   inp.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); finish(true); } else if(e.key==='Escape'){ finish(false); } };
-  inp.onblur=()=>finish(true);
+  // save only when focus leaves the whole editor (so tabbing input→select doesn't save early)
+  wrap.addEventListener('focusout',()=>setTimeout(()=>{ if(!wrap.contains(document.activeElement)) finish(true); },0));
 }
+
+// ================= Vim-style keyboard motions (additive — click & tap still work) =================
+const VIM_TABS=['sell','stock','cats','ask','dash'];
+let vimCur=null, vimPendingG=false, vimHelpOpen=false;
+function vimTypingInField(){ const a=document.activeElement; return a && (a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT'||a.isContentEditable); }
+// The set of things you can move a focus ring over, per view.
+function vimFocusables(){
+  const v=currentView;
+  if(v==='dash')  return [...document.querySelectorAll('#catalog .prod')];
+  if(v==='stock') return [...document.querySelectorAll('#stock-list > li')].filter(li=>li.querySelector('.name'));
+  if(v==='cats')  return [...document.querySelectorAll('#cats li')].filter(li=>li.querySelector('.name'));
+  if(v==='sell')  return [...document.querySelectorAll('#quick .qbtn, #results > li')].filter(el=>!el.classList.contains('empty'));
+  return [];
+}
+function setVimFocus(el){ if(vimCur) vimCur.classList.remove('vim-focus'); vimCur=el;
+  if(el){ el.classList.add('vim-focus'); el.scrollIntoView({block:'nearest',inline:'nearest'}); } }
+function vimEnsure(){ const els=vimFocusables(); if(!els.length){ setVimFocus(null); return null; }
+  if(!vimCur || !els.includes(vimCur)) setVimFocus(els[0]); return els; }
+// 2D nearest-neighbour move so grids feel like real hjkl; in a 1-column list h/l simply no-op.
+function vimMove(dir){ const els=vimEnsure(); if(!els||els.length<2) return;
+  const r=vimCur.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2;
+  let best=null, bestScore=Infinity;
+  for(const el of els){ if(el===vimCur) continue; const b=el.getBoundingClientRect();
+    const dx=(b.left+b.width/2)-cx, dy=(b.top+b.height/2)-cy; let ok=false,pri=0,sec=0;
+    if(dir==='l'){ ok=dx>4; pri=dx; sec=Math.abs(dy); }
+    else if(dir==='h'){ ok=dx<-4; pri=-dx; sec=Math.abs(dy); }
+    else if(dir==='j'){ ok=dy>4; pri=dy; sec=Math.abs(dx); }
+    else if(dir==='k'){ ok=dy<-4; pri=-dy; sec=Math.abs(dx); }
+    if(!ok) continue; const score=pri+sec*2; if(score<bestScore){ bestScore=score; best=el; } }
+  if(best) setVimFocus(best);
+}
+function vimEdge(last){ const els=vimEnsure(); if(!els) return; setVimFocus(els[last?els.length-1:0]); }
+// Click a control inside the focused row/card by matching its text or its onclick handler name.
+function vimClickIn(el, needles){ if(!el) return false;
+  const btns=[...el.querySelectorAll('button,[onclick]')];
+  for(const n of needles){ const hit=btns.find(b=>((b.textContent||'').toLowerCase().includes(n))||((b.getAttribute('onclick')||'').toLowerCase().includes(n)));
+    if(hit){ hit.click(); return true; } } return false; }
+function vimOpen(){ const els=vimEnsure(); if(!els) return; const v=currentView;
+  if(v==='sell'){ vimCur.click(); return; }
+  if(v==='dash'){ vimCur.querySelector('[onclick*="openGallery"]')?.click(); return; }
+  vimClickIn(vimCur, ['opengallery','photos']); }
+function vimEditPrice(){ if(!vimCur) return;
+  if(currentView==='dash'){ vimCur.querySelector('.pr')?.click(); } else vimClickIn(vimCur, ['prices']); }
+function vimPhotos(){ if(!vimCur) return;
+  if(currentView==='dash'){ vimCur.querySelector('[onclick*="openGallery"]')?.click(); } else vimClickIn(vimCur, ['photos','opengallery']); }
+function vimDelete(){ vimClickIn(vimCur, ['deleteitem','delete']); }
+function vimSlash(){ const s=$('#search');
+  const el=(currentView==='sell'&&s)?s:document.querySelector('#view-'+currentView+' input:not([type=file])');
+  if(el){ el.focus(); if(el.select) el.select(); } }
+function vimTab(delta){ let i=VIM_TABS.indexOf(currentView); i=(i+delta+VIM_TABS.length)%VIM_TABS.length;
+  show(VIM_TABS[i]); setVimFocus(null); setTimeout(()=>vimEnsure(),80); }
+function vimCloseOverlays(){ const lb=document.querySelector('.lightbox'); if(lb){ lb.remove(); return true; }
+  const m=document.querySelector('.modal-ov'); if(m){ m.remove(); vimHelpOpen=false; return true; } return false; }
+
+function toggleVimHelp(){ const ex=document.querySelector('.vim-help-ov');
+  if(ex){ ex.remove(); vimHelpOpen=false; return; }
+  const rows=[['h j k l','move focus (left / down / up / right)'],['g g','jump to first item'],['G','jump to last item'],
+    ['[  ]','previous / next tab'],['/','focus search / first field'],['o  Enter','open focused (photos · add to cart)'],
+    ['e','edit price (Dash catalog)'],['p','photos of focused item'],['x','delete focused item'],
+    ['Esc','close popup / leave a text box'],['?','toggle this help']];
+  const body=rows.map(([k,d])=>`<tr><td class="k">${k.split(/\s+/).map(x=>'<kbd>'+esc(x)+'</kbd>').join('')}</td><td>${d}</td></tr>`).join('');
+  const ov=document.createElement('div'); ov.className='modal-ov vim-help-ov';
+  ov.innerHTML=`<div class="modal-card vim-help"><h2 style="text-transform:none;font-size:1.05rem;color:var(--ink);letter-spacing:0">⌨ Keyboard shortcuts</h2>
+    <table>${body}</table>
+    <div class="muted" style="margin-top:.6rem">Mouse & touch still work everywhere — this is extra.</div>
+    <div class="row" style="margin-top:.7rem"><button class="mini" style="margin-left:auto" onclick="toggleVimHelp()">Close</button></div></div>`;
+  ov.onclick=e=>{ if(e.target===ov) toggleVimHelp(); }; document.body.appendChild(ov); vimHelpOpen=true;
+}
+
+document.addEventListener('keydown', e=>{
+  if(e.metaKey||e.ctrlKey||e.altKey) return;
+  const k=e.key;
+  // 1) Lightbox has first claim on the keyboard.
+  const lb=document.querySelector('.lightbox');
+  if(lb){ if(k==='Escape'||k==='q'){ lb.remove(); e.preventDefault(); }
+    else if(k==='h'||k==='ArrowLeft'){ lb.querySelector('.prev')?.click(); e.preventDefault(); }
+    else if(k==='l'||k==='ArrowRight'){ lb.querySelector('.next')?.click(); e.preventDefault(); } return; }
+  // 2) Typing in a field: only Esc (blur) is a motion.
+  if(vimTypingInField()){ if(k==='Escape') document.activeElement.blur(); return; }
+  // 3) A modal open (gallery / options / help): Esc closes, ? toggles help, else leave it for the mouse.
+  if(document.querySelector('.modal-ov')){ if(k==='Escape'){ vimCloseOverlays(); e.preventDefault(); }
+    else if(k==='?'){ toggleVimHelp(); e.preventDefault(); } return; }
+  // 4) Normal motions.
+  if(k==='?'){ e.preventDefault(); toggleVimHelp(); return; }
+  if(k==='Escape'){ setVimFocus(null); return; }
+  if(k==='g'){ e.preventDefault(); if(vimPendingG){ vimPendingG=false; vimEdge(false); } else { vimPendingG=true; setTimeout(()=>vimPendingG=false,600); } return; }
+  vimPendingG=false;
+  switch(k){
+    case 'h': case 'j': case 'k': case 'l': e.preventDefault(); vimMove(k); break;
+    case 'G': e.preventDefault(); vimEdge(true); break;
+    case '[': e.preventDefault(); vimTab(-1); break;
+    case ']': e.preventDefault(); vimTab(1); break;
+    case '/': e.preventDefault(); vimSlash(); break;
+    case 'o': case 'Enter': e.preventDefault(); vimOpen(); break;
+    case 'e': e.preventDefault(); vimEditPrice(); break;
+    case 'p': e.preventDefault(); vimPhotos(); break;
+    case 'x': e.preventDefault(); vimDelete(); break;
+  }
+});
 
 // ---- Ask (AI assistant) ----
 function chatAdd(who, text){
