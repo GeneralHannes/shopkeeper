@@ -88,6 +88,17 @@
                      color:#fff; border:none; width:2.6rem; height:2.6rem; border-radius:50%; font-size:1.3rem; cursor:pointer; }
   .lightbox .count { position:absolute; bottom:1.3rem; left:50%; transform:translateX(-50%); color:#fff;
                      background:rgba(0,0,0,.5); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); padding:.3rem .85rem; border-radius:20px; font-size:.85rem; }
+  /* ---- category chips (Sell) — horizontal scroll ---- */
+  .chips { display:flex; gap:.45rem; overflow-x:auto; padding-bottom:.3rem; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; }
+  .chips::-webkit-scrollbar { height:6px; }
+  .chips::-webkit-scrollbar-thumb { background:var(--fill-2); border-radius:6px; }
+  .chip { flex:0 0 auto; scroll-snap-align:start; border:none; background:var(--fill); color:var(--ink); border-radius:20px;
+          padding:.45rem .95rem; cursor:pointer; font:inherit; font-size:.9rem; font-weight:500; white-space:nowrap; transition:.15s; }
+  .chip:hover { background:var(--fill-2); }
+  .chip.active { background:var(--accent); color:#fff; }
+  .chip-n { opacity:.65; font-size:.8rem; margin-left:.15rem; }
+  .chip.active .chip-n { opacity:.9; }
+  #cat-items:empty { display:none; }
   /* ---- quick sell buttons ---- */
   .quickgrid { display:flex; flex-wrap:wrap; gap:.55rem; }
   .qbtn { border:none; background:var(--fill); color:var(--ink); border-radius:13px;
@@ -252,6 +263,11 @@
         <button class="mini" id="pm-wholesale" onclick="setMode('wholesale')">Wholesale</button>
         <span class="muted" id="pm-label">selling at retail</span>
       </div>
+    </div>
+    <div class="card">
+      <h2>Category — tap to browse</h2>
+      <div id="cat-chips" class="chips"><span class="empty">Loading…</span></div>
+      <ul id="cat-items"></ul>
     </div>
     <div class="card">
       <h2>Quick — tap to add</h2>
@@ -471,7 +487,7 @@ function show(v){
     const t=document.getElementById('tab-'+k); if(t) t.classList.toggle('active', on);
     const b=document.getElementById('btab-'+k); if(b) b.classList.toggle('active', on);
   }
-  if(v==='sell') loadQuick();
+  if(v==='sell'){ loadQuick(); loadCategories(); }
   if(v==='dash') loadDash();
   if(v==='stock') loadStock();
   if(v==='cats') loadCats();
@@ -483,7 +499,7 @@ function setMode(m){
   $('#pm-retail').classList.toggle('active', m==='retail');
   $('#pm-wholesale').classList.toggle('active', m==='wholesale');
   $('#pm-label').textContent = 'selling at ' + m;
-  loadQuick(); doSearch();
+  loadQuick(); doSearch(); renderCatItems();
 }
 
 async function loadQuick(){
@@ -501,6 +517,37 @@ async function loadQuick(){
       el.appendChild(b);
     }
   }catch(e){ el.innerHTML='<span class="empty">—</span>'; }
+}
+
+// ---- Category quick-picker (Sell): scrollable chips → tap to browse a category ----
+let sellCatItems=[], sellCat='__all';
+async function loadCategories(){
+  try{ sellCatItems = await api('/api/items'); }catch(_){ sellCatItems=[]; }
+  const chips=$('#cat-chips'); if(!chips) return;
+  const cats=[...new Set(sellCatItems.map(i=>i.category||'—'))].sort((a,b)=>a.localeCompare(b));
+  if(!cats.some(c=>c===sellCat) && sellCat!=='__all') sellCat='__all';
+  const count=c=>sellCatItems.filter(i=>(i.category||'—')===c).length;
+  const mk=(val,label,n)=>`<button class="chip${sellCat===val?' active':''}" data-cat="${esc(val)}" onclick="pickCategory(this.dataset.cat)">${esc(label)}<span class="chip-n">${n}</span></button>`;
+  chips.innerHTML = mk('__all','All',sellCatItems.length) + cats.map(c=>mk(c,c,count(c))).join('');
+  renderCatItems();
+}
+function pickCategory(c){ sellCat=c;
+  document.querySelectorAll('#cat-chips .chip').forEach(b=>b.classList.toggle('active', b.dataset.cat===c));
+  const act=document.querySelector('#cat-chips .chip.active'); if(act) act.scrollIntoView({inline:'center',block:'nearest'});
+  renderCatItems();
+}
+function renderCatItems(){
+  const box=$('#cat-items'); if(!box) return;
+  let items = sellCat==='__all' ? sellCatItems.slice() : sellCatItems.filter(i=>(i.category||'—')===sellCat);
+  items.sort((a,b)=> (a.category||'').localeCompare(b.category||'') || (a.name||'').localeCompare(b.name||''));
+  box.innerHTML = items.length ? '' : '<li class="empty">No items in this category</li>';
+  for(const it of items){
+    const li=document.createElement('li'); li.className='add';
+    const price=modePrice(it);
+    li.innerHTML=`${thumb(it)}<span class="name">${itemLabel(it)}</span>`
+      +`<span class="price">${price==null?'<span class="warn">no price</span>':fmt(price,it.currency)}</span>`;
+    li.onclick=()=>addToCart(it); box.appendChild(li);
+  }
 }
 
 // ---- Sell ----
@@ -1260,6 +1307,7 @@ applyUiMode();
 
 checkAuth();
 api('/api/items').then(populateDatalists).catch(()=>{});   // warm autocomplete on load
+loadCategories();
 loadQuick();
 // Camera scanning needs a secure context (HTTPS). Show the scan buttons only then.
 if(window.isSecureContext){
