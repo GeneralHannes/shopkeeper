@@ -352,7 +352,11 @@
       </div>
       <div class="row" style="margin-bottom:.4rem">
         <input id="ni-category" list="dl-category" autocomplete="off" placeholder="category (drinks, snacks…)">
-        <input id="ni-unit" list="dl-unit" autocomplete="off" placeholder="unit" value="each" style="max-width:6rem">
+        <select id="ni-unit" style="max-width:7.5rem">
+          <option value="single">single</option>
+          <option value="pack">pack</option>
+          <option value="wholesale">wholesale</option>
+        </select>
       </div>
       <!-- BASE price = single, with currency -->
       <div class="row" style="margin-bottom:.4rem">
@@ -890,7 +894,7 @@ function resetAddForm(){
   for(const id of ['ni-brand','ni-name','ni-size','ni-retail','ni-pack','ni-wholesale','ni-cost','ni-barcode','ni-category','ni-supplier']){
     const el=$('#'+id); if(el) el.value='';
   }
-  const u=$('#ni-unit'); if(u) u.value='each';
+  const u=$('#ni-unit'); if(u) u.value='single';   // default unit back to single
   const cur=$('#ni-currency'); if(cur) cur.selectedIndex=0;   // back to default (Riel)
   $('#ni-opts').innerHTML=''; clearNewPhoto();
   const w=$('#ni-wsec'); if(w) w.style.display='none';        // collapse pack/wholesale/cost
