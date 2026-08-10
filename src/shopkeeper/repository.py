@@ -20,11 +20,11 @@ def add_item(item: Item) -> Item:
     with connection() as conn:
         row = conn.execute(
             """
-            INSERT INTO items (name, sku, barcode, category, unit, quantity_on_hand, active, supplier, note)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO items (name, brand, size, sku, barcode, category, unit, quantity_on_hand, active, supplier, note)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
             """,
-            (item.name, item.sku, item.barcode, item.category, item.unit,
+            (item.name, item.brand, item.size, item.sku, item.barcode, item.category, item.unit,
              item.quantity_on_hand, item.active, item.supplier, item.note),
         ).fetchone()
     item.id = row["id"]
@@ -217,6 +217,15 @@ def list_items(limit: int = 500) -> list[Item]:
 def rename_item(item_id: int, name: str) -> None:
     with connection() as conn:
         conn.execute("UPDATE items SET name = %s WHERE id = %s", (name.strip(), item_id))
+
+
+def update_item_meta(item_id: int, name: str, brand: str | None, size: str | None) -> None:
+    """Set the full name plus its structured brand/size parts (blank -> NULL)."""
+    with connection() as conn:
+        conn.execute(
+            "UPDATE items SET name = %s, brand = %s, size = %s WHERE id = %s",
+            (name.strip(), (brand or "").strip() or None, (size or "").strip() or None, item_id),
+        )
 
 
 def set_active(item_id: int, active: bool) -> None:

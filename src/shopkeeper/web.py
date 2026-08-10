@@ -61,6 +61,8 @@ def _item_dict(it: Item, prices: dict | None = None) -> dict:
     return {
         "id": it.id,
         "name": it.name,
+        "brand": it.brand,
+        "size": it.size,
         "category": it.category,
         "unit": it.unit,
         "supplier": it.supplier,
@@ -115,6 +117,8 @@ def _cur(value: str | None) -> str:
 
 class ItemIn(BaseModel):
     name: str
+    brand: str | None = None
+    size: str | None = None
     category: str | None = None
     unit: str = "each"
     supplier: str | None = None
@@ -130,7 +134,8 @@ class ItemIn(BaseModel):
 def api_add_item(body: ItemIn) -> dict:
     barcode = (body.barcode or "").strip() or None
     cur = _cur(body.currency)
-    item = repo.add_item(Item(name=body.name, category=body.category, unit=body.unit,
+    item = repo.add_item(Item(name=body.name, brand=(body.brand or None), size=(body.size or None),
+                              category=body.category, unit=body.unit,
                               supplier=body.supplier, barcode=barcode))
     if body.retail is not None:
         repo.set_price(item.id, body.retail, "retail", cur)
@@ -141,6 +146,23 @@ def api_add_item(body: ItemIn) -> dict:
     if body.stock:
         repo.restock(item.id, body.stock)
     return _item_dict(repo.get_item(item.id))
+
+
+class MetaIn(BaseModel):
+    name: str
+    brand: str | None = None
+    size: str | None = None
+
+
+@api.post("/items/{item_id}/meta")
+def api_update_meta(item_id: int, body: MetaIn) -> dict:
+    """Update an item's full name and its structured brand/size parts."""
+    if repo.get_item(item_id) is None:
+        raise HTTPException(404, f"no item #{item_id}")
+    if not body.name.strip():
+        raise HTTPException(400, "name cannot be blank")
+    repo.update_item_meta(item_id, body.name, body.brand, body.size)
+    return _item_dict(repo.get_item(item_id))
 
 
 def _dec(parts: list[str], idx: int) -> Decimal | None:

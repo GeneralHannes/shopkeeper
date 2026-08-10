@@ -15,6 +15,8 @@ from pydantic import BaseModel, Field, field_validator
 class Item(BaseModel):
     id: int | None = None
     name: str
+    brand: str | None = None
+    size: str | None = None
     sku: str | None = None
     barcode: str | None = None
     category: str | None = None

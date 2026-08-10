@@ -129,8 +129,13 @@
   .prod .noimg { width:100%; aspect-ratio:1; display:flex; align-items:center; justify-content:center;
                  background:var(--fill); color:var(--muted); font-size:2rem; }
   .prod .body { padding:.7rem .75rem .8rem; }
-  .prod .body .nm { font-weight:600; font-size:.95rem; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .prod .body .nm { font-weight:600; font-size:.95rem; line-height:1.3; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
   .prod .body .pr { color:var(--accent); font-weight:600; font-size:1rem; margin-top:.35rem; cursor:pointer; letter-spacing:-.01em; }
+  /* structured item label: brand · option · size */
+  .brand-tag { font-weight:700; }
+  .nm-mid { color:var(--ink); font-weight:500; }
+  .szchip { display:inline-block; font-size:.72rem; font-weight:600; color:var(--muted); background:var(--fill);
+            border-radius:6px; padding:.02rem .4rem; vertical-align:middle; }
   #toast { position:fixed; bottom:1.4rem; left:50%; transform:translateX(-50%); background:rgba(20,22,34,.94);
            -webkit-backdrop-filter:blur(20px); backdrop-filter:blur(20px); color:#fff; padding:.75rem 1.2rem; border-radius:14px;
            opacity:0; transition:opacity .2s; pointer-events:none; z-index:50; box-shadow:0 8px 30px rgba(0,0,0,.3); }
@@ -318,7 +323,12 @@
                autocomplete="off" onkeydown="if(event.key==='Enter')lookupBarcode()">
         <button class="mini" id="ni-cam" onclick="scanBarcodeInto()" style="display:none">📷 Scan</button>
       </div>
-      <input id="ni-name" placeholder="name" style="margin-bottom:.4rem">
+      <!-- naming scheme: brand · option · size -->
+      <div class="row" style="margin-bottom:.4rem">
+        <input id="ni-brand" placeholder="brand (Kaiserdom)" style="flex:1 1 40%">
+        <input id="ni-name" placeholder="option (crystal) — optional" style="flex:1 1 45%">
+        <input id="ni-size" placeholder="size (500ml)" style="max-width:6.5rem">
+      </div>
       <div class="row" style="margin-bottom:.4rem">
         <input id="ni-category" placeholder="category (drinks, snacks…)">
         <input id="ni-unit" placeholder="unit" value="each" style="max-width:6rem">
@@ -499,7 +509,7 @@ async function doSearch(){
   for(const it of items){
     const li=document.createElement('li'); li.className='add';
     const price = modePrice(it);
-    li.innerHTML=`${thumb(it)}<span class="name">${esc(it.name)}</span><span class="muted">${money(it.quantity_on_hand)} ${esc(it.unit)}</span>
+    li.innerHTML=`${thumb(it)}<span class="name">${itemLabel(it)}</span><span class="muted">${money(it.quantity_on_hand)} ${esc(it.unit)}</span>
       <span class="price">${price==null?'<span class=warn>no price</span>':fmt(price,it.currency)}</span>`;
     li.onclick=()=>addToCart(it); ul.appendChild(li);
   }
@@ -814,10 +824,11 @@ function addOptRow(){
   box.appendChild(row);
 }
 async function addItem(){
-  const name=$('#ni-name').value.trim();
-  if(!name){ toast('Name required'); return; }
+  const brand=$('#ni-brand').value.trim(), option=$('#ni-name').value.trim(), size=$('#ni-size').value.trim();
+  const name=[brand, option, size].filter(Boolean).join(' ');   // brand · option · size
+  if(!name){ toast('Enter at least a brand or name'); return; }
   const currency=$('#ni-currency').value;
-  const body={ name, currency,
+  const body={ name, brand:brand||null, size:size||null, currency,
     category: $('#ni-category').value.trim()||null,
     unit: $('#ni-unit').value.trim()||'each',
     supplier: $('#ni-supplier').value.trim()||null,
@@ -836,8 +847,8 @@ async function addItem(){
       for(const o of optRows){ try{ await api('/api/items/'+created.id+'/options',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o)}); }catch(_){} }
     }
     // Keep category / unit / supplier / currency for fast successive entry; clear the rest.
-    for(const id of ['ni-name','ni-retail','ni-wholesale','ni-cost','ni-barcode']) $('#'+id).value='';
-    $('#ni-opts').innerHTML=''; clearNewPhoto(); $('#ni-name').focus();
+    for(const id of ['ni-brand','ni-name','ni-size','ni-retail','ni-wholesale','ni-cost','ni-barcode']) $('#'+id).value='';
+    $('#ni-opts').innerHTML=''; clearNewPhoto(); $('#ni-brand').focus();
     toast('Added '+name); loadStock();
   }catch(e){ toast('Error: '+e.message); }
 }
@@ -853,7 +864,7 @@ async function loadStock(){
     const li=document.createElement('li'); li.style.flexWrap='wrap';
     const m = it.margin!=null ? ` · margin ${fmt(it.margin,it.currency)}` : '';
     li.innerHTML=`<div style="flex:1 1 100%">
-        ${thumb(it)}<span class="name">${esc(it.name)}</span>
+        ${thumb(it)}<span class="name">${itemLabel(it)}</span>
         <span class="muted">${money(it.quantity_on_hand)} ${esc(it.unit)}${it.supplier?' · '+esc(it.supplier):''}</span></div>
       <div style="flex:1 1 100%" class="muted">single ${fmt(it.retail,it.currency)} · wholesale ${fmt(it.wholesale,it.currency)} · cost ${fmt(it.cost,it.currency)}${m}</div>
       <input type="number" placeholder="+qty" inputmode="decimal" style="max-width:4.5rem" id="rs-${it.id}">
@@ -862,6 +873,7 @@ async function loadStock(){
       <button class="mini" onclick="openOptions(${it.id},'${esc(it.name)}','${it.currency}')">options</button>
       <button class="mini" onclick="setBarcode(${it.id})">barcode</button>
       <button class="mini" onclick="openGallery(${it.id},'${esc(it.name)}')">📷 photos</button>
+      <button class="mini" onclick="editNaming(${it.id})">✎ name</button>
       <button class="mini" onclick="deleteItem(${it.id},'${esc(it.name)}')" style="color:var(--warn)">delete</button>`;
     ul.appendChild(li);
   }
@@ -901,7 +913,7 @@ async function loadCats(){
     const val=v=> cc?fmt(v,cc):money(v);
     let itemsHtml='';
     for(const it of list){
-      itemsHtml+=`<li>${thumb(it)}<span class="name">${esc(it.name)}</span>
+      itemsHtml+=`<li>${thumb(it)}<span class="name">${itemLabel(it)}</span>
         <span class="muted">${money(it.quantity_on_hand)} ${esc(it.unit)}</span>
         <span class="price">${fmt(it.retail,it.currency)}</span>
         <button class="mini" onclick="deleteItem(${it.id},'${esc(it.name)}')" style="color:var(--warn)">delete</button></li>`;
@@ -925,11 +937,43 @@ async function renameCategory(c){
 }
 
 // ---- Dashboard ----
+// ---- structured naming: brand (colored) · option · size chip ----
+const BRAND_COLORS=['#82aaff','#c3e88d','#c099ff','#86e1fc','#ff966c','#ffc777','#ff757f','#4fd6be','#fca7ea','#65bcff'];
+function brandColor(b){ if(!b) return 'var(--muted)'; let h=0; for(let i=0;i<b.length;i++) h=(h*31+b.charCodeAt(i))>>>0; return BRAND_COLORS[h%BRAND_COLORS.length]; }
+// the middle part = full name minus a leading quantity, the brand token, and the size token
+function itemMid(it){
+  let toks=(it.name||'').split(/\s+/);
+  while(toks.length && /^\d+x?$/i.test(toks[0])) toks.shift();
+  if(it.brand){ const i=toks.findIndex(t=>t.toLowerCase()===it.brand.toLowerCase()); if(i>=0) toks.splice(i,1); }
+  if(it.size){ const i=toks.findIndex(t=>t.toLowerCase()===it.size.toLowerCase()); if(i>=0) toks.splice(i,1); }
+  return toks.join(' ');
+}
+function itemLabel(it){
+  const b=it.brand||'', s=it.size||'';
+  if(!b && !s) return `<span class="nm-mid">${esc(it.name)}</span>`;
+  const mid=itemMid(it);
+  return (b?`<span class="brand-tag" style="color:${brandColor(b)}">${esc(b)}</span>`:'')
+       + (mid?` <span class="nm-mid">${esc(mid)}</span>`:'')
+       + (s?` <span class="szchip">${esc(s)}</span>`:'');
+}
+async function editNaming(id){
+  let it; try{ it=(await api('/api/items')).find(x=>x.id===id); }catch(e){ toast('Error: '+e.message); return; }
+  if(!it) return;
+  const brand=prompt('Brand:', it.brand||''); if(brand===null) return;
+  const option=prompt('Option / middle (e.g. crystal) — optional:', itemMid(it)); if(option===null) return;
+  const size=prompt('Size (e.g. 500ml, 250g) — optional:', it.size||''); if(size===null) return;
+  const name=[brand.trim(),option.trim(),size.trim()].filter(Boolean).join(' ');
+  if(!name){ toast('Name required'); return; }
+  try{ await api('/api/items/'+id+'/meta',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({name, brand:brand.trim()||null, size:size.trim()||null})});
+    toast('Updated'); loadStock();
+  }catch(e){ toast('Error: '+e.message); }
+}
 // one Dash catalog card (photo + name open gallery; price is tap-to-edit)
 const prodCard = it => {
   const media = it.has_image ? `<img class="ph" src="${itemThumbSrc(it.id)}" alt="">` : `<div class="noimg">📦</div>`;
   return `<div class="prod"><div onclick="openGallery(${it.id},'${esc(it.name)}')">${media}</div>
-    <div class="body"><div class="nm" onclick="openGallery(${it.id},'${esc(it.name)}')">${esc(it.name)}</div>
+    <div class="body"><div class="nm" onclick="openGallery(${it.id},'${esc(it.name)}')">${itemLabel(it)}</div>
       <div class="pr" title="tap to edit" data-raw="${it.retail??''}"
            onclick="editCatPrice(event,${it.id},'${it.currency}',this)">${fmt(it.retail,it.currency)} ✎</div></div></div>`;
 };
@@ -995,7 +1039,7 @@ async function loadDash(){
     : '<li class="empty">No sales today</li>';
   // --- low stock (with thumbnails) ---
   const low=await api('/api/low?threshold=5');
-  $('#low').innerHTML = low.length ? low.map(it=>`<li>${thumb(it)}<span class="name">${esc(it.name)}</span><span class="price warn">${money(it.quantity_on_hand)} ${esc(it.unit)}</span></li>`).join('')
+  $('#low').innerHTML = low.length ? low.map(it=>`<li>${thumb(it)}<span class="name">${itemLabel(it)}</span><span class="price warn">${money(it.quantity_on_hand)} ${esc(it.unit)}</span></li>`).join('')
     : '<li class="empty">All well stocked</li>';
   // --- best sellers ---
   const best=await api('/api/best?days=30');
