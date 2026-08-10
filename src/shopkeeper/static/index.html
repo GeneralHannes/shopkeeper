@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>shopkeeper</title>
 <style>
   :root { --bg:#f2f2f7; --card:#fff; --card-2:#fff; --fill:rgba(120,120,128,.12); --fill-2:rgba(118,118,128,.20);
@@ -165,6 +165,28 @@
   @media (prefers-reduced-motion: reduce){
     *, *::before, *::after { animation-duration:.001ms !important; animation-iteration-count:1 !important;
                              transition-duration:.001ms !important; scroll-behavior:auto !important; } }
+  /* ---- iPhone safe areas (notch / home indicator) ---- */
+  header { padding-top:max(.5rem, env(safe-area-inset-top));
+           padding-left:max(.9rem, env(safe-area-inset-left)); padding-right:max(.9rem, env(safe-area-inset-right)); }
+  main { padding-left:max(1rem, env(safe-area-inset-left)); padding-right:max(1rem, env(safe-area-inset-right));
+         padding-bottom:calc(1.5rem + env(safe-area-inset-bottom)); }
+  #toast { bottom:calc(1.4rem + env(safe-area-inset-bottom)); }
+  /* ---- iOS Messages-style chat bubbles (Ask tab) ---- */
+  #chat { display:flex; flex-direction:column; gap:.4rem; }
+  .bubble { max-width:80%; padding:.55rem .85rem; border-radius:18px; white-space:pre-wrap; line-height:1.35;
+            font-size:.95rem; word-break:break-word; animation:popIn .28s var(--ease-out) both; }
+  .bubble.you { align-self:flex-end; background:var(--accent); color:#fff; border-bottom-right-radius:6px; }
+  .bubble.ai  { align-self:flex-start; background:var(--fill); color:var(--ink); border-bottom-left-radius:6px; }
+  /* ---- pointer hover highlight (mouse only; never sticks on touch) ---- */
+  @media (hover:hover){
+    .prod { cursor:pointer; }
+    .prod:hover { transform:translateY(-2px); box-shadow:0 10px 26px rgba(0,0,0,.14); }
+    li:hover { background:var(--fill); }
+    .qbtn:hover { background:var(--fill-2); }
+    .gallery img:hover, img.thumb.tap:hover { filter:brightness(1.06); }
+    .tabs button:hover:not(.active) { color:var(--accent); }
+    button.mini:hover { background:var(--fill-2); }
+  }
 </style>
 </head>
 <body>
@@ -888,6 +910,19 @@ function renderCatalog(){
   }[sort] || (()=>0);
   box.innerHTML=`<div class="catalog">${[...dashItems].sort(cmp).map(prodCard).join('')}</div>`;
 }
+// Count a metric up from 0 to its value (keeps any prefix/suffix, e.g. $ or decimals).
+function animateCount(el){
+  const raw=(el.textContent||'').trim();
+  const m=raw.match(/^(\D*)([\d,]+(?:\.\d+)?)(.*)$/);
+  if(!m || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const pre=m[1], numStr=m[2], suf=m[3], target=parseFloat(numStr.replace(/,/g,''));
+  if(isNaN(target)) return;
+  const dec=(numStr.split('.')[1]||'').length, dur=650, t0=performance.now();
+  const tick=now=>{ const p=Math.min(1,(now-t0)/dur), v=target*(1-Math.pow(1-p,3));
+    el.textContent=pre+v.toLocaleString(undefined,{minimumFractionDigits:dec,maximumFractionDigits:dec})+suf;
+    if(p<1) requestAnimationFrame(tick); else el.textContent=raw; };
+  requestAnimationFrame(tick);
+}
 async function loadDash(){
   const items=await api('/api/items');
   const t=await api('/api/today');
@@ -899,6 +934,7 @@ async function loadDash(){
   $('#metrics').innerHTML =
     M(items.length,'Items') + M(cats.size,'Categories') +
     M(money(t.total),"Today's sales",'good') + M(lowCount,'Low stock', lowCount?'warn':'');
+  document.querySelectorAll('#metrics .n').forEach(animateCount);
   // --- visual catalog (photos) — remembered so re-sorting needs no refetch ---
   dashItems = items;
   renderCatalog();
@@ -1052,8 +1088,7 @@ document.addEventListener('keydown', e=>{
 // ---- Ask (AI assistant) ----
 function chatAdd(who, text){
   const box=$('#chat'); const d=document.createElement('div');
-  d.style.cssText='margin:.4rem 0;padding:.5rem .7rem;border-radius:10px;white-space:pre-wrap;'+
-    (who==='you'?'background:var(--accent);color:#fff;margin-left:2rem':'background:var(--bg);border:1px solid var(--line);margin-right:2rem');
+  d.className='bubble '+(who==='you'?'you':'ai');
   d.textContent=text; box.appendChild(d); box.scrollTop=box.scrollHeight; return d;
 }
 async function sendAssistant(){
