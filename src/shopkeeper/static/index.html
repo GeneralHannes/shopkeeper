@@ -5,14 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>shopkeeper</title>
 <style>
-  :root { --bg:#f2f2f7; --card:#fff; --card-2:#fff; --fill:rgba(120,120,128,.12); --fill-2:rgba(118,118,128,.20);
-          --line:rgba(60,60,67,.18); --ink:#1c1c1e; --muted:rgba(60,60,67,.6);
-          --accent:#007aff; --accent-soft:rgba(0,122,255,.12); --good:#34c759; --warn:#ff9500;
-          --nav:rgba(249,249,249,.72); --radius:14px; --radius-lg:18px; --shadow:0 1px 2px rgba(0,0,0,.05); }
-  @media (prefers-color-scheme: dark){ :root{ --bg:#000; --card:#1c1c1e; --card-2:#2c2c2e; --fill:rgba(120,120,128,.24); --fill-2:rgba(120,120,128,.32);
-          --line:rgba(84,84,88,.55); --ink:#fff; --muted:rgba(235,235,245,.6);
-          --accent:#0a84ff; --accent-soft:rgba(10,132,255,.24); --good:#30d158; --warn:#ff9f0a;
-          --nav:rgba(30,30,30,.66); --shadow:0 1px 2px rgba(0,0,0,.4); } }
+  /* ===== Tokyo Night Moon (dark theme, applied regardless of OS light/dark) ===== */
+  :root { color-scheme:dark;
+          --bg:#1e2030; --card:#222436; --card-2:#2f334d; --fill:#2f334d; --fill-2:#3b4261;
+          --line:#3b4261; --ink:#c8d3f5; --muted:#828bb8;
+          --accent:#82aaff; --accent-soft:rgba(130,170,255,.18); --good:#c3e88d; --warn:#ff966c;
+          --nav:rgba(30,32,48,.74); --radius:14px; --radius-lg:18px; --shadow:0 2px 10px rgba(0,0,0,.4); }
   * { box-sizing:border-box; }
   body { margin:0; font:17px/1.47 -apple-system,"SF Pro Text",system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
          background:var(--bg); color:var(--ink); -webkit-text-size-adjust:100%; -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent; }
@@ -24,7 +22,7 @@
   .tabs { margin-left:auto; display:flex; gap:2px; background:var(--fill); padding:2px; border-radius:9px; overflow-x:auto; max-width:100%; }
   .tabs button { border:none; background:transparent; color:var(--ink); white-space:nowrap;
                  padding:.4rem .7rem; border-radius:7px; cursor:pointer; font-size:.9rem; font-weight:500; transition:.2s; }
-  .tabs button.active { background:var(--card); color:var(--ink); font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,.12),0 1px 1px rgba(0,0,0,.04); }
+  .tabs button.active { background:var(--accent-soft); color:var(--accent); font-weight:600; }
   main { max-width:980px; margin:1.1rem auto; padding:0 1rem; }
   .grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
   @media (max-width:720px){ .grid { grid-template-columns:1fr; } }
@@ -133,7 +131,7 @@
   .prod .body { padding:.7rem .75rem .8rem; }
   .prod .body .nm { font-weight:600; font-size:.95rem; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
   .prod .body .pr { color:var(--accent); font-weight:600; font-size:1rem; margin-top:.35rem; cursor:pointer; letter-spacing:-.01em; }
-  #toast { position:fixed; bottom:1.4rem; left:50%; transform:translateX(-50%); background:rgba(40,40,40,.92);
+  #toast { position:fixed; bottom:1.4rem; left:50%; transform:translateX(-50%); background:rgba(20,22,34,.94);
            -webkit-backdrop-filter:blur(20px); backdrop-filter:blur(20px); color:#fff; padding:.75rem 1.2rem; border-radius:14px;
            opacity:0; transition:opacity .2s; pointer-events:none; z-index:50; box-shadow:0 8px 30px rgba(0,0,0,.3); }
   #toast.show { opacity:1; }
@@ -177,15 +175,51 @@
             font-size:.95rem; word-break:break-word; animation:popIn .28s var(--ease-out) both; }
   .bubble.you { align-self:flex-end; background:var(--accent); color:#fff; border-bottom-right-radius:6px; }
   .bubble.ai  { align-self:flex-start; background:var(--fill); color:var(--ink); border-bottom-left-radius:6px; }
+  /* ================= layout modes: mobile vs desktop ================= */
+  /* bottom tab bar — shown only in mobile mode */
+  #tabbar { position:fixed; left:0; right:0; bottom:0; z-index:20; display:none; justify-content:space-around;
+            background:var(--nav); -webkit-backdrop-filter:saturate(180%) blur(20px); backdrop-filter:saturate(180%) blur(20px);
+            border-top:.5px solid var(--line); padding:.3rem .1rem calc(.3rem + env(safe-area-inset-bottom)); }
+  #tabbar button { flex:1; border:none; background:none; color:var(--muted); cursor:pointer;
+                   display:flex; flex-direction:column; align-items:center; gap:2px; font-size:.66rem; font-weight:500;
+                   padding:.35rem .2rem; transition:color .15s, transform .15s var(--ease-spring); }
+  #tabbar button .ic { font-size:1.45rem; line-height:1; }
+  #tabbar button.active { color:var(--accent); }
+  #tabbar button:active { transform:scale(.9); }
+  /* --- MOBILE: bottom nav, single column, big touch targets --- */
+  .ui-mobile .tabs, .ui-mobile .kbdbtn { display:none; }
+  .ui-mobile #mode-toggle { display:inline-flex; margin-left:auto; }
+  .ui-mobile #tabbar { display:flex; }
+  .ui-mobile header h1 { font-size:1.35rem; }
+  .ui-mobile main { max-width:680px; padding-bottom:calc(4.9rem + env(safe-area-inset-bottom)); }
+  .ui-mobile .card { padding:1.1rem; border-radius:18px; }
+  .ui-mobile input, .ui-mobile select, .ui-mobile textarea { font-size:1.05rem; padding:.78rem .85rem; min-height:2.9rem; }
+  .ui-mobile button.act { font-size:1.05rem; padding:.85rem 1.2rem; }
+  .ui-mobile button.mini { font-size:.95rem; padding:.55rem .85rem; }
+  .ui-mobile .grid { grid-template-columns:1fr; }
+  .ui-mobile .catalog { grid-template-columns:repeat(2,1fr); gap:.7rem; }
+  .ui-mobile .metrics { grid-template-columns:repeat(2,1fr); }
+  .ui-mobile .metric .n { font-size:1.9rem; }
+  .ui-mobile .cat-head { font-size:1.3rem; }
+  .ui-mobile .qbtn { min-width:7.5rem; padding:.8rem .9rem; }
+  /* --- DESKTOP: top tabs, denser grids, wider --- */
+  .ui-desktop #tabbar { display:none; }
+  .ui-desktop main { max-width:1120px; }
+  .ui-desktop .catalog { grid-template-columns:repeat(auto-fill,minmax(8.5rem,1fr)); }
+  .ui-desktop .metrics { grid-template-columns:repeat(auto-fit,minmax(7.5rem,1fr)); }
   /* ---- pointer hover highlight (mouse only; never sticks on touch) ---- */
   @media (hover:hover){
     .prod { cursor:pointer; }
-    .prod:hover { transform:translateY(-2px); box-shadow:0 10px 26px rgba(0,0,0,.14); }
-    li:hover { background:var(--fill); }
-    .qbtn:hover { background:var(--fill-2); }
-    .gallery img:hover, img.thumb.tap:hover { filter:brightness(1.06); }
+    /* hover lights up an accent border around the item + a soft glow */
+    .prod:hover { transform:translateY(-2px); box-shadow:0 0 0 2px var(--accent), 0 8px 24px var(--accent-soft); }
+    li:hover { background:var(--fill); box-shadow:inset 0 0 0 1.5px var(--accent); border-radius:10px; }
+    .qbtn:hover { background:var(--fill); box-shadow:0 0 0 2px var(--accent), 0 6px 18px var(--accent-soft); }
+    .metric:hover { box-shadow:0 0 0 1.5px var(--accent), 0 6px 20px var(--accent-soft); }
+    .card:hover { box-shadow:0 0 0 1px var(--accent-soft), var(--shadow); }
+    .gallery img:hover, img.thumb.tap:hover { box-shadow:0 0 0 2px var(--accent); }
     .tabs button:hover:not(.active) { color:var(--accent); }
-    button.mini:hover { background:var(--fill-2); }
+    button.mini:hover { background:var(--fill-2); box-shadow:0 0 0 1.5px var(--accent); }
+    #tabbar button:hover { color:var(--accent); }
   }
 </style>
 </head>
@@ -200,6 +234,7 @@
     <button id="tab-ask" onclick="show('ask')">Ask</button>
     <button id="tab-dash" onclick="show('dash')">Dash</button>
   </div>
+  <button class="mini kbdbtn" id="mode-toggle" onclick="toggleUiMode()" title="Switch layout">🖥️</button>
 </header>
 
 <main>
@@ -378,6 +413,15 @@
   </section>
 </main>
 
+<!-- bottom tab bar (mobile mode only) -->
+<nav id="tabbar">
+  <button id="btab-sell" onclick="show('sell')"><span class="ic">🛒</span>Sell</button>
+  <button id="btab-stock" onclick="show('stock')"><span class="ic">📦</span>Stock</button>
+  <button id="btab-cats" onclick="show('cats')"><span class="ic">🗂️</span>Cats</button>
+  <button id="btab-ask" onclick="show('ask')"><span class="ic">💬</span>Ask</button>
+  <button id="btab-dash" onclick="show('dash')"><span class="ic">📊</span>Dash</button>
+</nav>
+
 <div id="toast"></div>
 
 <script src="/static/vendor/zxing.min.js"></script>
@@ -406,7 +450,12 @@ async function checkAuth(){ try{ const a = await (await fetch('/api/auth')).json
 let currentView='sell';
 function show(v){
   currentView=v;
-  for(const k of ['sell','stock','cats','ask','dash']){ $('#view-'+k).style.display = (k===v)?'':'none'; $('#tab-'+k).classList.toggle('active', k===v); }
+  for(const k of ['sell','stock','cats','ask','dash']){
+    const on = k===v;
+    $('#view-'+k).style.display = on?'':'none';
+    const t=document.getElementById('tab-'+k); if(t) t.classList.toggle('active', on);
+    const b=document.getElementById('btab-'+k); if(b) b.classList.toggle('active', on);
+  }
   if(v==='sell') loadQuick();
   if(v==='dash') loadDash();
   if(v==='stock') loadStock();
@@ -1128,6 +1177,20 @@ function attachAction(afterNode, action){
 
 async function voidSale(id){ if(!confirm('Void sale #'+id+'? Stock will be restored.')) return;
   try{ await api('/api/sale/'+id+'/void',{method:'POST'}); toast('Voided #'+id); loadDash(); }catch(e){ toast('Error: '+e.message); } }
+
+// ---- Layout mode: 'mobile' (bottom nav, big touch targets) vs 'desktop' (top tabs, dense) ----
+function detectMode(){ return (matchMedia('(pointer:coarse)').matches || window.innerWidth<=800) ? 'mobile' : 'desktop'; }
+let UI_MODE = localStorage.getItem('sk_uimode') || detectMode();
+function applyUiMode(){
+  document.body.classList.toggle('ui-mobile', UI_MODE==='mobile');
+  document.body.classList.toggle('ui-desktop', UI_MODE==='desktop');
+  const btn=document.getElementById('mode-toggle');
+  if(btn){ btn.textContent = UI_MODE==='mobile' ? '📱' : '🖥️';
+           btn.title = 'Switch to '+(UI_MODE==='mobile'?'desktop':'mobile')+' layout'; }
+}
+function setUiMode(m){ UI_MODE=m; localStorage.setItem('sk_uimode',m); applyUiMode(); }
+function toggleUiMode(){ setUiMode(UI_MODE==='mobile'?'desktop':'mobile'); toast(UI_MODE==='mobile'?'Mobile layout':'Desktop layout'); }
+applyUiMode();
 
 checkAuth();
 loadQuick();
