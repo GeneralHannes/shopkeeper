@@ -299,7 +299,7 @@
   <section id="view-stock" style="display:none">
     <div class="card">
       <h2>Bulk add / import (fast)</h2>
-      <div class="muted" style="margin-bottom:.4rem">columns: name, retail, wholesale, cost, qty, category, supplier, barcode — comma or | separated · header row optional</div>
+      <div class="muted" style="margin-bottom:.4rem">columns: name, retail, wholesale, cost, qty, category, supplier, barcode — or with a header row add <b>brand</b> and <b>size</b>. Comma or | separated · header row optional</div>
       <div class="row" style="margin-bottom:.4rem">
         <input type="file" id="import-file" accept=".csv,.txt" onchange="loadImportFile()">
         <button class="mini" onclick="downloadTemplate()">template</button>
@@ -325,17 +325,18 @@
       </div>
       <!-- naming scheme: brand · option · size -->
       <div class="row" style="margin-bottom:.4rem">
-        <input id="ni-brand" placeholder="brand (Kaiserdom)" style="flex:1 1 40%">
-        <input id="ni-name" placeholder="option (crystal) — optional" style="flex:1 1 45%">
-        <input id="ni-size" placeholder="size (500ml)" style="max-width:6.5rem">
+        <input id="ni-brand" list="dl-brand" autocomplete="off" placeholder="brand (Kaiserdom)" style="flex:1 1 40%">
+        <input id="ni-name" list="dl-option" autocomplete="off" placeholder="option (crystal) — optional" style="flex:1 1 45%">
+        <input id="ni-size" list="dl-size" autocomplete="off" placeholder="size (500ml)" style="max-width:6.5rem"
+               onkeydown="if(event.key==='Enter')addItem()">
       </div>
       <div class="row" style="margin-bottom:.4rem">
-        <input id="ni-category" placeholder="category (drinks, snacks…)">
-        <input id="ni-unit" placeholder="unit" value="each" style="max-width:6rem">
+        <input id="ni-category" list="dl-category" autocomplete="off" placeholder="category (drinks, snacks…)">
+        <input id="ni-unit" list="dl-unit" autocomplete="off" placeholder="unit" value="each" style="max-width:6rem">
       </div>
       <!-- BASE price = single, with currency -->
       <div class="row" style="margin-bottom:.4rem">
-        <input id="ni-retail" placeholder="single price" inputmode="decimal">
+        <input id="ni-retail" placeholder="single price" inputmode="decimal" onkeydown="if(event.key==='Enter')addItem()">
         <select id="ni-currency" style="max-width:6rem"><option value="KHR">៛ Riel</option><option value="USD">$ USD</option></select>
       </div>
       <!-- custom amount options (Cold / Normal / Set…) via a button -->
@@ -358,7 +359,7 @@
         <div class="photo-strip" id="ni-photos"></div>
       </div>
       <div class="row">
-        <input id="ni-supplier" placeholder="supplier / note">
+        <input id="ni-supplier" list="dl-supplier" autocomplete="off" placeholder="supplier / note">
         <button class="act" onclick="addItem()">Add item</button>
       </div>
     </div>
@@ -422,6 +423,10 @@
     <div class="card"><h2>Best sellers (30d)</h2><ul id="best"></ul></div>
   </section>
 </main>
+
+<!-- autocomplete sources for fast, consistent entry (filled from existing items) -->
+<datalist id="dl-brand"></datalist><datalist id="dl-option"></datalist><datalist id="dl-size"></datalist>
+<datalist id="dl-category"></datalist><datalist id="dl-supplier"></datalist><datalist id="dl-unit"></datalist>
 
 <!-- bottom tab bar (mobile mode only) -->
 <nav id="tabbar">
@@ -716,7 +721,7 @@ function loadImportFile(){
   rd.readAsText(f);
 }
 function downloadTemplate(){
-  const csv='name,retail,wholesale,cost,qty,category,supplier,barcode\nCoke,1.75,1.40,1.10,24,drinks,ABC,\nRice,0.90,,0.70,50,staples,,\n';
+  const csv='brand,size,name,retail,wholesale,cost,qty,category,supplier,barcode\nKaiserdom,500ml,Kaiserdom 500ml,6000,,,0,beer,,\nCoke,330ml,Coke 330ml,1.75,1.40,1.10,24,drinks,ABC,\n';
   const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download='shopkeeper-template.csv'; document.body.appendChild(a); a.click(); a.remove();
 }
@@ -827,6 +832,8 @@ async function addItem(){
   const brand=$('#ni-brand').value.trim(), option=$('#ni-name').value.trim(), size=$('#ni-size').value.trim();
   const name=[brand, option, size].filter(Boolean).join(' ');   // brand · option · size
   if(!name){ toast('Enter at least a brand or name'); return; }
+  if(knownItems.some(x=>(x.name||'').toLowerCase()===name.toLowerCase())
+     && !confirm('“'+name+'” already exists. Add it again anyway?')) return;
   const currency=$('#ni-currency').value;
   const body={ name, brand:brand||null, size:size||null, currency,
     category: $('#ni-category').value.trim()||null,
@@ -847,13 +854,14 @@ async function addItem(){
       for(const o of optRows){ try{ await api('/api/items/'+created.id+'/options',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o)}); }catch(_){} }
     }
     // Keep category / unit / supplier / currency for fast successive entry; clear the rest.
-    for(const id of ['ni-brand','ni-name','ni-size','ni-retail','ni-wholesale','ni-cost','ni-barcode']) $('#'+id).value='';
-    $('#ni-opts').innerHTML=''; clearNewPhoto(); $('#ni-brand').focus();
+    // Smart repeat: keep brand + option (same product, next size); clear size/prices; focus size.
+    for(const id of ['ni-size','ni-retail','ni-wholesale','ni-cost','ni-barcode']) $('#'+id).value='';
+    $('#ni-opts').innerHTML=''; clearNewPhoto(); $('#ni-size').focus();
     toast('Added '+name); loadStock();
   }catch(e){ toast('Error: '+e.message); }
 }
 async function loadStock(){
-  const items = await api('/api/items'); const ul=$('#stock-list');
+  const items = await api('/api/items'); populateDatalists(items); const ul=$('#stock-list');
   if(!items.length){ ul.innerHTML='<li class="empty">No items yet — add one above</li>'; return; }
   ul.innerHTML=''; let cat=null;
   for(const it of items){
@@ -968,6 +976,20 @@ async function editNaming(id){
         body:JSON.stringify({name, brand:brand.trim()||null, size:size.trim()||null})});
     toast('Updated'); loadStock();
   }catch(e){ toast('Error: '+e.message); }
+}
+// Autocomplete sources + known-items cache (for fast entry + duplicate detection).
+let knownItems=[];
+function populateDatalists(items){
+  knownItems = items || [];
+  const fill=(id,vals)=>{ const dl=document.getElementById(id); if(!dl) return;
+    dl.innerHTML=[...new Set(vals.filter(Boolean).map(v=>String(v).trim()))].sort((a,b)=>a.localeCompare(b))
+      .map(v=>`<option value="${esc(v)}">`).join(''); };
+  fill('dl-brand', items.map(i=>i.brand));
+  fill('dl-option', items.map(itemMid));
+  fill('dl-size', items.map(i=>i.size));
+  fill('dl-category', items.map(i=>i.category));
+  fill('dl-supplier', items.map(i=>i.supplier));
+  fill('dl-unit', items.map(i=>i.unit));
 }
 // one Dash catalog card (photo + name open gallery; price is tap-to-edit)
 const prodCard = it => {
@@ -1237,6 +1259,7 @@ function toggleUiMode(){ setUiMode(UI_MODE==='mobile'?'desktop':'mobile'); toast
 applyUiMode();
 
 checkAuth();
+api('/api/items').then(populateDatalists).catch(()=>{});   // warm autocomplete on load
 loadQuick();
 // Camera scanning needs a secure context (HTTPS). Show the scan buttons only then.
 if(window.isSecureContext){

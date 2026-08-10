@@ -212,6 +212,8 @@ def api_quick_add(body: QuickAddIn) -> dict:
 
 _IMPORT_COLS = {
     "name": ["name", "item", "product"],
+    "brand": ["brand"],
+    "size": ["size"],
     "retail": ["retail", "price", "sell"],
     "wholesale": ["wholesale", "bulk"],
     "cost": ["cost", "buy"],
@@ -253,7 +255,8 @@ def api_import(body: QuickAddIn) -> dict:
                 if alias in header:
                     return header.index(alias)
             return -1
-        return _IMPORT_DEFAULT_ORDER.index(field)
+        # headerless: only the fixed positional columns exist (brand/size are header-only)
+        return _IMPORT_DEFAULT_ORDER.index(field) if field in _IMPORT_DEFAULT_ORDER else -1
 
     idx = {f: col_index(f) for f in _IMPORT_COLS}
 
@@ -264,7 +267,9 @@ def api_import(body: QuickAddIn) -> dict:
     created: list[str] = []
     errors: list[dict] = []
     for i, row in enumerate(rows, 1):
-        name = cell(row, "name")
+        brand = cell(row, "brand") or None
+        size = cell(row, "size") or None
+        name = cell(row, "name") or " ".join(x for x in (brand, size) if x)
         if not name:
             errors.append({"row": i, "reason": "no name"})
             continue
@@ -277,7 +282,8 @@ def api_import(body: QuickAddIn) -> dict:
             errors.append({"row": i, "reason": "price/qty not a number"})
             continue
         cur = _cur(cell(row, "currency"))
-        item = repo.add_item(Item(name=name, category=cell(row, "category") or None, unit="each",
+        item = repo.add_item(Item(name=name, brand=brand, size=size,
+                                  category=cell(row, "category") or None, unit="each",
                                   supplier=cell(row, "supplier") or None,
                                   barcode=cell(row, "barcode") or None))
         if retail is not None:
