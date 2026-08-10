@@ -17,6 +17,10 @@ class Item(BaseModel):
     name: str
     brand: str | None = None
     size: str | None = None
+    abv: Decimal | None = None
+    vintage: int | None = None
+    style: str | None = None
+    origin: str | None = None
     sku: str | None = None
     barcode: str | None = None
     category: str | None = None

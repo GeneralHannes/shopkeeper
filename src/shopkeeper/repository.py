@@ -20,11 +20,13 @@ def add_item(item: Item) -> Item:
     with connection() as conn:
         row = conn.execute(
             """
-            INSERT INTO items (name, brand, size, sku, barcode, category, unit, quantity_on_hand, active, supplier, note)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO items (name, brand, size, abv, vintage, style, origin,
+                               sku, barcode, category, unit, quantity_on_hand, active, supplier, note)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
             """,
-            (item.name, item.brand, item.size, item.sku, item.barcode, item.category, item.unit,
+            (item.name, item.brand, item.size, item.abv, item.vintage, item.style, item.origin,
+             item.sku, item.barcode, item.category, item.unit,
              item.quantity_on_hand, item.active, item.supplier, item.note),
         ).fetchone()
     item.id = row["id"]
@@ -225,6 +227,15 @@ def update_item_meta(item_id: int, name: str, brand: str | None, size: str | Non
         conn.execute(
             "UPDATE items SET name = %s, brand = %s, size = %s WHERE id = %s",
             (name.strip(), (brand or "").strip() or None, (size or "").strip() or None, item_id),
+        )
+
+
+def update_item_info(item_id: int, abv, vintage, style: str | None, origin: str | None) -> None:
+    """Set optional drink info (ABV / vintage / style / origin); blanks -> NULL."""
+    with connection() as conn:
+        conn.execute(
+            "UPDATE items SET abv = %s, vintage = %s, style = %s, origin = %s WHERE id = %s",
+            (abv, vintage, (style or "").strip() or None, (origin or "").strip() or None, item_id),
         )
 
 

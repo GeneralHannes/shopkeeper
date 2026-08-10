@@ -64,6 +64,10 @@ def _item_dict(it: Item, prices: dict | None = None) -> dict:
         "name": it.name,
         "brand": it.brand,
         "size": it.size,
+        "abv": float(it.abv) if it.abv is not None else None,
+        "vintage": it.vintage,
+        "style": it.style,
+        "origin": it.origin,
         "category": it.category,
         "unit": it.unit,
         "supplier": it.supplier,
@@ -121,6 +125,10 @@ class ItemIn(BaseModel):
     name: str
     brand: str | None = None
     size: str | None = None
+    abv: Decimal | None = Field(default=None, ge=0)
+    vintage: int | None = None
+    style: str | None = None
+    origin: str | None = None
     category: str | None = None
     unit: str = "each"
     supplier: str | None = None
@@ -138,6 +146,8 @@ def api_add_item(body: ItemIn) -> dict:
     barcode = (body.barcode or "").strip() or None
     cur = _cur(body.currency)
     item = repo.add_item(Item(name=body.name, brand=(body.brand or None), size=(body.size or None),
+                              abv=body.abv, vintage=body.vintage,
+                              style=(body.style or None), origin=(body.origin or None),
                               category=body.category, unit=body.unit,
                               supplier=body.supplier, barcode=barcode))
     if body.retail is not None:
@@ -167,6 +177,22 @@ def api_update_meta(item_id: int, body: MetaIn) -> dict:
     if not body.name.strip():
         raise HTTPException(400, "name cannot be blank")
     repo.update_item_meta(item_id, body.name, body.brand, body.size)
+    return _item_dict(repo.get_item(item_id))
+
+
+class InfoIn(BaseModel):
+    abv: Decimal | None = Field(default=None, ge=0)
+    vintage: int | None = None
+    style: str | None = None
+    origin: str | None = None
+
+
+@api.post("/items/{item_id}/info")
+def api_update_info(item_id: int, body: InfoIn) -> dict:
+    """Update an item's optional drink info (ABV / vintage / style / origin)."""
+    if repo.get_item(item_id) is None:
+        raise HTTPException(404, f"no item #{item_id}")
+    repo.update_item_info(item_id, body.abv, body.vintage, body.style, body.origin)
     return _item_dict(repo.get_item(item_id))
 
 
