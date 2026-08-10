@@ -28,6 +28,9 @@
   @media (max-width:720px){ .grid { grid-template-columns:1fr; } }
   .card { background:var(--card); border:none; border-radius:var(--radius-lg); padding:1.05rem; margin-bottom:1rem; box-shadow:var(--shadow); }
   .card h2 { font-size:.95rem; margin:0 0 .7rem; color:var(--ink); letter-spacing:-.01em; font-weight:700; text-transform:none; }
+  /* the Add-item card stands apart from everything else */
+  .add-card { border:2px solid var(--accent); box-shadow:0 0 0 4px var(--accent-soft), 0 8px 26px rgba(0,0,0,.35); }
+  .add-card > h2 { font-size:1.25rem; font-weight:800; color:var(--accent); margin-bottom:.9rem; }
   input, select, textarea { font:inherit; font-size:1rem; padding:.6rem .75rem; border:none; border-radius:11px;
                             width:100%; background:var(--fill); color:var(--ink); transition:box-shadow .15s; }
   input:focus, select:focus, textarea:focus { outline:none; box-shadow:0 0 0 3.5px var(--accent-soft); }
@@ -333,8 +336,8 @@
       </div>
       <div id="ai-drafts"></div>
     </div>
-    <div class="card">
-      <h2>Add item</h2>
+    <div class="card add-card">
+      <h2>＋ Add item</h2>
       <div class="row" style="margin-bottom:.4rem">
         <input id="ni-barcode" placeholder="barcode — scan or type, Enter to look up" inputmode="numeric"
                autocomplete="off" onkeydown="if(event.key==='Enter')lookupBarcode()">
@@ -882,6 +885,18 @@ function addOptRow(){
   row.innerHTML=`<input class="o-name" placeholder="option (Cold)"><input class="o-amt" placeholder="units" inputmode="decimal" value="1" style="max-width:4.5rem"><input class="o-price" placeholder="price" inputmode="decimal" style="max-width:5.5rem"><button class="mini" onclick="this.parentElement.remove()">✕</button>`;
   box.appendChild(row);
 }
+// Return the Add-item form to a pristine blank state.
+function resetAddForm(){
+  for(const id of ['ni-brand','ni-name','ni-size','ni-retail','ni-pack','ni-wholesale','ni-cost','ni-barcode','ni-category','ni-supplier']){
+    const el=$('#'+id); if(el) el.value='';
+  }
+  const u=$('#ni-unit'); if(u) u.value='each';
+  const cur=$('#ni-currency'); if(cur) cur.selectedIndex=0;   // back to default (Riel)
+  $('#ni-opts').innerHTML=''; clearNewPhoto();
+  const w=$('#ni-wsec'); if(w) w.style.display='none';        // collapse pack/wholesale/cost
+  const c=$('#ni-wsec-caret'); if(c) c.textContent='▸';
+  const b=$('#ni-brand'); if(b) b.focus();
+}
 async function addItem(){
   const brand=$('#ni-brand').value.trim(), option=$('#ni-name').value.trim(), size=$('#ni-size').value.trim();
   const name=[brand, option, size].filter(Boolean).join(' ');   // brand · option · size
@@ -909,9 +924,7 @@ async function addItem(){
       for(const o of optRows){ try{ await api('/api/items/'+created.id+'/options',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(o)}); }catch(_){} }
     }
     // Keep category / unit / supplier / currency for fast successive entry; clear the rest.
-    // Smart repeat: keep brand + option (same product, next size); clear size/prices; focus size.
-    for(const id of ['ni-size','ni-retail','ni-pack','ni-wholesale','ni-cost','ni-barcode']) $('#'+id).value='';
-    $('#ni-opts').innerHTML=''; clearNewPhoto(); $('#ni-size').focus();
+    resetAddForm();          // blank slate after every add
     toast('Added '+name); loadStock();
   }catch(e){ toast('Error: '+e.message); }
 }
