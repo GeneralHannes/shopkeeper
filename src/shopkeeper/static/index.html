@@ -916,6 +916,7 @@ function setAddMode(m){
   if(at){ at.style.display = alc?'':'none';
     if(alc && !at.dataset.filled){ at.innerHTML=ALC_TYPES.map(x=>`<button class="chip" onclick="pickAlcType('${x}')">${x}</button>`).join(''); at.dataset.filled='1'; } }
   drinkSection(alc);                                  // premium alcohol => show drink info up front
+  refreshDatalists();                                 // suggestions from only this mode's items
   const b=$('#ni-brand'); if(b) b.focus();
 }
 function pickAlcType(t){
@@ -1121,20 +1122,28 @@ async function editNaming(id){
   }catch(e){ toast('Error: '+e.message); }
 }
 // Autocomplete sources + known-items cache (for fast entry + duplicate detection).
-let knownItems=[];
-function populateDatalists(items){
-  knownItems = items || [];
+let allItems=[], knownItems=[];
+// An item counts as (premium) alcohol if its category is an alcohol type or it has
+// drink info. Beer is NOT an alcohol type here, so beer stays "general".
+function isAlcohol(it){
+  const c=(it.category||'').toLowerCase().trim();
+  if(typeof ALC_TYPES!=='undefined' && ALC_TYPES.some(t=>t.toLowerCase()===c)) return true;
+  return !!(it.style || it.vintage || it.abv || it.origin);
+}
+function populateDatalists(items){ allItems = items || []; knownItems = allItems; refreshDatalists(); }
+// Fill the autocomplete lists from ONLY the current mode's items (alcohol vs general).
+function refreshDatalists(){
+  const src = (addMode==='alcohol') ? allItems.filter(isAlcohol) : allItems.filter(i=>!isAlcohol(i));
   const fill=(id,vals)=>{ const dl=document.getElementById(id); if(!dl) return;
     dl.innerHTML=[...new Set(vals.filter(Boolean).map(v=>String(v).trim()))].sort((a,b)=>a.localeCompare(b))
       .map(v=>`<option value="${esc(v)}">`).join(''); };
-  fill('dl-brand', items.map(i=>i.brand));
-  fill('dl-option', items.map(itemMid));
-  fill('dl-size', items.map(i=>i.size));
-  fill('dl-category', items.map(i=>i.category));
-  fill('dl-supplier', items.map(i=>i.supplier));
-  fill('dl-unit', items.map(i=>i.unit));
-  fill('dl-style', items.map(i=>i.style));
-  fill('dl-origin', items.map(i=>i.origin));
+  fill('dl-brand', src.map(i=>i.brand));
+  fill('dl-option', src.map(itemMid));
+  fill('dl-size', src.map(i=>i.size));
+  fill('dl-category', src.map(i=>i.category));
+  fill('dl-supplier', src.map(i=>i.supplier));
+  fill('dl-style', src.map(i=>i.style));
+  fill('dl-origin', src.map(i=>i.origin));
 }
 // one Dash catalog card (photo + name open gallery; price is tap-to-edit)
 const prodCard = it => {
