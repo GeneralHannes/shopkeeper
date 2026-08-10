@@ -259,9 +259,10 @@
     <div class="card">
       <h2>Price mode</h2>
       <div class="row">
-        <button class="mini active" id="pm-retail" onclick="setMode('retail')">Retail</button>
+        <button class="mini active" id="pm-retail" onclick="setMode('retail')">Single</button>
+        <button class="mini" id="pm-pack" onclick="setMode('pack')">Pack</button>
         <button class="mini" id="pm-wholesale" onclick="setMode('wholesale')">Wholesale</button>
-        <span class="muted" id="pm-label">selling at retail</span>
+        <span class="muted" id="pm-label">selling at single</span>
       </div>
     </div>
     <div class="card">
@@ -362,10 +363,11 @@
         <span class="muted">e.g. Cold, Normal, Set(24)</span>
       </div>
       <!-- wholesale / cost as a separate section -->
-      <div class="muted" style="margin-bottom:.4rem;cursor:pointer" onclick="toggleWholesale()"><span id="ni-wsec-caret">▸</span> Wholesale / cost (optional)</div>
+      <div class="muted" style="margin-bottom:.4rem;cursor:pointer" onclick="toggleWholesale()"><span id="ni-wsec-caret">▸</span> Pack / wholesale / cost (optional)</div>
       <div id="ni-wsec" style="display:none">
         <div class="row" style="margin-bottom:.4rem">
-          <input id="ni-wholesale" placeholder="wholesale price" inputmode="decimal">
+          <input id="ni-pack" placeholder="pack price (6-pack / sleeve)" inputmode="decimal">
+          <input id="ni-wholesale" placeholder="wholesale (box)" inputmode="decimal">
           <input id="ni-cost" placeholder="cost (buy)" inputmode="decimal">
         </div>
       </div>
@@ -464,7 +466,11 @@ const esc = s => (s??'').toString().replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt
 let cart = [];
 let priceMode = 'retail';   // 'retail' | 'wholesale'
 let TOKEN = localStorage.getItem('sk_token') || '';
-const modePrice = it => (priceMode==='wholesale' && it.wholesale!=null) ? it.wholesale : it.retail;
+const modePrice = it => {
+  if(priceMode==='wholesale' && it.wholesale!=null) return it.wholesale;
+  if(priceMode==='pack' && it.pack!=null) return it.pack;
+  return it.retail;
+};
 
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000); }
 
@@ -496,9 +502,8 @@ function show(v){
 
 function setMode(m){
   priceMode = m;
-  $('#pm-retail').classList.toggle('active', m==='retail');
-  $('#pm-wholesale').classList.toggle('active', m==='wholesale');
-  $('#pm-label').textContent = 'selling at ' + m;
+  for(const k of ['retail','pack','wholesale']){ const b=$('#pm-'+k); if(b) b.classList.toggle('active', m===k); }
+  $('#pm-label').textContent = 'selling at ' + (m==='retail'?'single':m);
   loadQuick(); doSearch(); renderCatItems();
 }
 
@@ -569,7 +574,9 @@ async function doSearch(){
 function addToCart(it){
   const price = modePrice(it);
   if(price==null){ toast('Set a price first (Stock tab)'); return; }
-  const kind = (priceMode==='wholesale' && it.wholesale!=null) ? 'wholesale' : 'retail';
+  let kind='retail';
+  if(priceMode==='wholesale' && it.wholesale!=null) kind='wholesale';
+  else if(priceMode==='pack' && it.pack!=null) kind='pack';
   const ex=cart.find(l=>l.item_id===it.id && l.kind===kind);
   if(ex){ ex.quantity+=1; } else { cart.push({item_id:it.id,name:it.name,price,quantity:1,kind}); }
   renderCart();
@@ -887,9 +894,10 @@ async function addItem(){
     unit: $('#ni-unit').value.trim()||'each',
     supplier: $('#ni-supplier').value.trim()||null,
     barcode: $('#ni-barcode').value.trim()||null };
-  const retail=$('#ni-retail').value.trim(), wholesale=$('#ni-wholesale').value.trim(),
-        cost=$('#ni-cost').value.trim();
+  const retail=$('#ni-retail').value.trim(), pack=$('#ni-pack').value.trim(),
+        wholesale=$('#ni-wholesale').value.trim(), cost=$('#ni-cost').value.trim();
   if(retail) body.retail=retail;
+  if(pack) body.pack=pack;
   if(wholesale) body.wholesale=wholesale;
   if(cost) body.cost=cost;
   const optRows=[...document.querySelectorAll('#ni-opts .opt-row')].map(r=>({
@@ -902,7 +910,7 @@ async function addItem(){
     }
     // Keep category / unit / supplier / currency for fast successive entry; clear the rest.
     // Smart repeat: keep brand + option (same product, next size); clear size/prices; focus size.
-    for(const id of ['ni-size','ni-retail','ni-wholesale','ni-cost','ni-barcode']) $('#'+id).value='';
+    for(const id of ['ni-size','ni-retail','ni-pack','ni-wholesale','ni-cost','ni-barcode']) $('#'+id).value='';
     $('#ni-opts').innerHTML=''; clearNewPhoto(); $('#ni-size').focus();
     toast('Added '+name); loadStock();
   }catch(e){ toast('Error: '+e.message); }
@@ -921,7 +929,7 @@ async function loadStock(){
     li.innerHTML=`<div style="flex:1 1 100%">
         ${thumb(it)}<span class="name">${itemLabel(it)}</span>
         <span class="muted">${money(it.quantity_on_hand)} ${esc(it.unit)}${it.supplier?' · '+esc(it.supplier):''}</span></div>
-      <div style="flex:1 1 100%" class="muted">single ${fmt(it.retail,it.currency)} · wholesale ${fmt(it.wholesale,it.currency)} · cost ${fmt(it.cost,it.currency)}${m}</div>
+      <div style="flex:1 1 100%" class="muted">single ${fmt(it.retail,it.currency)}${it.pack!=null?' · pack '+fmt(it.pack,it.currency):''} · wholesale ${fmt(it.wholesale,it.currency)} · cost ${fmt(it.cost,it.currency)}${m}</div>
       <input type="number" placeholder="+qty" inputmode="decimal" style="max-width:4.5rem" id="rs-${it.id}">
       <button class="mini" onclick="restock(${it.id})">restock</button>
       <button class="mini" onclick="setPrices(${it.id},'${esc(it.name)}')">prices</button>
@@ -940,7 +948,7 @@ async function restock(id){
   }catch(e){ toast('Error: '+e.message); }
 }
 async function setPrices(id,name){
-  for(const kind of ['retail','wholesale','cost']){
+  for(const kind of ['retail','pack','wholesale','cost']){
     const v=prompt(`${kind} price for ${name} (blank = keep):`);
     if(v && v.trim()){
       try{ await api('/api/items/'+id+'/price',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({price:v.trim(),kind})}); }

@@ -48,13 +48,14 @@ def _item_dict(it: Item, prices: dict | None = None) -> dict:
     if prices is None:
         prices = {}
         if it.id is not None:
-            for k in ("retail", "wholesale", "cost"):
+            for k in ("retail", "pack", "wholesale", "cost"):
                 p = repo.current_price(it.id, k)
                 if p:
                     prices[k] = p
     r = prices.get("retail")
     w = prices.get("wholesale")
     c = prices.get("cost")
+    pk = prices.get("pack")
     retail = float(r.price) if r else None
     cost = float(c.price) if c else None
     any_price = r or w or c
@@ -68,6 +69,7 @@ def _item_dict(it: Item, prices: dict | None = None) -> dict:
         "supplier": it.supplier,
         "quantity_on_hand": float(it.quantity_on_hand),
         "retail": retail,
+        "pack": float(pk.price) if pk else None,
         "wholesale": float(w.price) if w else None,
         "cost": cost,
         "margin": round(retail - cost, 2) if (retail is not None and cost is not None) else None,
@@ -125,6 +127,7 @@ class ItemIn(BaseModel):
     barcode: str | None = None
     currency: str = "USD"
     retail: Decimal | None = Field(default=None, ge=0)
+    pack: Decimal | None = Field(default=None, ge=0)
     wholesale: Decimal | None = Field(default=None, ge=0)
     cost: Decimal | None = Field(default=None, ge=0)
     stock: Decimal | None = None
@@ -139,6 +142,8 @@ def api_add_item(body: ItemIn) -> dict:
                               supplier=body.supplier, barcode=barcode))
     if body.retail is not None:
         repo.set_price(item.id, body.retail, "retail", cur)
+    if body.pack is not None:
+        repo.set_price(item.id, body.pack, "pack", cur)
     if body.wholesale is not None:
         repo.set_price(item.id, body.wholesale, "wholesale", cur)
     if body.cost is not None:
@@ -487,7 +492,7 @@ class PriceIn(BaseModel):
 def api_set_price(item_id: int, body: PriceIn) -> dict:
     if repo.get_item(item_id) is None:
         raise HTTPException(404, f"no item #{item_id}")
-    if body.kind not in ("retail", "wholesale", "cost"):
+    if body.kind not in ("retail", "pack", "wholesale", "cost"):
         raise HTTPException(400, "kind must be retail, wholesale, or cost")
     # Preserve currency unless one is given: explicit → same-kind price → retail → USD.
     if body.currency:
