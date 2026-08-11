@@ -138,6 +138,9 @@ class ItemIn(BaseModel):
     pack: Decimal | None = Field(default=None, ge=0)
     wholesale: Decimal | None = Field(default=None, ge=0)
     cost: Decimal | None = Field(default=None, ge=0)
+    pack_currency: str | None = None        # each tier can use its own currency;
+    wholesale_currency: str | None = None   # None falls back to `currency` (the single price's).
+    cost_currency: str | None = None
     stock: Decimal | None = None
 
 
@@ -153,11 +156,11 @@ def api_add_item(body: ItemIn) -> dict:
     if body.retail is not None:
         repo.set_price(item.id, body.retail, "retail", cur)
     if body.pack is not None:
-        repo.set_price(item.id, body.pack, "pack", cur)
+        repo.set_price(item.id, body.pack, "pack", _cur(body.pack_currency or body.currency))
     if body.wholesale is not None:
-        repo.set_price(item.id, body.wholesale, "wholesale", cur)
+        repo.set_price(item.id, body.wholesale, "wholesale", _cur(body.wholesale_currency or body.currency))
     if body.cost is not None:
-        repo.set_price(item.id, body.cost, "cost", cur)
+        repo.set_price(item.id, body.cost, "cost", _cur(body.cost_currency or body.currency))
     if body.stock:
         repo.restock(item.id, body.stock)
     return _item_dict(repo.get_item(item.id))

@@ -46,6 +46,9 @@
   .affix { position:relative; display:flex; align-items:center; }
   .affix input { padding-right:1.9rem; }
   .affix .suffix { position:absolute; right:.7rem; color:var(--muted); pointer-events:none; font-size:.95rem; font-weight:600; }
+  .prow { display:flex; gap:.45rem; align-items:center; }
+  .prow > input { flex:1 1 auto; min-width:0; }
+  .cur { flex:0 0 auto; width:6rem; }
   textarea { resize:vertical; min-height:2.7rem; }
   button.act { background:var(--accent); color:#fff; border:none; padding:.62rem 1.1rem; border-radius:12px;
                cursor:pointer; font:inherit; font-size:1rem; font-weight:600; transition:opacity .15s, transform .08s; }
@@ -378,24 +381,27 @@
       </div>
 
       <div class="sec-label">Price</div>
-      <div class="frow">
-        <label class="field" style="flex:2 1 8rem"><span>Single price</span><input id="ni-retail" placeholder="0" inputmode="decimal" onkeydown="if(event.key==='Enter')addItem()"></label>
-        <label class="field" style="flex:1 1 6rem"><span>Currency</span>
-          <select id="ni-currency"><option value="KHR">៛ Riel</option><option value="USD">$ USD</option></select>
-        </label>
-      </div>
+      <label class="field" style="margin-bottom:.6rem"><span>Single price</span>
+        <div class="prow"><input id="ni-retail" placeholder="0" inputmode="decimal" onkeydown="if(event.key==='Enter')addItem()">
+          <select id="ni-currency" class="cur"><option value="KHR">៛ Riel</option><option value="USD">$ USD</option></select></div>
+      </label>
       <div class="toggle-row" onclick="toggleWholesale()"><span id="ni-wsec-caret">▸</span> Pack / cost prices</div>
       <div id="ni-wsec" style="display:none">
-        <div class="frow">
-          <label class="field"><span>Pack price</span><input id="ni-pack" placeholder="6-pack / sleeve" inputmode="decimal"></label>
-          <label class="field"><span>Cost (buy)</span><input id="ni-cost" placeholder="what you paid" inputmode="decimal"></label>
-        </div>
+        <label class="field" style="margin-bottom:.6rem"><span>Pack price</span>
+          <div class="prow"><input id="ni-pack" placeholder="6-pack / sleeve" inputmode="decimal">
+            <select id="ni-pack-cur" class="cur"><option value="KHR">៛ Riel</option><option value="USD">$ USD</option></select></div>
+        </label>
+        <label class="field"><span>Cost (buy)</span>
+          <div class="prow"><input id="ni-cost" placeholder="what you paid" inputmode="decimal">
+            <select id="ni-cost-cur" class="cur"><option value="KHR">៛ Riel</option><option value="USD">$ USD</option></select></div>
+        </label>
       </div>
 
       <div class="sec-label">Wholesale</div>
-      <div class="frow">
-        <label class="field"><span>Wholesale price (whole box)</span><input id="ni-wholesale" placeholder="0" inputmode="decimal"></label>
-      </div>
+      <label class="field"><span>Wholesale price (whole box)</span>
+        <div class="prow"><input id="ni-wholesale" placeholder="0" inputmode="decimal">
+          <select id="ni-wholesale-cur" class="cur"><option value="KHR">៛ Riel</option><option value="USD">$ USD</option></select></div>
+      </label>
 
       <div class="sec-label">More <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">· optional</span></div>
       <div class="toggle-row" onclick="toggleDrink()"><span id="ni-dsec-caret">▸</span> 🍷 Drink / alcohol info</div>
@@ -974,7 +980,7 @@ function resetAddForm(){
     const el=$('#'+id); if(el) el.value='';
   }
   const u=$('#ni-unit'); if(u) u.value='single';   // default unit back to single
-  const cur=$('#ni-currency'); if(cur) cur.selectedIndex=0;   // back to default (Riel)
+  ['ni-currency','ni-pack-cur','ni-wholesale-cur','ni-cost-cur'].forEach(id=>{ const s=$('#'+id); if(s) s.selectedIndex=0; });  // all back to Riel
   $('#ni-opts').innerHTML=''; clearNewPhoto();
   const w=$('#ni-wsec'); if(w) w.style.display='none';        // collapse pack/wholesale/cost
   const c=$('#ni-wsec-caret'); if(c) c.textContent='▸';
@@ -997,9 +1003,9 @@ async function addItem(){
   const retail=$('#ni-retail').value.trim(), pack=$('#ni-pack').value.trim(),
         wholesale=$('#ni-wholesale').value.trim(), cost=$('#ni-cost').value.trim();
   if(retail) body.retail=retail;
-  if(pack) body.pack=pack;
-  if(wholesale) body.wholesale=wholesale;
-  if(cost) body.cost=cost;
+  if(pack){ body.pack=pack; body.pack_currency=$('#ni-pack-cur').value; }
+  if(wholesale){ body.wholesale=wholesale; body.wholesale_currency=$('#ni-wholesale-cur').value; }
+  if(cost){ body.cost=cost; body.cost_currency=$('#ni-cost-cur').value; }
   const abv=$('#ni-abv').value.trim(), vintage=$('#ni-vintage').value.trim(),
         style=$('#ni-style').value.trim(), origin=$('#ni-origin').value.trim();
   if(abv) body.abv=abv.replace('%','').trim();
