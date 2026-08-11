@@ -31,9 +31,18 @@
   /* the Add-item card stands apart from everything else */
   .add-card { border:2px solid var(--accent); box-shadow:0 0 0 4px var(--accent-soft), 0 8px 26px rgba(0,0,0,.35); }
   .add-card > h2 { font-size:1.25rem; font-weight:800; color:var(--accent); margin-bottom:.9rem; }
-  input, select, textarea { font:inherit; font-size:1rem; padding:.6rem .75rem; border:none; border-radius:11px;
-                            width:100%; background:var(--fill); color:var(--ink); transition:box-shadow .15s; }
-  input:focus, select:focus, textarea:focus { outline:none; box-shadow:0 0 0 3.5px var(--accent-soft); }
+  input, select, textarea { font:inherit; font-size:1rem; padding:.6rem .75rem; border:1px solid var(--line); border-radius:11px;
+                            width:100%; background:var(--fill); color:var(--ink); transition:box-shadow .15s, border-color .15s; }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  input::placeholder, textarea::placeholder { color:var(--muted); opacity:.7; }
+  /* labeled form fields + sections (used heavily in Add item) */
+  .frow { display:flex; gap:.55rem; margin-bottom:.6rem; flex-wrap:wrap; align-items:flex-end; }
+  .field { display:flex; flex-direction:column; gap:.28rem; flex:1 1 8rem; min-width:0; }
+  .field > span { font-size:.74rem; color:var(--muted); font-weight:500; padding-left:.1rem; }
+  .sec-label { font-size:.72rem; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:.06em; margin:1.05rem 0 .55rem; }
+  .toggle-row { display:flex; align-items:center; gap:.4rem; margin-bottom:.55rem; cursor:pointer; color:var(--muted); font-size:.9rem; user-select:none; }
+  .toggle-row:hover { color:var(--accent); }
+  .addbtn { width:100%; padding:.85rem; font-size:1.05rem; margin-top:.3rem; }
   textarea { resize:vertical; min-height:2.7rem; }
   button.act { background:var(--accent); color:#fff; border:none; padding:.62rem 1.1rem; border-radius:12px;
                cursor:pointer; font:inherit; font-size:1rem; font-weight:600; transition:opacity .15s, transform .08s; }
@@ -344,66 +353,64 @@
         <span class="muted" style="font-size:.8rem">beer &amp; sodas → General</span>
       </div>
       <div id="alc-types" class="chips" style="display:none;margin-bottom:.55rem"></div>
-      <div class="row" style="margin-bottom:.4rem">
-        <input id="ni-barcode" placeholder="barcode — scan or type, Enter to look up" inputmode="numeric"
-               autocomplete="off" onkeydown="if(event.key==='Enter')lookupBarcode()">
-        <button class="mini" id="ni-cam" onclick="scanBarcodeInto()" style="display:none">📷 Scan</button>
+
+      <div class="sec-label">Item</div>
+      <label class="field" style="margin-bottom:.6rem"><span>Barcode</span>
+        <div class="row">
+          <input id="ni-barcode" placeholder="scan or type, then Enter to look up" inputmode="numeric"
+                 autocomplete="off" onkeydown="if(event.key==='Enter')lookupBarcode()">
+          <button class="mini" id="ni-cam" onclick="scanBarcodeInto()" style="display:none">📷 Scan</button>
+        </div>
+      </label>
+      <div class="frow">
+        <label class="field" style="flex:2 1 8rem"><span>Brand</span><input id="ni-brand" list="dl-brand" autocomplete="off" placeholder="Kaiserdom"></label>
+        <label class="field" style="flex:2 1 8rem"><span>Option</span><input id="ni-name" list="dl-option" autocomplete="off" placeholder="crystal — optional"></label>
+        <label class="field" style="flex:1 1 5rem"><span>Size</span><input id="ni-size" list="dl-size" autocomplete="off" placeholder="500ml" onkeydown="if(event.key==='Enter')addItem()"></label>
       </div>
-      <!-- naming scheme: brand · option · size -->
-      <div class="row" style="margin-bottom:.4rem">
-        <input id="ni-brand" list="dl-brand" autocomplete="off" placeholder="brand (Kaiserdom)" style="flex:1 1 40%">
-        <input id="ni-name" list="dl-option" autocomplete="off" placeholder="option (crystal) — optional" style="flex:1 1 45%">
-        <input id="ni-size" list="dl-size" autocomplete="off" placeholder="size (500ml)" style="max-width:6.5rem"
-               onkeydown="if(event.key==='Enter')addItem()">
+      <div class="frow">
+        <label class="field" style="flex:2 1 8rem"><span>Category</span><input id="ni-category" list="dl-category" autocomplete="off" placeholder="drinks, snacks…"></label>
+        <label class="field" style="flex:1 1 6rem"><span>Sell unit</span>
+          <select id="ni-unit"><option value="single">single</option><option value="pack">pack</option><option value="wholesale">wholesale</option></select>
+        </label>
       </div>
-      <div class="row" style="margin-bottom:.4rem">
-        <input id="ni-category" list="dl-category" autocomplete="off" placeholder="category (drinks, snacks…)">
-        <select id="ni-unit" style="max-width:7.5rem">
-          <option value="single">single</option>
-          <option value="pack">pack</option>
-          <option value="wholesale">wholesale</option>
-        </select>
+
+      <div class="sec-label">Price</div>
+      <div class="frow">
+        <label class="field" style="flex:2 1 8rem"><span>Single price</span><input id="ni-retail" placeholder="0" inputmode="decimal" onkeydown="if(event.key==='Enter')addItem()"></label>
+        <label class="field" style="flex:1 1 6rem"><span>Currency</span>
+          <select id="ni-currency"><option value="KHR">៛ Riel</option><option value="USD">$ USD</option></select>
+        </label>
       </div>
-      <!-- BASE price = single, with currency -->
-      <div class="row" style="margin-bottom:.4rem">
-        <input id="ni-retail" placeholder="single price" inputmode="decimal" onkeydown="if(event.key==='Enter')addItem()">
-        <select id="ni-currency" style="max-width:6rem"><option value="KHR">៛ Riel</option><option value="USD">$ USD</option></select>
-      </div>
-      <!-- custom amount options (Cold / Normal / Set…) via a button -->
-      <div id="ni-opts"></div>
-      <div class="row" style="margin-bottom:.4rem">
-        <button class="mini" onclick="addOptRow()">+ amount option</button>
-        <span class="muted">e.g. Cold, Normal, Set(24)</span>
-      </div>
-      <!-- wholesale / cost as a separate section -->
-      <div class="muted" style="margin-bottom:.4rem;cursor:pointer" onclick="toggleWholesale()"><span id="ni-wsec-caret">▸</span> Pack / wholesale / cost (optional)</div>
+      <div class="toggle-row" onclick="toggleWholesale()"><span id="ni-wsec-caret">▸</span> Pack / wholesale / cost prices</div>
       <div id="ni-wsec" style="display:none">
-        <div class="row" style="margin-bottom:.4rem">
-          <input id="ni-pack" placeholder="pack price (6-pack / sleeve)" inputmode="decimal">
-          <input id="ni-wholesale" placeholder="wholesale (box)" inputmode="decimal">
-          <input id="ni-cost" placeholder="cost (buy)" inputmode="decimal">
+        <div class="frow">
+          <label class="field"><span>Pack</span><input id="ni-pack" placeholder="6-pack" inputmode="decimal"></label>
+          <label class="field"><span>Wholesale</span><input id="ni-wholesale" placeholder="box" inputmode="decimal"></label>
+          <label class="field"><span>Cost</span><input id="ni-cost" placeholder="buy" inputmode="decimal"></label>
         </div>
       </div>
-      <div class="muted" style="margin-bottom:.4rem;cursor:pointer" onclick="toggleDrink()"><span id="ni-dsec-caret">▸</span> 🍷 Drink / alcohol info (optional)</div>
+
+      <div class="sec-label">More <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">· optional</span></div>
+      <div class="toggle-row" onclick="toggleDrink()"><span id="ni-dsec-caret">▸</span> 🍷 Drink / alcohol info</div>
       <div id="ni-dsec" style="display:none">
-        <div class="row" style="margin-bottom:.4rem">
-          <input id="ni-abv" placeholder="ABV %" inputmode="decimal" style="max-width:6rem">
-          <input id="ni-vintage" placeholder="vintage / year" inputmode="numeric" style="max-width:9rem">
+        <div class="frow">
+          <label class="field" style="flex:1 1 5rem"><span>ABV %</span><input id="ni-abv" placeholder="14.5" inputmode="decimal"></label>
+          <label class="field" style="flex:1 1 6rem"><span>Vintage</span><input id="ni-vintage" placeholder="2022" inputmode="numeric"></label>
         </div>
-        <div class="row" style="margin-bottom:.4rem">
-          <input id="ni-style" list="dl-style" autocomplete="off" placeholder="style / varietal (Shiraz, IPA…)">
-          <input id="ni-origin" list="dl-origin" autocomplete="off" placeholder="origin / region">
+        <div class="frow">
+          <label class="field" style="flex:1 1 8rem"><span>Style / varietal</span><input id="ni-style" list="dl-style" autocomplete="off" placeholder="Shiraz, IPA…"></label>
+          <label class="field" style="flex:1 1 8rem"><span>Origin / region</span><input id="ni-origin" list="dl-origin" autocomplete="off" placeholder="Coonawarra"></label>
         </div>
       </div>
-      <div style="margin-bottom:.5rem">
-        <div class="row"><button class="mini" onclick="pickImageForNew()">📷 Add photo</button>
-          <span class="muted" id="ni-photo-note">you can add several</span></div>
+      <div id="ni-opts"></div>
+      <div class="row" style="margin-bottom:.6rem"><button class="mini" onclick="addOptRow()">+ amount option</button><span class="muted">e.g. Cold, Normal, Set(24)</span></div>
+      <div style="margin-bottom:.6rem">
+        <div class="row"><button class="mini" onclick="pickImageForNew()">📷 Add photo</button><span class="muted" id="ni-photo-note">you can add several</span></div>
         <div class="photo-strip" id="ni-photos"></div>
       </div>
-      <div class="row">
-        <input id="ni-supplier" list="dl-supplier" autocomplete="off" placeholder="supplier / note">
-        <button class="act" onclick="addItem()">Add item</button>
-      </div>
+      <label class="field" style="margin-bottom:.75rem"><span>Supplier / note</span><input id="ni-supplier" list="dl-supplier" autocomplete="off" placeholder="optional"></label>
+
+      <button class="act addbtn" onclick="addItem()">＋ Add item</button>
     </div>
     <div class="card">
       <h2>Items — tap price to change, use +qty to restock</h2>
