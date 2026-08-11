@@ -384,13 +384,17 @@
           <select id="ni-currency"><option value="KHR">៛ Riel</option><option value="USD">$ USD</option></select>
         </label>
       </div>
-      <div class="toggle-row" onclick="toggleWholesale()"><span id="ni-wsec-caret">▸</span> Pack / wholesale / cost prices</div>
+      <div class="toggle-row" onclick="toggleWholesale()"><span id="ni-wsec-caret">▸</span> Pack / cost prices</div>
       <div id="ni-wsec" style="display:none">
         <div class="frow">
-          <label class="field"><span>Pack</span><input id="ni-pack" placeholder="6-pack" inputmode="decimal"></label>
-          <label class="field"><span>Wholesale</span><input id="ni-wholesale" placeholder="box" inputmode="decimal"></label>
-          <label class="field"><span>Cost</span><input id="ni-cost" placeholder="buy" inputmode="decimal"></label>
+          <label class="field"><span>Pack price</span><input id="ni-pack" placeholder="6-pack / sleeve" inputmode="decimal"></label>
+          <label class="field"><span>Cost (buy)</span><input id="ni-cost" placeholder="what you paid" inputmode="decimal"></label>
         </div>
+      </div>
+
+      <div class="sec-label">Wholesale</div>
+      <div class="frow">
+        <label class="field"><span>Wholesale price (whole box)</span><input id="ni-wholesale" placeholder="0" inputmode="decimal"></label>
       </div>
 
       <div class="sec-label">More <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">· optional</span></div>
