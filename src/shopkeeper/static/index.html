@@ -407,6 +407,7 @@
     </div>
     <div class="card">
       <h2>Items — tap price to change, use +qty to restock</h2>
+      <div id="stock-cat-chips" class="chips"></div>
       <ul id="stock-list"><li class="empty">Loading…</li></ul>
     </div>
   </section>
@@ -1002,9 +1003,28 @@ async function addItem(){
     toast('Added '+name); loadStock();
   }catch(e){ toast('Error: '+e.message); }
 }
+let stockItems=[], stockCat='__all';
 async function loadStock(){
-  const items = await api('/api/items'); populateDatalists(items); const ul=$('#stock-list');
-  if(!items.length){ ul.innerHTML='<li class="empty">No items yet — add one above</li>'; return; }
+  stockItems = await api('/api/items'); populateDatalists(stockItems);
+  renderStockChips(); renderStock();
+}
+function renderStockChips(){
+  const chips=$('#stock-cat-chips'); if(!chips) return;
+  const cats=[...new Set(stockItems.map(i=>i.category||'—'))].sort((a,b)=>a.localeCompare(b));
+  if(stockCat!=='__all' && !cats.includes(stockCat)) stockCat='__all';
+  const count=c=>stockItems.filter(i=>(i.category||'—')===c).length;
+  const mk=(v,l,n)=>`<button class="chip${stockCat===v?' active':''}" data-cat="${esc(v)}" onclick="pickStockCategory(this.dataset.cat)">${esc(l)}<span class="chip-n">${n}</span></button>`;
+  chips.innerHTML = mk('__all','All',stockItems.length) + cats.map(c=>mk(c,c,count(c))).join('');
+}
+function pickStockCategory(c){ stockCat=c;
+  document.querySelectorAll('#stock-cat-chips .chip').forEach(b=>b.classList.toggle('active', b.dataset.cat===c));
+  const act=document.querySelector('#stock-cat-chips .chip.active'); if(act) act.scrollIntoView({inline:'center',block:'nearest'});
+  renderStock();
+}
+function renderStock(){
+  const ul=$('#stock-list');
+  const items = stockCat==='__all' ? stockItems : stockItems.filter(i=>(i.category||'—')===stockCat);
+  if(!items.length){ ul.innerHTML='<li class="empty">'+(stockItems.length?'No items in this category':'No items yet — add one above')+'</li>'; return; }
   ul.innerHTML=''; let cat=null;
   for(const it of items){
     const c = it.category || '—';
@@ -1024,7 +1044,7 @@ async function loadStock(){
       <button class="mini" onclick="openOptions(${it.id},'${esc(it.name)}','${it.currency}')">options</button>
       <button class="mini" onclick="setBarcode(${it.id})">barcode</button>
       <button class="mini" onclick="openGallery(${it.id},'${esc(it.name)}')">📷 photos</button>
-      <button class="mini" onclick="editNaming(${it.id})">✎ name</button>
+      <button class="mini" onclick="editNaming(${it.id})">✎ edit</button>
       <button class="mini" onclick="editInfo(${it.id})">🍷 info</button>
       <button class="mini" onclick="deleteItem(${it.id},'${esc(it.name)}')" style="color:var(--warn)">delete</button>`;
     ul.appendChild(li);
@@ -1114,10 +1134,11 @@ async function editNaming(id){
   const brand=prompt('Brand:', it.brand||''); if(brand===null) return;
   const option=prompt('Option / middle (e.g. crystal) — optional:', itemMid(it)); if(option===null) return;
   const size=prompt('Size (e.g. 500ml, 250g) — optional:', it.size||''); if(size===null) return;
+  const category=prompt('Category:', it.category||''); if(category===null) return;
   const name=[brand.trim(),option.trim(),size.trim()].filter(Boolean).join(' ');
   if(!name){ toast('Name required'); return; }
   try{ await api('/api/items/'+id+'/meta',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({name, brand:brand.trim()||null, size:size.trim()||null})});
+        body:JSON.stringify({name, brand:brand.trim()||null, size:size.trim()||null, category:category.trim()||null})});
     toast('Updated'); loadStock();
   }catch(e){ toast('Error: '+e.message); }
 }

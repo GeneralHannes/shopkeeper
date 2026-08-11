@@ -167,6 +167,7 @@ class MetaIn(BaseModel):
     name: str
     brand: str | None = None
     size: str | None = None
+    category: str | None = None
 
 
 @api.post("/items/{item_id}/meta")
@@ -176,7 +177,7 @@ def api_update_meta(item_id: int, body: MetaIn) -> dict:
         raise HTTPException(404, f"no item #{item_id}")
     if not body.name.strip():
         raise HTTPException(400, "name cannot be blank")
-    repo.update_item_meta(item_id, body.name, body.brand, body.size)
+    repo.update_item_meta(item_id, body.name, body.brand, body.size, body.category)
     return _item_dict(repo.get_item(item_id))
 
 

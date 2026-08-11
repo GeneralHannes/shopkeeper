@@ -221,12 +221,14 @@ def rename_item(item_id: int, name: str) -> None:
         conn.execute("UPDATE items SET name = %s WHERE id = %s", (name.strip(), item_id))
 
 
-def update_item_meta(item_id: int, name: str, brand: str | None, size: str | None) -> None:
-    """Set the full name plus its structured brand/size parts (blank -> NULL)."""
+def update_item_meta(item_id: int, name: str, brand: str | None, size: str | None,
+                     category: str | None = None) -> None:
+    """Set the full name plus its structured brand/size/category parts (blank -> NULL)."""
     with connection() as conn:
         conn.execute(
-            "UPDATE items SET name = %s, brand = %s, size = %s WHERE id = %s",
-            (name.strip(), (brand or "").strip() or None, (size or "").strip() or None, item_id),
+            "UPDATE items SET name = %s, brand = %s, size = %s, category = %s WHERE id = %s",
+            (name.strip(), (brand or "").strip() or None, (size or "").strip() or None,
+             (category or "").strip() or None, item_id),
         )
 
 
