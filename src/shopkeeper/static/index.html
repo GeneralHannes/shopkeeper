@@ -76,7 +76,7 @@
               color:var(--muted); font-size:1.1rem; vertical-align:middle; }
   .photo-strip { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.3rem; }
   .photo-strip .cell { position:relative; }
-  .photo-strip img { width:3.6rem; height:3.6rem; object-fit:cover; border-radius:11px; background:var(--fill); }
+  .photo-strip img { width:3.6rem; height:3.6rem; object-fit:contain; border-radius:11px; background:var(--fill); }
   .photo-strip .x { position:absolute; top:-.4rem; right:-.4rem; width:1.35rem; height:1.35rem; border-radius:50%;
                     background:var(--warn); color:#fff; border:2px solid var(--card); font-size:.72rem; line-height:1; cursor:pointer; }
   /* ---- photo gallery modal ---- */
@@ -86,7 +86,7 @@
                 max-width:30rem; width:100%; max-height:88vh; overflow:auto; padding:1.2rem; }
   .gallery { display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:.6rem; margin:.5rem 0 .9rem; }
   .gallery .cell { position:relative; aspect-ratio:1; }
-  .gallery img { width:100%; height:100%; object-fit:cover; border-radius:12px; background:var(--fill); cursor:pointer; }
+  .gallery img { width:100%; height:100%; object-fit:contain; border-radius:12px; background:var(--fill); cursor:pointer; }
   .gallery .x { position:absolute; top:.3rem; right:.3rem; width:1.65rem; height:1.65rem; border-radius:50%;
                 background:rgba(0,0,0,.55); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); color:#fff; border:none; cursor:pointer; font-size:.9rem; line-height:1; }
   /* ---- fullscreen lightbox ---- */
@@ -148,7 +148,7 @@
   .vim-help kbd { display:inline-block; min-width:1.4rem; text-align:center; padding:.1rem .4rem; margin-right:.25rem;
                   border-radius:6px; background:var(--fill);
                   font:600 .8rem ui-monospace,"SF Mono",Menlo,Consolas,monospace; color:var(--ink); }
-  .prod .ph { width:100%; aspect-ratio:1; object-fit:cover; display:block; background:var(--fill); }
+  .prod .ph { width:100%; aspect-ratio:1; object-fit:contain; object-position:center; display:block; background:var(--fill); }
   .prod .noimg { width:100%; aspect-ratio:1; display:flex; align-items:center; justify-content:center;
                  background:var(--fill); color:var(--muted); font-size:2rem; }
   .prod .body { padding:.7rem .75rem .8rem; }
