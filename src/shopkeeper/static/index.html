@@ -927,7 +927,7 @@ async function lookupBarcode(){
 function toggleWholesale(){ const s=$('#ni-wsec'), c=$('#ni-wsec-caret'); const open=s.style.display==='none'; s.style.display=open?'':'none'; if(c) c.textContent=open?'▾':'▸'; }
 function toggleDrink(){ const s=$('#ni-dsec'), c=$('#ni-dsec-caret'); const open=s.style.display==='none'; s.style.display=open?'':'none'; if(c) c.textContent=open?'▾':'▸'; }
 // ---- Add mode: General vs premium Alcohol (beer stays General) ----
-const ALC_TYPES=['Wine','Whisky','Vodka','Rum','Gin','Brandy','Tequila','Cognac','Liqueur','Sake','Soju','Spirits'];
+const ALC_TYPES=['Wine','Champagne','Whisky','Vodka','Rum','Gin','Brandy','Tequila','Cognac','Liqueur','Sake','Soju','Spirits'];
 let addMode='general';
 function drinkSection(open){ const d=$('#ni-dsec'), c=$('#ni-dsec-caret'); if(d) d.style.display=open?'':'none'; if(c) c.textContent=open?'▾':'▸'; }
 function setAddMode(m){
@@ -1012,6 +1012,8 @@ async function addItem(){
   if(vintage) body.vintage=parseInt(vintage,10)||null;
   if(style) body.style=style;
   if(origin) body.origin=origin;
+  // Flag as alcohol from the mode, or as a safety net an alcohol category / drink info.
+  body.is_alcohol = addMode==='alcohol' || ALC_CATS.has((body.category||'').toLowerCase().trim()) || !!(abv||vintage||style||origin);
   const optRows=[...document.querySelectorAll('#ni-opts .opt-row')].map(r=>({
     name:r.querySelector('.o-name').value.trim(), amount:r.querySelector('.o-amt').value.trim()||'1',
     price:r.querySelector('.o-price').value.trim(), currency})).filter(o=>o.name&&o.price);
@@ -1166,12 +1168,16 @@ async function editNaming(id){
 }
 // Autocomplete sources + known-items cache (for fast entry + duplicate detection).
 let allItems=[], knownItems=[];
-// An item counts as (premium) alcohol if its category is an alcohol type or it has
-// drink info. Beer is NOT an alcohol type here, so beer stays "general".
+// Alcohol categories (broad) used as a fallback when the explicit flag isn't set.
+const ALC_CATS=new Set(['wine','red wine','white wine','rose','rosé','sparkling','champagne','prosecco',
+  'whisky','whiskey','bourbon','scotch','vodka','rum','gin','brandy','tequila','mezcal','cognac','liqueur',
+  'sake','soju','baijiu','rice wine','spirits','spirit','port','sherry','vermouth']);
+// Premium alcohol = the explicit flag, OR drink info, OR an alcohol category.
+// Beer is none of these, so beer always stays "general".
 function isAlcohol(it){
-  const c=(it.category||'').toLowerCase().trim();
-  if(typeof ALC_TYPES!=='undefined' && ALC_TYPES.some(t=>t.toLowerCase()===c)) return true;
-  return !!(it.style || it.vintage || it.abv || it.origin);
+  if(it.is_alcohol) return true;
+  if(it.style || it.vintage || it.abv || it.origin) return true;
+  return ALC_CATS.has((it.category||'').toLowerCase().trim());
 }
 function populateDatalists(items){ allItems = items || []; knownItems = allItems; refreshDatalists(); }
 // Fill the autocomplete lists from ONLY the current mode's items (alcohol vs general).

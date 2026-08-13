@@ -68,6 +68,7 @@ def _item_dict(it: Item, prices: dict | None = None) -> dict:
         "vintage": it.vintage,
         "style": it.style,
         "origin": it.origin,
+        "is_alcohol": bool(it.is_alcohol),
         "category": it.category,
         "unit": it.unit,
         "supplier": it.supplier,
@@ -129,6 +130,7 @@ class ItemIn(BaseModel):
     vintage: int | None = None
     style: str | None = None
     origin: str | None = None
+    is_alcohol: bool = False
     category: str | None = None
     unit: str = "each"
     supplier: str | None = None
@@ -151,6 +153,7 @@ def api_add_item(body: ItemIn) -> dict:
     item = repo.add_item(Item(name=body.name, brand=(body.brand or None), size=(body.size or None),
                               abv=body.abv, vintage=body.vintage,
                               style=(body.style or None), origin=(body.origin or None),
+                              is_alcohol=body.is_alcohol,
                               category=body.category, unit=body.unit,
                               supplier=body.supplier, barcode=barcode))
     if body.retail is not None:

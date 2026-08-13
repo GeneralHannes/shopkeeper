@@ -20,12 +20,12 @@ def add_item(item: Item) -> Item:
     with connection() as conn:
         row = conn.execute(
             """
-            INSERT INTO items (name, brand, size, abv, vintage, style, origin,
+            INSERT INTO items (name, brand, size, abv, vintage, style, origin, is_alcohol,
                                sku, barcode, category, unit, quantity_on_hand, active, supplier, note)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
             """,
-            (item.name, item.brand, item.size, item.abv, item.vintage, item.style, item.origin,
+            (item.name, item.brand, item.size, item.abv, item.vintage, item.style, item.origin, item.is_alcohol,
              item.sku, item.barcode, item.category, item.unit,
              item.quantity_on_hand, item.active, item.supplier, item.note),
         ).fetchone()

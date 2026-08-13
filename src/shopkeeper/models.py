@@ -21,6 +21,7 @@ class Item(BaseModel):
     vintage: int | None = None
     style: str | None = None
     origin: str | None = None
+    is_alcohol: bool = False
     sku: str | None = None
     barcode: str | None = None
     category: str | None = None
