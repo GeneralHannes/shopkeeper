@@ -268,6 +268,7 @@
   <button class="mini kbdbtn" onclick="toggleVimHelp()" title="keyboard shortcuts (press ?)">⌨</button>
   <div class="tabs">
     <button id="tab-sell" class="active" onclick="show('sell')">Sell</button>
+    <button id="tab-find" onclick="show('find')">Find</button>
     <button id="tab-stock" onclick="show('stock')">Stock</button>
     <button id="tab-cats" onclick="show('cats')">Cats</button>
     <button id="tab-ask" onclick="show('ask')">Ask</button>
@@ -329,6 +330,14 @@
         <select id="pay" style="max-width:8rem"><option>cash</option><option>card</option></select>
         <button class="act" id="pay-btn" onclick="checkout()" disabled style="margin-left:auto">Complete sale</button>
       </div>
+    </div>
+  </section>
+
+  <!-- FIND (price lookup by brand / name) -->
+  <section id="view-find" style="display:none">
+    <div class="card">
+      <input id="find-search" class="bigsearch" placeholder="🔎 Search by brand or name…" oninput="findSearch()" autocomplete="off">
+      <ul id="find-results"><li class="empty">Type a brand or name to see prices…</li></ul>
     </div>
   </section>
 
@@ -499,6 +508,7 @@
 <!-- bottom tab bar (mobile mode only) -->
 <nav id="tabbar">
   <button id="btab-sell" onclick="show('sell')"><span class="ic">🛒</span>Sell</button>
+  <button id="btab-find" onclick="show('find')"><span class="ic">🔎</span>Find</button>
   <button id="btab-stock" onclick="show('stock')"><span class="ic">📦</span>Stock</button>
   <button id="btab-cats" onclick="show('cats')"><span class="ic">🗂️</span>Cats</button>
   <button id="btab-ask" onclick="show('ask')"><span class="ic">💬</span>Ask</button>
@@ -537,7 +547,7 @@ async function checkAuth(){ try{ const a = await (await fetch('/api/auth')).json
 let currentView='sell';
 function show(v){
   currentView=v;
-  for(const k of ['sell','stock','cats','ask','dash']){
+  for(const k of ['sell','find','stock','cats','ask','dash']){
     const on = k===v;
     $('#view-'+k).style.display = on?'':'none';
     const t=document.getElementById('tab-'+k); if(t) t.classList.toggle('active', on);
@@ -548,6 +558,7 @@ function show(v){
   if(v==='stock') loadStock();
   if(v==='cats') loadCats();
   if(v==='ask') setTimeout(()=>$('#ask-input')&&$('#ask-input').focus(),50);
+  if(v==='find') setTimeout(()=>$('#find-search')&&$('#find-search').focus(),50);
 }
 
 function setMode(m){
@@ -623,6 +634,27 @@ async function doSearch(){
     li.innerHTML=`<div style="flex:1 1 100%">${thumb(it)}<span class="name">${itemLabel(it)}</span></div>
       <div class="res-prices">${prices}</div>`;
     li.onclick=()=>addToCart(it); ul.appendChild(li);
+  }
+}
+// ---- Find tab: pure price lookup by brand / name (read-only) ----
+let findTimer;
+function findSearch(){ clearTimeout(findTimer); findTimer=setTimeout(doFindSearch,150); }
+async function doFindSearch(){
+  const q=$('#find-search').value.trim(), ul=$('#find-results');
+  if(!q){ ul.innerHTML='<li class="empty">Type a brand or name to see prices…</li>'; return; }
+  let items; try{ items=await api('/api/search?q='+encodeURIComponent(q)); }
+  catch(e){ ul.innerHTML='<li class="empty">Error: '+esc(e.message)+'</li>'; return; }
+  ul.innerHTML = items.length ? '' : '<li class="empty">No matches</li>';
+  for(const it of items){
+    const li=document.createElement('li');
+    const parts=[];
+    if(it.retail!=null)    parts.push(`<b>${fmt(it.retail,it.currency)}</b> single`);
+    if(it.pack!=null)      parts.push(`${fmt(it.pack,it.currency)} pack`);
+    if(it.wholesale!=null) parts.push(`${fmt(it.wholesale,it.currency)} box`);
+    const prices = parts.length ? parts.join(' · ') : '<span class="warn">no price set</span>';
+    li.innerHTML=`<div style="flex:1 1 100%">${thumb(it)}<span class="name">${itemLabel(it)}</span></div>
+      <div class="res-prices">${prices}</div>`;
+    ul.appendChild(li);
   }
 }
 function addToCart(it){
@@ -1368,7 +1400,7 @@ function editCatPrice(ev, id, currency, el){
 }
 
 // ================= Vim-style keyboard motions (additive — click & tap still work) =================
-const VIM_TABS=['sell','stock','cats','ask','dash'];
+const VIM_TABS=['sell','find','stock','cats','ask','dash'];
 let vimCur=null, vimPendingG=false, vimHelpOpen=false;
 function vimTypingInField(){ const a=document.activeElement; return a && (a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT'||a.isContentEditable); }
 // The set of things you can move a focus ring over, per view.
