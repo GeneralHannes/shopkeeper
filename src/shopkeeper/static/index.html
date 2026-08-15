@@ -85,7 +85,9 @@
               color:var(--muted); font-size:1.1rem; vertical-align:middle; }
   .photo-strip { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.3rem; }
   .photo-strip .cell { position:relative; }
-  .photo-strip img { width:7rem; height:7rem; object-fit:contain; border-radius:12px; background:var(--fill); cursor:pointer; }
+  .photo-strip { gap:.7rem; }
+  .photo-strip img { width:13rem; height:13rem; max-width:calc(100vw - 4rem); object-fit:contain; border-radius:14px; background:var(--fill); cursor:pointer; }
+  .photo-strip .x { width:1.7rem; height:1.7rem; font-size:.9rem; top:-.5rem; right:-.5rem; }
   .photo-strip .x { position:absolute; top:-.4rem; right:-.4rem; width:1.35rem; height:1.35rem; border-radius:50%;
                     background:var(--warn); color:#fff; border:2px solid var(--card); font-size:.72rem; line-height:1; cursor:pointer; }
   /* ---- photo gallery modal ---- */
