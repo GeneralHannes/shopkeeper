@@ -82,7 +82,7 @@
               color:var(--muted); font-size:1.1rem; vertical-align:middle; }
   .photo-strip { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.3rem; }
   .photo-strip .cell { position:relative; }
-  .photo-strip img { width:3.6rem; height:3.6rem; object-fit:contain; border-radius:11px; background:var(--fill); }
+  .photo-strip img { width:7rem; height:7rem; object-fit:contain; border-radius:12px; background:var(--fill); cursor:pointer; }
   .photo-strip .x { position:absolute; top:-.4rem; right:-.4rem; width:1.35rem; height:1.35rem; border-radius:50%;
                     background:var(--warn); color:#fff; border:2px solid var(--card); font-size:.72rem; line-height:1; cursor:pointer; }
   /* ---- photo gallery modal ---- */
@@ -841,7 +841,7 @@ function pickImageForNew(){
 }
 function renderNewPhotos(){
   const box=$('#ni-photos'); if(!box) return;
-  box.innerHTML=newItemPhotos.map((u,i)=>`<div class="cell"><img src="${u}" alt=""><button class="x" onclick="rmNewPhoto(${i})">✕</button></div>`).join('');
+  box.innerHTML=newItemPhotos.map((u,i)=>`<div class="cell"><img src="${u}" alt="" onclick="openLightbox(newItemPhotos,${i})"><button class="x" onclick="event.stopPropagation();rmNewPhoto(${i})">✕</button></div>`).join('');
   const n=$('#ni-photo-note'); if(n) n.textContent=newItemPhotos.length?newItemPhotos.length+' attached':'you can add several';
 }
 function rmNewPhoto(i){ newItemPhotos.splice(i,1); renderNewPhotos(); }
