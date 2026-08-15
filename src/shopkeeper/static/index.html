@@ -43,6 +43,9 @@
   .toggle-row { display:flex; align-items:center; gap:.4rem; margin-bottom:.55rem; cursor:pointer; color:var(--muted); font-size:.9rem; user-select:none; }
   .toggle-row:hover { color:var(--accent); }
   .addbtn { width:100%; padding:.85rem; font-size:1.05rem; margin-top:.3rem; }
+  .bigsearch { font-size:1.3rem; padding:.9rem 1rem; border-radius:14px; }
+  .res-prices { flex:1 1 100%; margin-top:.15rem; font-variant-numeric:tabular-nums; }
+  .res-prices b { color:var(--accent); font-weight:700; }
   .affix { position:relative; display:flex; align-items:center; }
   .affix input { padding-right:1.9rem; }
   .affix .suffix { position:absolute; right:.7rem; color:var(--muted); pointer-events:none; font-size:.95rem; font-weight:600; }
@@ -275,6 +278,10 @@
   <!-- SELL -->
   <section id="view-sell">
     <div class="card">
+      <input id="search" class="bigsearch" placeholder="🔍 Search item or brand…" oninput="search()" autocomplete="off">
+      <ul id="results"><li class="empty">Type a name or brand to see prices…</li></ul>
+    </div>
+    <div class="card">
       <h2>Price mode</h2>
       <div class="row">
         <button class="mini active" id="pm-retail" onclick="setMode('retail')">Single</button>
@@ -310,22 +317,15 @@
         <button class="mini" id="cam-btn" onclick="cameraScan()" style="display:none">📷</button>
       </div>
     </div>
-    <div class="grid">
-      <div class="card">
-        <h2>Find items</h2>
-        <input id="search" placeholder="search (coke, rice…)" oninput="search()" autocomplete="off">
-        <ul id="results"><li class="empty">Type to search…</li></ul>
+    <div class="card">
+      <h2>Cart</h2>
+      <ul id="cart"><li class="empty">Cart is empty</li></ul>
+      <div class="row" style="margin-top:.8rem">
+        <span class="muted">Total</span><span class="total price" id="cart-total">0.00</span>
       </div>
-      <div class="card">
-        <h2>Cart</h2>
-        <ul id="cart"><li class="empty">Cart is empty</li></ul>
-        <div class="row" style="margin-top:.8rem">
-          <span class="muted">Total</span><span class="total price" id="cart-total">0.00</span>
-        </div>
-        <div class="row" style="margin-top:.8rem">
-          <select id="pay" style="max-width:8rem"><option>cash</option><option>card</option></select>
-          <button class="act" id="pay-btn" onclick="checkout()" disabled style="margin-left:auto">Complete sale</button>
-        </div>
+      <div class="row" style="margin-top:.8rem">
+        <select id="pay" style="max-width:8rem"><option>cash</option><option>card</option></select>
+        <button class="act" id="pay-btn" onclick="checkout()" disabled style="margin-left:auto">Complete sale</button>
       </div>
     </div>
   </section>
@@ -613,9 +613,13 @@ async function doSearch(){
   ul.innerHTML = items.length ? '' : '<li class="empty">No matches</li>';
   for(const it of items){
     const li=document.createElement('li'); li.className='add';
-    const price = modePrice(it);
-    li.innerHTML=`${thumb(it)}<span class="name">${itemLabel(it)}</span><span class="muted">${money(it.quantity_on_hand)} ${esc(it.unit)}</span>
-      <span class="price">${price==null?'<span class=warn>no price</span>':fmt(price,it.currency)}</span>`;
+    const parts=[];
+    if(it.retail!=null)    parts.push(`<b>${fmt(it.retail,it.currency)}</b> single`);
+    if(it.pack!=null)      parts.push(`${fmt(it.pack,it.currency)} pack`);
+    if(it.wholesale!=null) parts.push(`${fmt(it.wholesale,it.currency)} box`);
+    const prices = parts.length ? parts.join(' · ') : '<span class="warn">no price set</span>';
+    li.innerHTML=`<div style="flex:1 1 100%">${thumb(it)}<span class="name">${itemLabel(it)}</span></div>
+      <div class="res-prices">${prices}</div>`;
     li.onclick=()=>addToCart(it); ul.appendChild(li);
   }
 }
