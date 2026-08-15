@@ -958,14 +958,26 @@ async function setBarcode(id){
     toast('Barcode set'); loadStock();
   }catch(e){ toast('Error: '+e.message); }
 }
+// the middle descriptor of a looked-up product = name minus the brand and size (+ tidy junk)
+function barcodeMiddle(r){
+  let s=(r.name||'').trim();
+  if(r.brand){ const i=s.toLowerCase().indexOf(r.brand.toLowerCase()); if(i>=0) s=s.slice(0,i)+s.slice(i+r.brand.length); }
+  if(r.size){ s=s.replace(new RegExp(r.size.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'ig'),''); }
+  return s.replace(/\b(bottle|can|pack of \d+|case of \d+|\d+\s?cl|\d+\s?x\s?\d+|x\s?\d+)\b/ig,'')
+          .replace(/[-–|,]+/g,' ').replace(/\s{2,}/g,' ').trim();
+}
 async function lookupBarcode(){
   const code=$('#ni-barcode').value.trim(); if(!code) return;
   toast('Looking up '+code+'…');
   try{
     const r=await api('/api/lookup-barcode/'+encodeURIComponent(code));
-    if(r.in_catalog){ $('#ni-name').value=r.item.name; toast('Already in catalogue: '+r.item.name); }
-    else if(r.found){ $('#ni-name').value=r.name; toast('Found: '+r.name+' — add your prices'); $('#ni-retail').focus(); }
-    else { toast('Not in product database — type the name'); $('#ni-name').focus(); }
+    if(r.in_catalog){ toast('Already in catalogue: '+r.item.name); $('#ni-retail').focus(); return; }
+    if(r.found){
+      if(r.brand) $('#ni-brand').value=r.brand;
+      if(r.size)  $('#ni-size').value=r.size;
+      $('#ni-name').value=barcodeMiddle(r);
+      toast('Found: '+r.name+' — check it & add your price'); $('#ni-retail').focus();
+    } else { toast('Not found in product databases — type it in'); $('#ni-brand').focus(); }
   }catch(e){ toast('Lookup needs internet: '+e.message); }
 }
 function toggleWholesale(){ const s=$('#ni-wsec'), c=$('#ni-wsec-caret'); const open=s.style.display==='none'; s.style.display=open?'':'none'; if(c) c.textContent=open?'▾':'▸'; }

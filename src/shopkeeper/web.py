@@ -13,6 +13,7 @@ import binascii
 import csv
 import io
 import json
+import re
 import socket
 import urllib.request
 from decimal import Decimal, InvalidOperation
@@ -348,9 +349,19 @@ def api_restock(item_id: int, body: RestockIn) -> dict:
     return _item_dict(repo.get_item(item_id))
 
 
-def _off_lookup(code: str) -> str | None:
-    """Look a barcode up in Open Food Facts (free, needs internet). Returns a product
-    name or None. Best for packaged/branded goods; many local products won't be listed."""
+_SIZE_RE = re.compile(r"\b(\d+(?:\.\d+)?)\s?(ml|cl|l|litre|liter|g|kg|oz)\b", re.I)
+
+
+def _extract_size(text: str | None) -> str | None:
+    """Pull a size like '750ml' / '1.5L' / '250g' out of free text, or None."""
+    if not text:
+        return None
+    m = _SIZE_RE.search(text)
+    return (m.group(1) + m.group(2).lower()) if m else None
+
+
+def _off_lookup(code: str) -> dict | None:
+    """Open Food Facts (free, no key). Good for packaged food/drinks; weak on wine/local."""
     url = (f"https://world.openfoodfacts.org/api/v2/product/{code}.json"
            "?fields=product_name,brands,quantity")
     try:
@@ -363,25 +374,52 @@ def _off_lookup(code: str) -> str | None:
     name = (product.get("product_name") or "").strip()
     if not name:
         return None
-    brand = (product.get("brands") or "").split(",")[0].strip()
-    qty = (product.get("quantity") or "").strip()
-    full = name if (not brand or brand.lower() in name.lower()) else f"{brand} {name}"
-    if qty and qty.lower() not in full.lower():
-        full = f"{full} {qty}"
-    return full.strip()
+    return {"name": name, "source": "openfoodfacts",
+            "brand": (product.get("brands") or "").split(",")[0].strip() or None,
+            "size": (product.get("quantity") or "").strip() or None}
+
+
+def _upcitemdb_lookup(code: str) -> dict | None:
+    """UPCitemdb trial (free, no key, ~100/day). Broader retail coverage incl. spirits."""
+    url = f"https://api.upcitemdb.com/prod/trial/lookup?upc={code}"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "shopkeeper/1.0"})
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            data = json.loads(resp.read().decode())
+    except Exception:  # noqa: BLE001 - offline / 404 / rate-limited -> no result
+        return None
+    items = data.get("items") or []
+    if not items:
+        return None
+    it = items[0]
+    name = (it.get("title") or "").strip()
+    if not name:
+        return None
+    return {"name": name, "source": "upcitemdb",
+            "brand": (it.get("brand") or "").strip() or None,
+            "size": (it.get("size") or "").strip() or None}
+
+
+def _barcode_lookup(code: str) -> dict | None:
+    """Try Open Food Facts, then UPCitemdb. Returns {name, brand, size, source} or None."""
+    info = _off_lookup(code) or _upcitemdb_lookup(code)
+    if not info:
+        return None
+    # normalize the size to the app's convention (e.g. "330 ml" -> "330ml")
+    info["size"] = _extract_size(info.get("size")) or _extract_size(info["name"]) or info.get("size")
+    return info
 
 
 @api.get("/lookup-barcode/{code}")
 def api_lookup_barcode(code: str) -> dict:
-    """Resolve a barcode: your catalogue first (offline), then Open Food Facts (online)."""
+    """Resolve a barcode: your catalogue first (offline), then online product databases."""
     code = code.strip()
     existing = repo.get_item_by_barcode(code)
     if existing is not None:
         return {"found": True, "in_catalog": True, "item": _item_dict(existing), "barcode": code}
-    name = _off_lookup(code)
-    if name:
-        return {"found": True, "in_catalog": False, "name": name,
-                "source": "openfoodfacts", "barcode": code}
+    info = _barcode_lookup(code)
+    if info:
+        return {"found": True, "in_catalog": False, "barcode": code, **info}
     return {"found": False, "in_catalog": False, "barcode": code}
 
 
