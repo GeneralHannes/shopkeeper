@@ -743,8 +743,9 @@ async function scanCamera(onCode){
   cancel.onclick=stop;
   typeBtn.onclick=()=>{ const c=prompt('Enter the barcode number'); if(c && c.trim()){ hit(c.trim()); } };
 
-  // ---- open the rear camera at high resolution with continuous autofocus ----
-  const want={ video:{ facingMode:{ideal:'environment'}, width:{ideal:1920}, height:{ideal:1080},
+  // ---- open the rear camera with continuous autofocus ----
+  // 1280x720 keeps barcodes crisp but decodes ~2x faster than 1080p on the software (iOS) path
+  const want={ video:{ facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720},
                         focusMode:{ideal:'continuous'}, advanced:[{focusMode:'continuous'}] } };
   try{ stream=await navigator.mediaDevices.getUserMedia(want); }
   catch(_){ try{ stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}); }
@@ -780,9 +781,9 @@ async function scanCamera(onCode){
       if(ZX.DecodeHintType && ZX.BarcodeFormat){
         const F=ZX.BarcodeFormat;
         hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128,F.CODE_39,F.ITF].filter(x=>x!=null));
-        hints.set(ZX.DecodeHintType.TRY_HARDER, true);
+        // no TRY_HARDER: clean retail barcodes in the aiming frame don't need it, and it's much faster
       }
-      zx=new ZX.BrowserMultiFormatReader(hints, 200);
+      zx=new ZX.BrowserMultiFormatReader(hints, 120);
       const cb=(result,err)=>{ if(result) hit(result.getText()); };
       if(typeof zx.decodeFromStream==='function') zx.decodeFromStream(stream, v, cb);
       else if(typeof zx.decodeFromVideoElement==='function') zx.decodeFromVideoElement(v, cb);
