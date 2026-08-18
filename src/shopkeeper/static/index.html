@@ -10,6 +10,7 @@
           --bg:#1e2030; --card:#222436; --card-2:#2f334d; --fill:#2f334d; --fill-2:#3b4261;
           --line:#3b4261; --ink:#c8d3f5; --muted:#828bb8;
           --accent:#82aaff; --accent-soft:rgba(130,170,255,.18); --good:#c3e88d; --warn:#ff966c;
+          --good-soft:rgba(195,232,141,.15); --warn-soft:rgba(255,150,108,.16);
           --nav:rgba(30,32,48,.74); --radius:14px; --radius-lg:18px; --shadow:0 2px 10px rgba(0,0,0,.4); }
   * { box-sizing:border-box; }
   body { margin:0; font:17px/1.47 -apple-system,"SF Pro Text",system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -259,7 +260,74 @@
     .tabs button:hover:not(.active) { color:var(--accent); }
     button.mini:hover { background:var(--fill-2); box-shadow:0 0 0 1.5px var(--accent); }
     #tabbar button:hover { color:var(--accent); }
+    .inv-table tbody tr:hover td, .inv-table tbody tr:hover td.stik { background:var(--fill); }
   }
+  /* ================= inventory: action bar + dense table + detail drawer ================= */
+  .inv-bar { display:flex; flex-wrap:wrap; gap:.55rem; align-items:center; margin-bottom:.7rem; }
+  .inv-field { position:relative; display:flex; align-items:center; flex:1 1 12rem; min-width:0; }
+  .inv-field .inv-ic { position:absolute; left:.7rem; font-size:.95rem; pointer-events:none; opacity:.85; }
+  .inv-field input { padding-left:2.1rem; }
+  .inv-search input { padding-right:2rem; }
+  .inv-scan { flex:1 1 9rem; }
+  .inv-scan input { padding-right:2.4rem; font-variant-numeric:tabular-nums; font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; }
+  .inv-kbd { position:absolute; right:.55rem; font:600 .72rem ui-monospace,Menlo,monospace; color:var(--muted);
+             background:var(--fill-2); border-radius:6px; padding:.08rem .42rem; pointer-events:none; }
+  .inv-scanbtn { position:absolute; right:.35rem; border:none; background:transparent; color:var(--accent);
+                 font-size:1.15rem; cursor:pointer; padding:.2rem .4rem; line-height:1; }
+  .inv-scanbtn:hover { color:var(--ink); }
+  .inv-count { margin-left:auto; color:var(--muted); font-size:.82rem; font-weight:600; white-space:nowrap; }
+  .inv-tablewrap { max-height:64vh; overflow:auto; border:1px solid var(--line); border-radius:12px; }
+  .inv-tablewrap::-webkit-scrollbar { height:8px; width:8px; }
+  .inv-tablewrap::-webkit-scrollbar-thumb { background:var(--fill-2); border-radius:8px; }
+  table.inv-table { border-collapse:separate; border-spacing:0; width:100%; font-size:.9rem; }
+  .inv-table th, .inv-table td { padding:.5rem .7rem; text-align:left; white-space:nowrap; border-bottom:.5px solid var(--line); }
+  .inv-table tbody tr:last-child td { border-bottom:none; }
+  .inv-table thead th { position:sticky; top:0; z-index:3; background:var(--card-2); color:var(--muted);
+                        font-size:.71rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
+  .inv-table .num { text-align:right; font-variant-numeric:tabular-nums;
+                    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; }
+  .inv-table th.stik, .inv-table td.stik { position:sticky; left:0; z-index:2; background:var(--card); border-right:.5px solid var(--line); }
+  .inv-table thead th.stik { z-index:4; background:var(--card-2); }
+  .inv-table tbody tr { cursor:pointer; }
+  .inv-table tbody tr.sel td, .inv-table tbody tr.sel td.stik { background:var(--accent-soft); }
+  .inv-cat { color:var(--muted); }
+  .inv-empty { color:var(--muted); padding:1rem .7rem; text-align:center; }
+  /* status pills — transparent tint + solid text */
+  .st-pill { display:inline-flex; align-items:center; gap:.34rem; font-size:.72rem; font-weight:700;
+             padding:.13rem .52rem; border-radius:20px; }
+  .st-pill::before { content:""; width:.42rem; height:.42rem; border-radius:50%; background:currentColor; }
+  .st-pill.in  { color:var(--good); background:var(--good-soft); }
+  .st-pill.low { color:var(--warn); background:var(--warn-soft); }
+  .st-pill.out { color:var(--muted); background:var(--fill-2); }
+  /* multi-unit inline tag */
+  .unit-tag { display:inline-block; font-size:.64rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
+              color:var(--accent); background:var(--accent-soft); border-radius:5px; padding:.05rem .34rem; margin-left:.4rem; vertical-align:middle; }
+  /* detail drawer (slide-over) */
+  .drawer { position:fixed; inset:0; z-index:24; display:none; }
+  .drawer.open { display:block; }
+  .drawer-scrim { position:absolute; inset:0; background:rgba(0,0,0,.42);
+                  -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); animation:overlayIn .2s ease both; }
+  .drawer-panel { position:absolute; top:0; right:0; height:100%; width:min(31rem,92vw); overflow-y:auto;
+                  background:var(--card); box-shadow:-14px 0 44px rgba(0,0,0,.45);
+                  padding:1.1rem 1.15rem calc(1.5rem + env(safe-area-inset-bottom)); animation:drawerIn .34s var(--ease-out) both; }
+  @keyframes drawerIn { from{ transform:translateX(100%); } to{ transform:none; } }
+  .drawer-head { display:flex; align-items:flex-start; gap:.6rem; margin-bottom:.6rem; }
+  .drawer-head h3 { margin:0; font-size:1.15rem; font-weight:700; letter-spacing:-.02em; line-height:1.25; }
+  .drawer-head .sub { color:var(--muted); font-size:.85rem; margin-top:.3rem; display:flex; align-items:center; gap:.45rem; flex-wrap:wrap; }
+  .drawer-head .x { margin-left:auto; border:none; background:var(--fill); color:var(--ink); width:2rem; height:2rem;
+                    border-radius:9px; font-size:1rem; cursor:pointer; flex:0 0 auto; }
+  .drawer-head .x:hover { background:var(--fill-2); }
+  .drawer-photo { width:100%; max-height:12rem; object-fit:contain; border-radius:12px; background:var(--fill); margin:.3rem 0 .5rem; cursor:pointer; }
+  table.kv { width:100%; border-collapse:collapse; margin:.4rem 0 .2rem; }
+  .kv td { padding:.42rem .1rem; border-bottom:.5px solid var(--line); font-size:.92rem; }
+  .kv tr:last-child td { border-bottom:none; }
+  .kv td:first-child { color:var(--muted); width:8.5rem; font-size:.85rem; }
+  .kv td.num { text-align:right; font-variant-numeric:tabular-nums; font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; }
+  .sec-mini { font-size:.72rem; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:.06em; margin:1rem 0 .35rem; }
+  .drawer-restock { display:flex; gap:.5rem; align-items:center; margin-top:.5rem; }
+  .drawer-restock input { max-width:6.5rem; }
+  .drawer-actions { display:flex; flex-wrap:wrap; gap:.45rem; margin-top:.35rem; }
+  .ui-mobile .drawer-panel { width:100vw; }
 </style>
 </head>
 <body>
@@ -439,11 +507,44 @@
       <button class="act addbtn" onclick="addItem()">＋ Add item</button>
     </div>
     <div class="card">
-      <h2>Items — tap price to change, use +qty to restock</h2>
+      <h2>Inventory</h2>
+      <div class="inv-bar">
+        <div class="inv-field inv-search">
+          <span class="inv-ic">🔎</span>
+          <input id="stock-search" placeholder="Search name or brand…" autocomplete="off" oninput="renderStock()">
+          <kbd class="inv-kbd">/</kbd>
+        </div>
+        <div class="inv-field inv-scan">
+          <span class="inv-ic">📷</span>
+          <input id="stock-barcode" placeholder="Scan / barcode" inputmode="numeric" autocomplete="off"
+                 onkeydown="if(event.key==='Enter')jumpBarcode()">
+          <button class="inv-scanbtn" onclick="scanBarcodeFind()" title="Scan with camera">⌖</button>
+        </div>
+        <span class="inv-count" id="stock-count"></span>
+      </div>
       <div id="stock-cat-chips" class="chips"></div>
-      <ul id="stock-list"><li class="empty">Loading…</li></ul>
+      <div class="inv-tablewrap">
+        <table class="inv-table">
+          <thead><tr>
+            <th class="stik">Item</th>
+            <th>Category</th>
+            <th class="num">Stock</th>
+            <th class="num">Retail</th>
+            <th class="num">Cost</th>
+            <th class="num">Margin</th>
+            <th>Status</th>
+          </tr></thead>
+          <tbody id="stock-body"><tr><td class="inv-empty" colspan="7">Loading…</td></tr></tbody>
+        </table>
+      </div>
     </div>
   </section>
+
+  <!-- INVENTORY DETAIL DRAWER (slide-over) -->
+  <div id="inv-drawer" class="drawer" aria-hidden="true">
+    <div class="drawer-scrim" onclick="closeInvDrawer()"></div>
+    <aside class="drawer-panel" id="inv-panel"></aside>
+  </div>
 
   <!-- CATEGORIES -->
   <section id="view-cats" style="display:none">
@@ -1138,6 +1239,7 @@ let stockItems=[], stockCat='__all';
 async function loadStock(){
   stockItems = await api('/api/items'); populateDatalists(stockItems);
   renderStockChips(); renderStock();
+  if(invDrawerId!=null){ const it=stockItems.find(x=>x.id===invDrawerId); it ? renderInvDrawer(it) : closeInvDrawer(); }
 }
 function renderStockChips(){
   const chips=$('#stock-cat-chips'); if(!chips) return;
@@ -1152,35 +1254,123 @@ function pickStockCategory(c){ stockCat=c;
   const act=document.querySelector('#stock-cat-chips .chip.active'); if(act) act.scrollIntoView({inline:'center',block:'nearest'});
   renderStock();
 }
-function renderStock(){
-  const ul=$('#stock-list');
-  const items = stockCat==='__all' ? stockItems : stockItems.filter(i=>(i.category||'—')===stockCat);
-  if(!items.length){ ul.innerHTML='<li class="empty">'+(stockItems.length?'No items in this category':'No items yet — add one above')+'</li>'; return; }
-  ul.innerHTML=''; let cat=null;
-  for(const it of items){
-    const c = it.category || '—';
-    if(c!==cat){ cat=c; const h=document.createElement('li'); h.style.borderBottom='none';
-      h.innerHTML=`<span class="muted" style="text-transform:uppercase;letter-spacing:.04em">${esc(cat)}</span>`;
-      ul.appendChild(h); }
-    const li=document.createElement('li'); li.style.flexWrap='wrap';
-    const m = it.margin!=null ? ` · margin ${fmt(it.margin,it.currency)}` : '';
-    li.innerHTML=`<div style="flex:1 1 100%">
-        ${thumb(it)}<span class="name">${itemLabel(it)}</span>
-        <span class="muted">${money(it.quantity_on_hand)} ${esc(it.unit)}${it.supplier?' · '+esc(it.supplier):''}</span></div>
-      <div style="flex:1 1 100%" class="muted">single ${fmt(it.retail,it.currency)}${it.pack!=null?' · pack '+fmt(it.pack,it.currency):''} · wholesale ${fmt(it.wholesale,it.currency)} · cost ${fmt(it.cost,it.currency)}${m}</div>
-      ${drinkLine(it)?`<div style="flex:1 1 100%" class="muted">🍷 ${drinkLine(it)}</div>`:''}
-      <input type="number" placeholder="+qty" inputmode="decimal" style="max-width:4.5rem" id="rs-${it.id}">
-      <button class="mini" onclick="restock(${it.id})">restock</button>
-      <button class="mini" onclick="setPrices(${it.id},'${esc(it.name)}')">prices</button>
-      <button class="mini" onclick="openOptions(${it.id},'${esc(it.name)}','${it.currency}')">options</button>
-      <button class="mini" onclick="setBarcode(${it.id})">barcode</button>
-      <button class="mini" onclick="openGallery(${it.id},'${esc(it.name)}')">📷 photos</button>
-      <button class="mini" onclick="editNaming(${it.id})">✎ edit</button>
-      <button class="mini" onclick="editInfo(${it.id})">🍷 info</button>
-      <button class="mini" onclick="deleteItem(${it.id},'${esc(it.name)}')" style="color:var(--warn)">delete</button>`;
-    ul.appendChild(li);
-  }
+const LOW_STOCK = 5;
+function stockStatus(it){
+  const q = it.quantity_on_hand || 0;
+  if(q <= 0) return {cls:'out', label:'Out'};
+  if(q <= LOW_STOCK) return {cls:'low', label:'Low'};
+  return {cls:'in', label:'In stock'};
 }
+// subtle inline tag for multi-unit items (pack / wholesale sell units)
+function unitTag(it){
+  const u=(it.unit||'').toLowerCase();
+  if(u && u!=='single' && u!=='each') return `<span class="unit-tag">${esc(u)}</span>`;
+  if(it.pack!=null) return `<span class="unit-tag">pack</span>`;
+  return '';
+}
+function renderStock(){
+  const body=$('#stock-body'); if(!body) return;
+  const q=($('#stock-search')?.value||'').trim().toLowerCase();
+  let items = stockCat==='__all' ? stockItems : stockItems.filter(i=>(i.category||'—')===stockCat);
+  if(q) items = items.filter(i => (i.name||'').toLowerCase().includes(q)
+      || (i.brand||'').toLowerCase().includes(q) || (i.category||'').toLowerCase().includes(q)
+      || String(i.barcode||'').includes(q));
+  const cnt=$('#stock-count'); if(cnt) cnt.textContent = items.length + (items.length===1?' item':' items');
+  if(!items.length){
+    body.innerHTML=`<tr><td class="inv-empty" colspan="7">${stockItems.length?'No matches':'No items yet — add one above'}</td></tr>`;
+    return;
+  }
+  body.innerHTML = items.map(it=>{
+    const st=stockStatus(it), m = it.margin!=null ? fmt(it.margin,it.currency) : '—';
+    return `<tr class="${it.id===invDrawerId?'sel':''}" onclick="openInvItem(${it.id})">
+      <td class="stik">${itemLabel(it)}${unitTag(it)}</td>
+      <td class="inv-cat">${esc(it.category||'—')}</td>
+      <td class="num">${money(it.quantity_on_hand)}</td>
+      <td class="num">${fmt(it.retail,it.currency)}</td>
+      <td class="num">${fmt(it.cost,it.currency)}</td>
+      <td class="num">${m}</td>
+      <td><span class="st-pill ${st.cls}">${st.label}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ---- inventory detail drawer (master-detail) ----
+let invDrawerId=null;
+function openInvItem(id){
+  const it=stockItems.find(x=>x.id===id); if(!it) return;
+  invDrawerId=id; renderInvDrawer(it);
+  const dr=$('#inv-drawer'); dr.classList.add('open'); dr.setAttribute('aria-hidden','false');
+  document.querySelectorAll('#stock-body tr').forEach(tr=>tr.classList.remove('sel'));
+  renderStock();
+}
+function closeInvDrawer(){
+  invDrawerId=null;
+  const dr=$('#inv-drawer'); dr.classList.remove('open'); dr.setAttribute('aria-hidden','true');
+  document.querySelectorAll('#stock-body tr.sel').forEach(tr=>tr.classList.remove('sel'));
+}
+function renderInvDrawer(it){
+  const panel=$('#inv-panel'); if(!panel) return;
+  const st=stockStatus(it), drink=drinkLine(it);
+  const prow=(k,v)=>`<tr><td>${k}</td><td class="num">${v}</td></tr>`;
+  panel.innerHTML = `
+    <div class="drawer-head">
+      <div>
+        <h3>${itemLabel(it)}</h3>
+        <div class="sub">${esc(it.category||'—')} <span class="st-pill ${st.cls}">${st.label}</span>${unitTag(it)}</div>
+      </div>
+      <button class="x" onclick="closeInvDrawer()" title="Close">✕</button>
+    </div>
+    ${it.has_image?`<img class="drawer-photo" src="${itemThumbSrc(it.id)}" onclick="openGallery(${it.id},'${esc(it.name)}')">`:''}
+    <table class="kv">
+      <tr><td>On hand</td><td class="num">${money(it.quantity_on_hand)} ${esc(it.unit||'')}</td></tr>
+      ${prow('Single', fmt(it.retail,it.currency))}
+      ${it.pack!=null?prow('Pack', fmt(it.pack,it.currency)):''}
+      ${prow('Wholesale', fmt(it.wholesale,it.currency))}
+      ${prow('Cost', fmt(it.cost,it.currency))}
+      ${it.margin!=null?prow('Margin', fmt(it.margin,it.currency)):''}
+      ${it.supplier?`<tr><td>Supplier</td><td>${esc(it.supplier)}</td></tr>`:''}
+      ${it.barcode?`<tr><td>Barcode</td><td class="num">${esc(it.barcode)}</td></tr>`:''}
+      ${drink?`<tr><td>Drink</td><td>🍷 ${drink}</td></tr>`:''}
+    </table>
+    <div class="drawer-restock">
+      <input type="number" placeholder="+qty" inputmode="decimal" id="inv-rs" onkeydown="if(event.key==='Enter')invRestock(${it.id})">
+      <button class="act" onclick="invRestock(${it.id})">Restock</button>
+    </div>
+    <div class="sec-mini">Manage</div>
+    <div class="drawer-actions">
+      <button class="mini" onclick="setPrices(${it.id},'${esc(it.name)}')">Prices</button>
+      <button class="mini" onclick="openOptions(${it.id},'${esc(it.name)}','${it.currency}')">Options</button>
+      <button class="mini" onclick="setBarcode(${it.id})">Barcode</button>
+      <button class="mini" onclick="openGallery(${it.id},'${esc(it.name)}')">📷 Photos</button>
+      <button class="mini" onclick="editNaming(${it.id})">✎ Edit</button>
+      <button class="mini" onclick="editInfo(${it.id})">🍷 Info</button>
+      <button class="mini" style="color:var(--warn)" onclick="deleteItem(${it.id},'${esc(it.name)}')">Delete</button>
+    </div>`;
+}
+async function invRestock(id){
+  const el=$('#inv-rs'), qv=(el?.value||'').trim(); if(!qv) return;
+  try{ const it=await api('/api/items/'+id+'/restock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({quantity:qv})});
+    toast(`${it.name}: now ${money(it.quantity_on_hand)} ${it.unit}`); loadStock();
+  }catch(e){ toast('Error: '+e.message); }
+}
+// barcode search box in the inventory bar: jump straight to the matching item
+function jumpBarcode(){
+  const el=$('#stock-barcode'), code=(el?.value||'').trim(); if(!code) return;
+  const it=stockItems.find(x=>String(x.barcode||'')===code);
+  if(it){ el.value=''; openInvItem(it.id); }
+  else toast('No item with barcode '+code);
+}
+function scanBarcodeFind(){ scanCamera(code=>{ const el=$('#stock-barcode'); if(el) el.value=code; jumpBarcode(); }); }
+// keyboard: "/" or ⌘K focuses inventory search; Esc closes the drawer
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape' && invDrawerId!=null){ closeInvDrawer(); return; }
+  if(currentView!=='stock') return;
+  const t=e.target, tag=(t.tagName||'').toLowerCase();
+  const typing = tag==='input'||tag==='textarea'||tag==='select'||t.isContentEditable;
+  if(!typing && (e.key==='/' || ((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'))){
+    e.preventDefault(); const s=$('#stock-search'); if(s){ s.focus(); s.select&&s.select(); }
+  }
+});
 async function restock(id){
   const el=$('#rs-'+id), q=el.value.trim(); if(!q){ return; }
   try{ const it=await api('/api/items/'+id+'/restock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({quantity:q})});
@@ -1420,7 +1610,7 @@ function vimTypingInField(){ const a=document.activeElement; return a && (a.tagN
 function vimFocusables(){
   const v=currentView;
   if(v==='dash')  return [...document.querySelectorAll('#catalog .prod')];
-  if(v==='stock') return [...document.querySelectorAll('#stock-list > li')].filter(li=>li.querySelector('.name'));
+  if(v==='stock') return [...document.querySelectorAll('#stock-body > tr')].filter(tr=>tr.querySelector('.stik'));
   if(v==='cats')  return [...document.querySelectorAll('#cats li')].filter(li=>li.querySelector('.name'));
   if(v==='sell')  return [...document.querySelectorAll('#quick .qbtn, #results > li')].filter(el=>!el.classList.contains('empty'));
   return [];
@@ -1449,7 +1639,7 @@ function vimClickIn(el, needles){ if(!el) return false;
   for(const n of needles){ const hit=btns.find(b=>((b.textContent||'').toLowerCase().includes(n))||((b.getAttribute('onclick')||'').toLowerCase().includes(n)));
     if(hit){ hit.click(); return true; } } return false; }
 function vimOpen(){ const els=vimEnsure(); if(!els) return; const v=currentView;
-  if(v==='sell'){ vimCur.click(); return; }
+  if(v==='sell'||v==='stock'){ vimCur.click(); return; }   // stock: open the detail drawer
   if(v==='dash'){ vimCur.querySelector('[onclick*="openGallery"]')?.click(); return; }
   vimClickIn(vimCur, ['opengallery','photos']); }
 function vimEditPrice(){ if(!vimCur) return;
