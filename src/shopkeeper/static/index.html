@@ -732,14 +732,16 @@ async function scanCamera(onCode){
   const torchBtn=document.createElement('button'); torchBtn.className='mini'; torchBtn.textContent='🔦 Light'; torchBtn.style.display='none';
   const zoomWrap=document.createElement('label'); zoomWrap.style.cssText='display:none;align-items:center;gap:.4rem;color:#fff;font-size:.85rem';
   const zoom=document.createElement('input'); zoom.type='range'; zoomWrap.append('🔍', zoom);
+  const typeBtn=document.createElement('button'); typeBtn.textContent='⌨ Type code'; typeBtn.className='act';
   const cancel=document.createElement('button'); cancel.textContent='Cancel'; cancel.className='act';
-  ctrls.append(torchBtn, zoomWrap, cancel);
+  ctrls.append(torchBtn, zoomWrap, typeBtn, cancel);
   ov.append(boxel, hint, ctrls); document.body.appendChild(ov);
 
   let done=false, zx=null, stream=null, track=null;
   const stop=()=>{ if(done) return; done=true; try{ if(zx) zx.reset(); }catch(_){} if(stream){ stream.getTracks().forEach(t=>t.stop()); } ov.remove(); };
   const hit=code=>{ if(done) return; try{ navigator.vibrate && navigator.vibrate(60); }catch(_){} stop(); onCode(code); };
   cancel.onclick=stop;
+  typeBtn.onclick=()=>{ const c=prompt('Enter the barcode number'); if(c && c.trim()){ hit(c.trim()); } };
 
   // ---- open the rear camera at high resolution with continuous autofocus ----
   const want={ video:{ facingMode:{ideal:'environment'}, width:{ideal:1920}, height:{ideal:1080},
@@ -763,44 +765,30 @@ async function scanCamera(onCode){
   v.onclick=async()=>{ try{ await track.applyConstraints({advanced:[{focusMode:'single-shot'}]}); }
     catch(_){ try{ await track.applyConstraints({advanced:[{focusMode:'continuous'}]}); }catch(_){} } };
 
-  // ---- decode ONLY the aiming box, upscaled: a barcode that fills the frame reads far better ----
-  const canvas=document.createElement('canvas'), cx=canvas.getContext('2d',{willReadFrequently:true});
-  // crop a little wider than the visible blue frame so barcodes near its edges still decode
-  const grab=()=>{ const vw=v.videoWidth, vh=v.videoHeight; if(!vw||!vh) return null;
-    const sx=Math.round(vw*0.06), sy=Math.round(vh*0.32), sw=Math.round(vw*0.88), sh=Math.round(vh*0.36);
-    const scale=Math.min(1, 1280/sw);                       // cap width so decode stays fast on phones
-    canvas.width=Math.round(sw*scale); canvas.height=Math.round(sh*scale);
-    cx.drawImage(v, sx,sy,sw,sh, 0,0, canvas.width, canvas.height); return canvas; };
-
-  let det=null, reader=null;
+  // ---- decode, limited to retail 1D barcode formats (faster + more reliable than "any format") ----
   const FMT=['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf'];
   if(hasBD){
+    let det;
     try{ det=new window.BarcodeDetector({formats:FMT}); }catch(_){ det=new window.BarcodeDetector(); }
+    const tick=async()=>{ if(done) return;
+      try{ const codes=await det.detect(v); if(codes && codes.length){ hit(codes[0].rawValue); return; } }catch(_){}
+      requestAnimationFrame(tick); };
+    tick();
   } else {
-    const ZX=window.ZXing, hints=new Map();
-    if(ZX.DecodeHintType && ZX.BarcodeFormat){ const F=ZX.BarcodeFormat;
-      hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128,F.CODE_39,F.ITF].filter(x=>x!=null));
-      hints.set(ZX.DecodeHintType.TRY_HARDER, true); }
-    reader=new ZX.MultiFormatReader(); reader.setHints(hints);
-  }
-
-  // decode one cropped frame; ZXing throws NotFoundException on every empty frame (expected)
-  const decodeOnce=async(cv)=>{
-    if(det){ try{ const codes=await det.detect(cv); if(codes && codes.length) return codes[0].rawValue; }catch(_){} return null; }
-    const ZX=window.ZXing;
     try{
-      const src=new ZX.HTMLCanvasElementLuminanceSource(cv);
-      const bmp=new ZX.BinaryBitmap(new ZX.HybridBinarizer(src));
-      return reader.decode(bmp).getText();
-    }catch(_){ return null; }
-    finally{ try{ reader.reset(); }catch(_){} }
-  };
-
-  const loop=async()=>{ if(done) return;
-    const cv=grab();
-    if(cv){ try{ const code=await decodeOnce(cv); if(code){ hit(code); return; } }catch(_){} }
-    setTimeout(loop, det?60:110); };   // native detector is cheap; throttle the WASM path a bit more
-  loop();
+      const ZX=window.ZXing, hints=new Map();
+      if(ZX.DecodeHintType && ZX.BarcodeFormat){
+        const F=ZX.BarcodeFormat;
+        hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128,F.CODE_39,F.ITF].filter(x=>x!=null));
+        hints.set(ZX.DecodeHintType.TRY_HARDER, true);
+      }
+      zx=new ZX.BrowserMultiFormatReader(hints, 200);
+      const cb=(result,err)=>{ if(result) hit(result.getText()); };
+      if(typeof zx.decodeFromStream==='function') zx.decodeFromStream(stream, v, cb);
+      else if(typeof zx.decodeFromVideoElement==='function') zx.decodeFromVideoElement(v, cb);
+      else zx.decodeFromConstraints(want, v, cb);
+    }catch(e){ toast('Scanner error: '+e.message); stop(); }
+  }
 }
 
 // ---- Images ----
