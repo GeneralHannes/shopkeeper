@@ -1011,10 +1011,19 @@ async function lookupBarcode(){
     const r=await api('/api/lookup-barcode/'+encodeURIComponent(code));
     if(r.in_catalog){ toast('Already in catalogue: '+r.item.name); $('#ni-retail').focus(); return; }
     if(r.found){
-      if(r.brand) $('#ni-brand').value=r.brand;
-      if(r.size)  $('#ni-size').value=r.size;
+      const setIf=(id,v)=>{ if(v!=null && v!==''){ const e=$('#'+id); if(e) e.value=v; } };
+      setIf('ni-brand', r.brand);
+      setIf('ni-size', r.size);
       $('#ni-name').value=barcodeMiddle(r);
-      toast('Found: '+r.name+' — check it & add your price'); $('#ni-retail').focus();
+      setIf('ni-category', r.category);
+      setIf('ni-abv', r.abv);
+      setIf('ni-vintage', r.vintage);
+      setIf('ni-style', r.style);
+      setIf('ni-origin', r.origin);
+      // reveal the drink section if any alcohol info was found, so it's visible
+      if(r.abv!=null || r.vintage!=null || r.style || r.origin) drinkSection(true);
+      const got=['brand','size','category','abv','vintage','origin'].filter(k=>r[k]!=null&&r[k]!=='').length;
+      toast('Found: '+r.name+' — filled '+got+' field(s), check & add price'); $('#ni-retail').focus();
     } else { toast('Not found in product databases — type it in'); $('#ni-brand').focus(); }
   }catch(e){ toast('Lookup needs internet: '+e.message); }
 }

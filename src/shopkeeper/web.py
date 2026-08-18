@@ -360,23 +360,43 @@ def _extract_size(text: str | None) -> str | None:
     return (m.group(1) + m.group(2).lower()) if m else None
 
 
+def _pretty_tag(tag: str) -> str:
+    """'en:alcoholic-beverages' -> 'Alcoholic Beverages'."""
+    return tag.split(":", 1)[-1].replace("-", " ").strip().title()
+
+
 def _off_lookup(code: str) -> dict | None:
-    """Open Food Facts (free, no key). Good for packaged food/drinks; weak on wine/local."""
+    """Open Food Facts (free, no key). Returns as many mappable fields as it has."""
     url = (f"https://world.openfoodfacts.org/api/v2/product/{code}.json"
-           "?fields=product_name,brands,quantity")
+           "?fields=product_name,brands,quantity,categories_tags,countries_tags,"
+           "origins,manufacturing_places,nutriments")
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "shopkeeper/1.0"})
         with urllib.request.urlopen(req, timeout=6) as resp:
             data = json.loads(resp.read().decode())
     except Exception:  # noqa: BLE001 - offline / not found / any error -> no result
         return None
-    product = data.get("product") or {}
-    name = (product.get("product_name") or "").strip()
+    p = data.get("product") or {}
+    name = (p.get("product_name") or "").strip()
     if not name:
         return None
+    all_cats = p.get("categories_tags") or []
+    cats = [c for c in all_cats if c.startswith("en:")] or all_cats  # prefer English tags
+    nutr = p.get("nutriments") or {}
+    abv_raw = nutr.get("alcohol_value", nutr.get("alcohol"))
+    origin = (p.get("origins") or p.get("manufacturing_places") or "").strip() or None
+    if not origin:
+        ct = p.get("countries_tags") or []
+        origin = _pretty_tag(ct[0]) if ct else None
+    try:
+        abv = float(abv_raw) if abv_raw not in (None, "") else None
+    except (TypeError, ValueError):
+        abv = None
     return {"name": name, "source": "openfoodfacts",
-            "brand": (product.get("brands") or "").split(",")[0].strip() or None,
-            "size": (product.get("quantity") or "").strip() or None}
+            "brand": (p.get("brands") or "").split(",")[0].strip() or None,
+            "size": (p.get("quantity") or "").strip() or None,
+            "category": _pretty_tag(cats[-1]) if cats else None,
+            "abv": abv, "origin": origin}
 
 
 def _upcitemdb_lookup(code: str) -> dict | None:
@@ -395,19 +415,27 @@ def _upcitemdb_lookup(code: str) -> dict | None:
     name = (it.get("title") or "").strip()
     if not name:
         return None
+    cat = (it.get("category") or "").strip()
+    if ">" in cat:                       # "Food, Beverages... > Beverages > Wine" -> "Wine"
+        cat = cat.split(">")[-1].strip()
     return {"name": name, "source": "upcitemdb",
             "brand": (it.get("brand") or "").strip() or None,
-            "size": (it.get("size") or "").strip() or None}
+            "size": (it.get("size") or "").strip() or None,
+            "category": cat or None, "abv": None, "origin": None}
 
 
 def _barcode_lookup(code: str) -> dict | None:
-    """Try Open Food Facts, then UPCitemdb. Returns {name, brand, size, source} or None."""
+    """Try Open Food Facts, then UPCitemdb. Returns as full a draft as the data allows."""
     info = _off_lookup(code) or _upcitemdb_lookup(code)
     if not info:
         return None
     # normalize the size to the app's convention (e.g. "330 ml" -> "330ml")
     info["size"] = _extract_size(info.get("size")) or _extract_size(info["name"]) or info.get("size")
-    return info
+    # a stand-alone 4-digit year in the name is a wine/spirit vintage
+    m = re.search(r"\b(?:19|20)\d{2}\b", info["name"])
+    if m:
+        info["vintage"] = int(m.group(0))
+    return {k: v for k, v in info.items() if v is not None}
 
 
 @api.get("/lookup-barcode/{code}")
