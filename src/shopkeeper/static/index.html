@@ -763,29 +763,44 @@ async function scanCamera(onCode){
   v.onclick=async()=>{ try{ await track.applyConstraints({advanced:[{focusMode:'single-shot'}]}); }
     catch(_){ try{ await track.applyConstraints({advanced:[{focusMode:'continuous'}]}); }catch(_){} } };
 
-  // ---- decode, limited to retail 1D barcode formats (faster + more reliable than "any format") ----
+  // ---- decode ONLY the aiming box, upscaled: a barcode that fills the frame reads far better ----
+  const canvas=document.createElement('canvas'), cx=canvas.getContext('2d',{willReadFrequently:true});
+  // crop a little wider than the visible blue frame so barcodes near its edges still decode
+  const grab=()=>{ const vw=v.videoWidth, vh=v.videoHeight; if(!vw||!vh) return null;
+    const sx=Math.round(vw*0.06), sy=Math.round(vh*0.32), sw=Math.round(vw*0.88), sh=Math.round(vh*0.36);
+    const scale=Math.min(1, 1280/sw);                       // cap width so decode stays fast on phones
+    canvas.width=Math.round(sw*scale); canvas.height=Math.round(sh*scale);
+    cx.drawImage(v, sx,sy,sw,sh, 0,0, canvas.width, canvas.height); return canvas; };
+
+  let det=null, reader=null;
+  const FMT=['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf'];
   if(hasBD){
-    let det; const FMT=['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf'];
     try{ det=new window.BarcodeDetector({formats:FMT}); }catch(_){ det=new window.BarcodeDetector(); }
-    const tick=async()=>{ if(done) return;
-      try{ const codes=await det.detect(v); if(codes && codes.length){ hit(codes[0].rawValue); return; } }catch(_){}
-      requestAnimationFrame(tick); };
-    tick();
   } else {
-    try{
-      const ZX=window.ZXing, hints=new Map();
-      if(ZX.DecodeHintType && ZX.BarcodeFormat){
-        const F=ZX.BarcodeFormat;
-        hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128,F.CODE_39,F.ITF].filter(x=>x!=null));
-        hints.set(ZX.DecodeHintType.TRY_HARDER, true);
-      }
-      zx=new ZX.BrowserMultiFormatReader(hints, 250);
-      const cb=(result)=>{ if(result) hit(result.getText()); };
-      if(typeof zx.decodeFromStream==='function') zx.decodeFromStream(stream, v, cb);
-      else if(typeof zx.decodeFromVideoElement==='function') zx.decodeFromVideoElement(v, cb);
-      else zx.decodeFromConstraints(want, v, cb);
-    }catch(e){ toast('Scanner error: '+e.message); stop(); }
+    const ZX=window.ZXing, hints=new Map();
+    if(ZX.DecodeHintType && ZX.BarcodeFormat){ const F=ZX.BarcodeFormat;
+      hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128,F.CODE_39,F.ITF].filter(x=>x!=null));
+      hints.set(ZX.DecodeHintType.TRY_HARDER, true); }
+    reader=new ZX.MultiFormatReader(); reader.setHints(hints);
   }
+
+  // decode one cropped frame; ZXing throws NotFoundException on every empty frame (expected)
+  const decodeOnce=async(cv)=>{
+    if(det){ try{ const codes=await det.detect(cv); if(codes && codes.length) return codes[0].rawValue; }catch(_){} return null; }
+    const ZX=window.ZXing;
+    try{
+      const src=new ZX.HTMLCanvasElementLuminanceSource(cv);
+      const bmp=new ZX.BinaryBitmap(new ZX.HybridBinarizer(src));
+      return reader.decode(bmp).getText();
+    }catch(_){ return null; }
+    finally{ try{ reader.reset(); }catch(_){} }
+  };
+
+  const loop=async()=>{ if(done) return;
+    const cv=grab();
+    if(cv){ try{ const code=await decodeOnce(cv); if(code){ hit(code); return; } }catch(_){} }
+    setTimeout(loop, det?60:110); };   // native detector is cheap; throttle the WASM path a bit more
+  loop();
 }
 
 // ---- Images ----
