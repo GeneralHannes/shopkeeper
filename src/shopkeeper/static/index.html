@@ -813,7 +813,8 @@ async function addByBarcode(code){
 function cameraScan(){ scanCamera(addByBarcode); }
 function scanBarcodeInto(){ scanCamera(code=>{ $('#ni-barcode').value=code; lookupBarcode(); }); }
 
-async function scanCamera(onCode){
+// fmts: undefined/'all' = 1D barcodes + QR in one pass (default); 'qr' = QR only; '1d' = barcodes only
+async function scanCamera(onCode, fmts){
   const hasBD = ('BarcodeDetector' in window);
   const hasZX = !!(window.ZXing && window.ZXing.BrowserMultiFormatReader);
   if(!hasBD && !hasZX){ toast('Barcode scanning not supported in this browser'); return; }
@@ -827,7 +828,7 @@ async function scanCamera(onCode){
   const frame=document.createElement('div');
   frame.style.cssText='position:absolute;left:8%;right:8%;top:36%;height:28%;border:2px solid #82aaff;border-radius:10px;box-shadow:0 0 0 2000px rgba(0,0,0,.35);pointer-events:none';
   boxel.append(v, frame);
-  const hint=document.createElement('div'); hint.textContent='Fill the blue box with the barcode · hold ~15 cm · tap the video to refocus';
+  const hint=document.createElement('div'); hint.textContent='Point at a barcode or QR code · hold ~15 cm · tap the video to refocus';
   hint.style.cssText='color:#fff;font-size:.86rem;text-align:center;opacity:.85;max-width:22rem';
   const ctrls=document.createElement('div'); ctrls.style.cssText='display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;justify-content:center';
   const torchBtn=document.createElement('button'); torchBtn.className='mini'; torchBtn.textContent='🔦 Light'; torchBtn.style.display='none';
@@ -867,8 +868,11 @@ async function scanCamera(onCode){
   v.onclick=async()=>{ try{ await track.applyConstraints({advanced:[{focusMode:'single-shot'}]}); }
     catch(_){ try{ await track.applyConstraints({advanced:[{focusMode:'continuous'}]}); }catch(_){} } };
 
-  // ---- decode, limited to retail 1D barcode formats (faster + more reliable than "any format") ----
-  const FMT=['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf'];
+  // ---- decode: retail 1D barcodes + QR (fast path: 720p, no TRY_HARDER) ----
+  // one scanner reads barcodes AND QR by default; pass fmts='qr' or '1d' for a narrower,
+  // faster dedicated scanner if the combined pass ever feels slow.
+  const BD_ALL=['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf','qr_code'];
+  const FMT = fmts==='qr' ? ['qr_code'] : fmts==='1d' ? BD_ALL.filter(f=>f!=='qr_code') : BD_ALL;
   if(hasBD){
     let det;
     try{ det=new window.BarcodeDetector({formats:FMT}); }catch(_){ det=new window.BarcodeDetector(); }
@@ -881,8 +885,10 @@ async function scanCamera(onCode){
       const ZX=window.ZXing, hints=new Map();
       if(ZX.DecodeHintType && ZX.BarcodeFormat){
         const F=ZX.BarcodeFormat;
-        hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128,F.CODE_39,F.ITF].filter(x=>x!=null));
-        // no TRY_HARDER: clean retail barcodes in the aiming frame don't need it, and it's much faster
+        const ZALL=[F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128,F.CODE_39,F.ITF,F.QR_CODE];
+        const zf = fmts==='qr' ? [F.QR_CODE] : fmts==='1d' ? ZALL.filter(x=>x!==F.QR_CODE) : ZALL;
+        hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, zf.filter(x=>x!=null));
+        // no TRY_HARDER: clean codes in the aiming frame don't need it, and it's much faster
       }
       zx=new ZX.BrowserMultiFormatReader(hints, 120);
       const cb=(result,err)=>{ if(result) hit(result.getText()); };
