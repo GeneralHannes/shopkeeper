@@ -626,7 +626,10 @@ const fmt = (p,c) => (p==null? '—' : (c==='KHR' ? '៛'+Math.round(Number(p)).
 const esc = s => (s??'').toString().replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let cart = [];
 let priceMode = 'retail';   // 'retail' | 'wholesale'
-let TOKEN = localStorage.getItem('sk_token') || '';
+// accept the PIN from the URL (?token=…) as well as storage, so a bookmarked link keeps
+// working even when the phone won't persist localStorage (Safari private / cross-site tracking)
+let TOKEN = new URLSearchParams(location.search).get('token') || localStorage.getItem('sk_token') || '';
+if(TOKEN){ try{ localStorage.setItem('sk_token', TOKEN); }catch(_){} }
 const modePrice = it => {
   if(priceMode==='wholesale' && it.wholesale!=null) return it.wholesale;
   if(priceMode==='pack' && it.pack!=null) return it.pack;
@@ -642,7 +645,14 @@ async function api(path, opts={}){
   if(!r.ok){ let d; try{ d=(await r.json()).detail; }catch(_){} throw new Error(d || r.statusText); }
   return r.json();
 }
-function askToken(){ const t = prompt('Enter shop PIN:'); if(t && t.trim()){ TOKEN=t.trim(); localStorage.setItem('sk_token',TOKEN); location.reload(); } }
+let _asking=false;
+function askToken(){ if(_asking) return; _asking=true;              // guard against stacked prompts from concurrent 401s
+  const t = prompt('Enter shop PIN:'); _asking=false;
+  if(t && t.trim()){ const pin=t.trim(); TOKEN=pin; try{ localStorage.setItem('sk_token',pin); }catch(_){}
+    // carry the PIN through the reload in the URL, so it survives even if the phone won't keep storage
+    const u=new URL(location.href); u.searchParams.set('token', pin); location.replace(u.toString());
+  }
+}
 async function checkAuth(){ try{ const a = await (await fetch('/api/auth')).json(); if(a.required && !TOKEN) askToken(); }catch(_){} }
 
 let currentView='sell';
