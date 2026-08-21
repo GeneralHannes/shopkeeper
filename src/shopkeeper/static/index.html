@@ -645,13 +645,33 @@ async function api(path, opts={}){
   if(!r.ok){ let d; try{ d=(await r.json()).detail; }catch(_){} throw new Error(d || r.statusText); }
   return r.json();
 }
-let _asking=false;
-function askToken(){ if(_asking) return; _asking=true;              // guard against stacked prompts from concurrent 401s
-  const t = prompt('Enter shop PIN:'); _asking=false;
-  if(t && t.trim()){ const pin=t.trim(); TOKEN=pin; try{ localStorage.setItem('sk_token',pin); }catch(_){}
-    // carry the PIN through the reload in the URL, so it survives even if the phone won't keep storage
-    const u=new URL(location.href); u.searchParams.set('token', pin); location.replace(u.toString());
-  }
+// On-page PIN screen (NOT a native prompt — iOS home-screen web-apps block prompt()/alert()).
+function askToken(){
+  if(document.getElementById('pin-ov')) return;                    // never stack; one screen at a time
+  const ov=document.createElement('div'); ov.id='pin-ov';
+  ov.style.cssText='position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;'
+    +'background:var(--bg);padding:1.5rem;animation:fadeIn .2s ease both';
+  ov.innerHTML='<div style="width:100%;max-width:17rem;text-align:center">'
+    +'<div style="font-size:2.6rem;margin-bottom:.5rem">🛒</div>'
+    +'<h2 style="margin:0 0 1rem;font-size:1.15rem;font-weight:700">Enter shop PIN</h2>'
+    +'<input id="pin-inp" type="tel" inputmode="numeric" autocomplete="off" placeholder="PIN" '
+    +'style="font-size:1.5rem;text-align:center;letter-spacing:.35em">'
+    +'<button class="act addbtn" id="pin-go" style="margin-top:.75rem;width:100%">Unlock</button>'
+    +'<div id="pin-err" style="margin-top:.55rem;color:var(--warn);font-size:.85rem;min-height:1.1em"></div></div>';
+  document.body.appendChild(ov);
+  const inp=ov.querySelector('#pin-inp'), go=ov.querySelector('#pin-go'), err=ov.querySelector('#pin-err');
+  const submit=async()=>{ const pin=(inp.value||'').trim(); if(!pin) return;
+    go.disabled=true; err.textContent='Checking…';
+    try{
+      const r=await fetch('/api/quick',{headers:{'X-Token':pin}});   // a protected route: 401 => wrong PIN
+      if(!r.ok){ err.textContent='Wrong PIN — try again'; inp.value=''; inp.focus(); go.disabled=false; return; }
+      TOKEN=pin; try{ localStorage.setItem('sk_token',pin); }catch(_){}
+      ov.remove(); show(currentView);                                // enter & load the current view, no reload
+    }catch(e){ err.textContent='Connection problem — try again'; go.disabled=false; }
+  };
+  go.onclick=submit;
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); submit(); } });
+  setTimeout(()=>{ try{ inp.focus(); }catch(_){} }, 60);
 }
 async function checkAuth(){ try{ const a = await (await fetch('/api/auth')).json(); if(a.required && !TOKEN) askToken(); }catch(_){} }
 
