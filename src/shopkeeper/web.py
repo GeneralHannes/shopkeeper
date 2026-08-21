@@ -92,8 +92,10 @@ def _item_list(items: list[Item]) -> list[dict]:
 
 
 @app.get("/", response_class=HTMLResponse)
-def index() -> str:
-    return (_STATIC / "index.html").read_text(encoding="utf-8")
+def index() -> HTMLResponse:
+    html = (_STATIC / "index.html").read_text(encoding="utf-8")
+    # never let a phone serve a stale copy of the app shell (it caused a PIN-prompt loop)
+    return HTMLResponse(html, headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"})
 
 
 @app.get("/api/auth")
