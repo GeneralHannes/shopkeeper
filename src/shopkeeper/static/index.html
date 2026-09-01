@@ -746,8 +746,11 @@ function renderTabSettings(){
   el.innerHTML=TAB_DEFS.map(([k,label,icon])=>`
     <div class="tab-setting">
       <label for="tab-switch-${k}">${icon} ${label}</label>
-      <span class="tab-switch"><input id="tab-switch-${k}" type="checkbox" ${visibleTabs[k]?'checked':''}
-        onchange="setTabVisible('${k}',this.checked)"><span class="tab-slider"></span></span>
+      <label class="tab-switch" for="tab-switch-${k}">
+        <input id="tab-switch-${k}" type="checkbox" ${visibleTabs[k]?'checked':''}
+          onchange="setTabVisible('${k}',this.checked)">
+        <span class="tab-slider"></span>
+      </label>
     </div>`).join('');
 }
 function setTabVisible(k, visible){
