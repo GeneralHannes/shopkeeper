@@ -352,6 +352,14 @@
                        border-radius:50%; background:var(--muted); transition:.15s; }
   .tab-switch input:checked + .tab-slider { background:var(--accent); }
   .tab-switch input:checked + .tab-slider:before { transform:translateX:1.2rem; background:#fff; }
+  .item-edit-card { max-width:34rem; max-height:90vh; overflow:auto; }
+  .item-edit-card h2 { margin:0; font-size:1.15rem; }
+  .item-edit-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.55rem; }
+  .item-edit-grid .wide { grid-column:1 / -1; }
+  .item-edit-actions { display:flex; gap:.5rem; justify-content:flex-end; margin-top:1rem; }
+  @media (max-width:600px){ .item-edit-card { max-width:none; width:100%; max-height:92vh; padding:1rem; }
+    .item-edit-grid { grid-template-columns:1fr; } .item-edit-grid .wide { grid-column:auto; }
+    .item-edit-actions button { flex:1; } }
 </style>
 </head>
 <body>
@@ -1452,12 +1460,10 @@ function renderInvDrawer(it){
     </div>
     <div class="sec-mini">Manage</div>
     <div class="drawer-actions">
-      <button class="mini" onclick="setPrices(${it.id},'${esc(it.name)}')">Prices</button>
       <button class="mini" onclick="openOptions(${it.id},'${esc(it.name)}','${it.currency}')">Options</button>
       <button class="mini" onclick="setBarcode(${it.id})">Barcode</button>
       <button class="mini" onclick="openGallery(${it.id},'${esc(it.name)}')">📷 Photos</button>
-      <button class="mini" onclick="editNaming(${it.id})">✎ Edit</button>
-      <button class="mini" onclick="editInfo(${it.id})">🍷 Info</button>
+      <button class="mini active" onclick="editItemMenu(${it.id})">✎ Edit item</button>
       <button class="mini" style="color:var(--warn)" onclick="deleteItem(${it.id},'${esc(it.name)}')">Delete</button>
     </div>`;
 }
@@ -1475,6 +1481,57 @@ function jumpBarcode(){
   else toast('No item with barcode '+code);
 }
 function scanBarcodeFind(){ scanCamera(code=>{ const el=$('#stock-barcode'); if(el) el.value=code; jumpBarcode(); }); }
+function editItemMenu(id){
+  const it=stockItems.find(x=>x.id===id); if(!it) return;
+  const ov=document.createElement('div'); ov.className='modal-ov'; ov.id='item-edit-modal';
+  const field=(label,key,value,type='text',wide=false)=>`<label class="field${wide?' wide':''}"><span>${label}</span><input id="edit-${key}" type="${type}" value="${esc(value??'')}"></label>`;
+  ov.innerHTML=`<div class="modal-card item-edit-card" onclick="event.stopPropagation()">
+    <div class="row" style="justify-content:space-between;margin-bottom:.8rem"><h2>Edit item</h2>
+      <button class="x" type="button" onclick="closeItemEdit()">✕</button></div>
+    <div class="muted" style="margin-bottom:.7rem">Update the item in one place.</div>
+    <div class="sec-mini">Identity</div><div class="item-edit-grid">
+      ${field('Full name','name',it.name,'text',true)}${field('Brand','brand',it.brand)}
+      ${field('Size','size',it.size)}${field('Category','category',it.category)}
+      ${field('Sell unit','unit',it.unit||'single')}
+      ${field('Supplier / note','supplier',it.supplier,'text',true)}${field('Barcode','barcode',it.barcode,'text',true)}
+    </div>
+    <div class="sec-mini">Prices</div><div class="item-edit-grid">
+      ${field('Single / retail','retail',it.retail,'number')}${field('Pack','pack',it.pack,'number')}
+      ${field('Wholesale','wholesale',it.wholesale,'number')}${field('Cost','cost',it.cost,'number')}
+    </div>
+    <div class="sec-mini">Drink information</div><div class="item-edit-grid">
+      ${field('ABV %','abv',it.abv,'number')}${field('Vintage','vintage',it.vintage,'number')}
+      ${field('Style / varietal','style',it.style)}${field('Origin / region','origin',it.origin)}
+    </div>
+    <div class="item-edit-actions"><button class="mini" type="button" onclick="closeItemEdit()">Cancel</button>
+      <button class="act" type="button" id="edit-save" onclick="saveItemMenu(${id})">Save changes</button></div>
+    <div id="edit-note" class="muted" style="margin-top:.5rem;text-align:right"></div>
+  </div>`;
+  ov.onclick=closeItemEdit; document.body.appendChild(ov);
+}
+function closeItemEdit(){ $('#item-edit-modal')?.remove(); }
+async function saveItemMenu(id){
+  const get=k=>($('#edit-'+k)?.value||'').trim(), button=$('#edit-save'), note=$('#edit-note');
+  if(!get('name')){ note.textContent='Name is required'; return; }
+  button.disabled=true; note.textContent='Saving…';
+  try{
+    await api('/api/items/'+id+'/meta',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:get('name'),brand:get('brand')||null,size:get('size')||null,category:get('category')||null,
+        supplier:get('supplier')||null,unit:get('unit')||null})});
+    await api('/api/items/'+id+'/info',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({abv:get('abv')||null,vintage:get('vintage')?parseInt(get('vintage'),10):null,
+        style:get('style')||null,origin:get('origin')||null})});
+    const old=stockItems.find(x=>x.id===id);
+    if(get('barcode') !== String(old?.barcode||'')) await api('/api/items/'+id+'/barcode',{method:'POST',
+      headers:{'Content-Type':'application/json'},body:JSON.stringify({barcode:get('barcode')})});
+    for(const [kind,key] of [['retail','retail'],['pack','pack'],['wholesale','wholesale'],['cost','cost']]){
+      const value=get(key); if(value && Number(value)!==Number(old?.[key]??0))
+        await api('/api/items/'+id+'/price',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({price:value,kind})});
+    }
+    closeItemEdit(); toast('Item updated'); await loadStock();
+  }catch(e){ note.textContent='Error: '+e.message; button.disabled=false; }
+}
 // keyboard: "/" or ⌘K focuses inventory search; Esc closes the drawer
 document.addEventListener('keydown', e=>{
   if(e.key==='Escape' && invDrawerId!=null){ closeInvDrawer(); return; }
