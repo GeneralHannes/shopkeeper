@@ -336,6 +336,7 @@
   #view-stock > .inventory-card { order:1; }
   .tab-settings { position:fixed; inset:0; z-index:30; display:flex; align-items:flex-start; justify-content:flex-end;
                   padding:4.5rem 1rem 1rem; background:rgba(0,0,0,.35); }
+  .tab-settings[aria-hidden="true"] { display:none !important; }
   .tab-settings-card { width:min(20rem,100%); background:var(--card); border-radius:var(--radius-lg);
                        box-shadow:0 16px 45px rgba(0,0,0,.45); padding:1rem; }
   .tab-settings-head { display:flex; align-items:center; justify-content:space-between; gap:.5rem; margin-bottom:.7rem; }
@@ -365,7 +366,7 @@
     <button id="tab-ask" onclick="show('ask')">Ask</button>
     <button id="tab-dash" onclick="show('dash')">Dash</button>
   </div>
-  <button class="mini" onclick="toggleTabSettings()" title="Show or hide tabs">☰</button>
+  <button class="mini" id="tab-settings-btn" type="button" onclick="toggleTabSettings()" title="Show or hide tabs">☰ Tabs</button>
   <button class="mini kbdbtn" id="mode-toggle" onclick="toggleUiMode()" title="Switch layout">🖥️</button>
 </header>
 
@@ -641,8 +642,8 @@
 </nav>
 
 <div id="toast"></div>
-<div id="tab-settings" class="tab-settings" style="display:none" onclick="if(event.target===this)toggleTabSettings()">
-  <div class="tab-settings-card">
+<div id="tab-settings" class="tab-settings" aria-hidden="true" onclick="if(event.target===this)toggleTabSettings()">
+  <div class="tab-settings-card" onclick="event.stopPropagation()">
     <div class="tab-settings-head"><h2>Visible tabs</h2><button class="mini" onclick="toggleTabSettings()">Done</button></div>
     <div class="muted" style="margin-bottom:.45rem">Choose which sections appear in navigation.</div>
     <div id="tab-settings-list"></div>
@@ -748,7 +749,9 @@ function setTabVisible(k, visible){
 }
 function toggleTabSettings(){
   const el=$('#tab-settings'); if(!el) return;
-  const open=el.style.display==='none'; el.style.display=open?'flex':'none';
+  const open=el.getAttribute('aria-hidden')==='true';
+  el.setAttribute('aria-hidden', open?'false':'true');
+  const btn=$('#tab-settings-btn'); if(btn) btn.setAttribute('aria-expanded', open?'true':'false');
   if(open) renderTabSettings();
 }
 function show(v){
