@@ -328,6 +328,29 @@
   .drawer-restock input { max-width:6.5rem; }
   .drawer-actions { display:flex; flex-wrap:wrap; gap:.45rem; margin-top:.35rem; }
   .ui-mobile .drawer-panel { width:100vw; }
+  /* Stock opens on the inventory overview; entry/import tools stay below it. */
+  #view-stock { flex-direction:column; }
+  #view-stock > .card:nth-of-type(1) { order:3; }
+  #view-stock > .card:nth-of-type(2) { order:4; }
+  #view-stock > .add-card { order:2; }
+  #view-stock > .inventory-card { order:1; }
+  .tab-settings { position:fixed; inset:0; z-index:30; display:flex; align-items:flex-start; justify-content:flex-end;
+                  padding:4.5rem 1rem 1rem; background:rgba(0,0,0,.35); }
+  .tab-settings-card { width:min(20rem,100%); background:var(--card); border-radius:var(--radius-lg);
+                       box-shadow:0 16px 45px rgba(0,0,0,.45); padding:1rem; }
+  .tab-settings-head { display:flex; align-items:center; justify-content:space-between; gap:.5rem; margin-bottom:.7rem; }
+  .tab-settings-head h2 { margin:0; font-size:1rem; }
+  .tab-setting { display:flex; align-items:center; justify-content:space-between; gap:.75rem;
+                 padding:.55rem .1rem; border-bottom:.5px solid var(--line); }
+  .tab-setting:last-child { border-bottom:none; }
+  .tab-setting label { flex:1; cursor:pointer; }
+  .tab-switch { position:relative; width:2.8rem; height:1.6rem; flex:0 0 auto; }
+  .tab-switch input { opacity:0; width:0; height:0; }
+  .tab-slider { position:absolute; inset:0; border-radius:2rem; background:var(--fill-2); cursor:pointer; transition:.15s; }
+  .tab-slider:before { content:""; position:absolute; width:1.15rem; height:1.15rem; left:.22rem; top:.22rem;
+                       border-radius:50%; background:var(--muted); transition:.15s; }
+  .tab-switch input:checked + .tab-slider { background:var(--accent); }
+  .tab-switch input:checked + .tab-slider:before { transform:translateX:1.2rem; background:#fff; }
 </style>
 </head>
 <body>
@@ -342,6 +365,7 @@
     <button id="tab-ask" onclick="show('ask')">Ask</button>
     <button id="tab-dash" onclick="show('dash')">Dash</button>
   </div>
+  <button class="mini" onclick="toggleTabSettings()" title="Show or hide tabs">☰</button>
   <button class="mini kbdbtn" id="mode-toggle" onclick="toggleUiMode()" title="Switch layout">🖥️</button>
 </header>
 
@@ -506,7 +530,7 @@
 
       <button class="act addbtn" onclick="addItem()">＋ Add item</button>
     </div>
-    <div class="card">
+    <div class="card inventory-card">
       <h2>Inventory</h2>
       <div class="inv-bar">
         <div class="inv-field inv-search">
@@ -617,6 +641,13 @@
 </nav>
 
 <div id="toast"></div>
+<div id="tab-settings" class="tab-settings" style="display:none" onclick="if(event.target===this)toggleTabSettings()">
+  <div class="tab-settings-card">
+    <div class="tab-settings-head"><h2>Visible tabs</h2><button class="mini" onclick="toggleTabSettings()">Done</button></div>
+    <div class="muted" style="margin-bottom:.45rem">Choose which sections appear in navigation.</div>
+    <div id="tab-settings-list"></div>
+  </div>
+</div>
 
 <script src="/static/vendor/zxing.min.js"></script>
 <script>
@@ -676,11 +707,55 @@ function askToken(){
 async function checkAuth(){ try{ const a = await (await fetch('/api/auth')).json(); if(a.required && !TOKEN) askToken(); }catch(_){} }
 
 let currentView='sell';
+const TAB_DEFS = [
+  ['sell','Sell','🛒'], ['find','Find','🔎'], ['stock','Stock','📦'],
+  ['cats','Cats','🗂️'], ['ask','Ask','💬'], ['dash','Dash','📊']
+];
+let visibleTabs = (() => {
+  try {
+    const saved = JSON.parse(localStorage.getItem('sk_visible_tabs') || 'null');
+    return Object.fromEntries(TAB_DEFS.map(([k]) => [k, saved?.[k] !== false]));
+  } catch(_) {
+    return Object.fromEntries(TAB_DEFS.map(([k]) => [k, true]));
+  }
+})();
+function saveVisibleTabs(){ try{ localStorage.setItem('sk_visible_tabs', JSON.stringify(visibleTabs)); }catch(_){} }
+function applyVisibleTabs(){
+  for(const [k] of TAB_DEFS){
+    const visible=visibleTabs[k] !== false;
+    for(const id of ['tab-'+k,'btab-'+k]){
+      const el=document.getElementById(id); if(el) el.style.display=visible?'':'none';
+    }
+  }
+  if(!visibleTabs[currentView]){
+    const next=TAB_DEFS.find(([k])=>visibleTabs[k]);
+    if(next) show(next[0]);
+  }
+}
+function renderTabSettings(){
+  const el=$('#tab-settings-list'); if(!el) return;
+  el.innerHTML=TAB_DEFS.map(([k,label,icon])=>`
+    <div class="tab-setting">
+      <label for="tab-switch-${k}">${icon} ${label}</label>
+      <span class="tab-switch"><input id="tab-switch-${k}" type="checkbox" ${visibleTabs[k]?'checked':''}
+        onchange="setTabVisible('${k}',this.checked)"><span class="tab-slider"></span></span>
+    </div>`).join('');
+}
+function setTabVisible(k, visible){
+  visibleTabs[k]=visible;
+  if(!Object.values(visibleTabs).some(Boolean)){ visibleTabs[k]=true; renderTabSettings(); toast('Keep at least one tab visible'); return; }
+  saveVisibleTabs(); applyVisibleTabs(); renderTabSettings();
+}
+function toggleTabSettings(){
+  const el=$('#tab-settings'); if(!el) return;
+  const open=el.style.display==='none'; el.style.display=open?'flex':'none';
+  if(open) renderTabSettings();
+}
 function show(v){
   currentView=v;
   for(const k of ['sell','find','stock','cats','ask','dash']){
     const on = k===v;
-    $('#view-'+k).style.display = on?'':'none';
+    $('#view-'+k).style.display = on?(k==='stock'?'flex':''):'none';
     const t=document.getElementById('tab-'+k); if(t) t.classList.toggle('active', on);
     const b=document.getElementById('btab-'+k); if(b) b.classList.toggle('active', on);
   }
@@ -1794,6 +1869,7 @@ function applyUiMode(){
 function setUiMode(m){ UI_MODE=m; localStorage.setItem('sk_uimode',m); applyUiMode(); }
 function toggleUiMode(){ setUiMode(UI_MODE==='mobile'?'desktop':'mobile'); toast(UI_MODE==='mobile'?'Mobile layout':'Desktop layout'); }
 applyUiMode();
+applyVisibleTabs();
 
 checkAuth();
 api('/api/items').then(populateDatalists).catch(()=>{});   // warm autocomplete on load

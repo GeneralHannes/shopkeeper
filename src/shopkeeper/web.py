@@ -351,7 +351,7 @@ def api_restock(item_id: int, body: RestockIn) -> dict:
     return _item_dict(repo.get_item(item_id))
 
 
-_SIZE_RE = re.compile(r"\b(\d+(?:\.\d+)?)\s?(ml|cl|l|litre|liter|g|kg|oz)\b", re.I)
+_SIZE_RE = re.compile(r"\b(\d+(?:\.\d+)?)\s?(ml|cl|l|litre|liter|g|kg|oz)\b", re.IGNORECASE)
 
 
 def _extract_size(text: str | None) -> str | None:
