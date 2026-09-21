@@ -28,7 +28,7 @@
 *,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{
-  margin:0; background:var(--ground); color:var(--ink);
+  margin:0; background:var(--ground); color:var(--ink); touch-action:manipulation;
   font-family:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   font-size:15px; line-height:1.55; overflow-x:hidden; -webkit-font-smoothing:antialiased;
 }
@@ -118,8 +118,9 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
 .dlg-body.from-r{animation:sheetInL .26s cubic-bezier(.22,.68,.32,1) both}
 .dlg-body.from-l{animation:sheetInR .26s cubic-bezier(.22,.68,.32,1) both}
 @keyframes riseIn{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
-.grid.settling .card:not([hidden]){animation:riseIn .34s cubic-bezier(.22,.68,.32,1) both;
-  animation-delay:calc(var(--i,0) * 14ms)}
+/* applied by script to the first screenful only — animating 170 cards at once
+   is what makes a filter change stutter rather than glide */
+.card.rise{animation:riseIn .34s cubic-bezier(.22,.68,.32,1) both;animation-delay:calc(var(--i,0) * 14ms)}
 .empty{text-align:center;color:var(--ink-3);padding:3.5rem 1rem;font-size:.92rem}
 
 /* ---------- detail ---------- */
@@ -147,8 +148,8 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
 .rows dt{color:var(--ink-3)}
 .rows dd{margin:0;font-variant-numeric:tabular-nums;text-align:right}
 .grab{display:none}
-#dlg.dragging{transition:none}
-.x{position:absolute;top:.5rem;right:.6rem;z-index:2;width:30px;height:30px;font-size:1.3rem;line-height:1;
+#dlg.dragging{transition:none;will-change:transform,opacity}
+.x{position:absolute;top:.5rem;right:.6rem;z-index:4;width:30px;height:30px;font-size:1.3rem;line-height:1;
   color:var(--ink-2);background:color-mix(in srgb,var(--surface) 80%,transparent);border:1px solid var(--line);
   border-radius:50%;cursor:pointer}
 @media (hover:hover){.x:hover{color:var(--ink);border-color:var(--line-2)}}
@@ -166,6 +167,12 @@ footer p{margin:.2rem 0}
   .top{position:static;background:var(--ground);backdrop-filter:none}
   .bar{gap:.7rem;padding:.75rem 1rem .55rem}
   main{padding-bottom:6rem}
+  /* off-screen cards skip layout and paint entirely — the single biggest win
+     for scrolling a 170-card grid on a phone */
+  .card{content-visibility:auto;contain-intrinsic-size:auto 320px}
+  /* a full blur behind a fixed bar over a scrolling list is the most expensive
+     thing on the page; a mostly-opaque ground reads the same and costs nothing */
+  .top{backdrop-filter:none}
 
   /* the island: search + category, floating centre-bottom */
   .tools{
@@ -173,8 +180,8 @@ footer p{margin:.2rem 0}
     transform:translateX(-50%);z-index:30;
     width:calc(100% - 1.5rem);max-width:26rem;flex:none;gap:.35rem;
     padding:.38rem .4rem;border-radius:999px;
-    background:color-mix(in srgb,var(--surface) 90%,transparent);
-    backdrop-filter:blur(18px) saturate(1.5);
+    background:color-mix(in srgb,var(--surface) 97%,transparent);
+    backdrop-filter:blur(8px);
     border:1px solid var(--line-2);
     box-shadow:0 10px 34px -10px rgba(0,0,0,.45),0 2px 8px rgba(0,0,0,.14);
   }
@@ -204,7 +211,7 @@ footer p{margin:.2rem 0}
     transform:translateX(-50%) translateY(10px) scale(.98);
     width:calc(100% - 1.5rem);max-width:26rem;z-index:29;
     display:flex;flex-wrap:wrap;gap:.35rem;padding:.7rem;
-    max-height:54vh;overflow-y:auto;overscroll-behavior:contain;
+    max-height:54vh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
     background:var(--surface);border:1px solid var(--line-2);border-radius:20px;
     box-shadow:0 16px 44px -12px rgba(0,0,0,.5);
     opacity:0;visibility:hidden;pointer-events:none;
@@ -215,6 +222,7 @@ footer p{margin:.2rem 0}
     opacity:0;transition:opacity .22s ease}
   .sheet-scrim.open{opacity:1}
   .sheet-scrim[hidden]{display:none}
+  body.picker-open{overflow:hidden}
   .ident{gap:.6rem}
   .shop{font-size:1.15rem}
   .tag{font-size:.68rem}

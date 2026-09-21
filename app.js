@@ -27,16 +27,15 @@
 
   // Re-run the rise-in on the cards that survived a filter change. The stagger is
   // capped so the 170th card doesn't wait two seconds for its turn.
+  var RISE_MAX = 24;              // roughly a screenful; beyond that nobody sees it
   function settle() {
-    var n = 0;
-    cards.forEach(function (c) {
-      if (c.hidden) return;
-      c.style.setProperty("--i", n < 14 ? n : 14);
-      n++;
-    });
-    grid.classList.remove("settling");
+    cards.forEach(function (c) { c.classList.remove("rise"); });
+    var first = [];
+    for (var i = 0; i < cards.length && first.length < RISE_MAX; i++) {
+      if (!cards[i].hidden) first.push(cards[i]);
+    }
     void grid.offsetWidth;          // reflow, so the animation restarts
-    grid.classList.add("settling");
+    first.forEach(function (c, n) { c.style.setProperty("--i", n); c.classList.add("rise"); });
   }
 
   function apply() {
@@ -114,6 +113,7 @@
   function openPicker() {
     chipsNav.classList.add("open");
     catBtn.setAttribute("aria-expanded", "true");
+    document.body.classList.add("picker-open");
     scrim.hidden = false;
     void scrim.offsetWidth;                 // let the scrim paint before fading it in
     scrim.classList.add("open");
@@ -121,6 +121,7 @@
   function closePicker() {
     chipsNav.classList.remove("open");
     catBtn.setAttribute("aria-expanded", "false");
+    document.body.classList.remove("picker-open");
     scrim.classList.remove("open");
     setTimeout(function () { if (!chipsNav.classList.contains("open")) scrim.hidden = true; }, 240);
   }
@@ -215,6 +216,26 @@
   // ---- iOS-style sheet gestures (touch, phone layout only) ----
   var phone = window.matchMedia("(max-width: 640px)");
   var y0 = 0, x0 = 0, t0 = 0, dy = 0, dx = 0, axis = null, tracking = false;
+  // Touch events can outpace the display. Coalescing the writes into one
+  // requestAnimationFrame keeps the sheet on the frame clock instead of
+  // thrashing style on every event.
+  var frame = null, pendY = 0, pendX = 0;
+  function paintDrag() {
+    frame = null;
+    if (axis === "y") {
+      dlg.style.transform = "translateY(" + pendY + "px)";
+      dlg.style.opacity = String(Math.max(0.45, 1 - pendY / 520));
+    } else if (axis === "x") {
+      dlg.style.transform = "translateX(" + pendX + "px)";
+    }
+  }
+  function schedule() { if (frame === null) frame = requestAnimationFrame(paintDrag); }
+  function stopDrag() {
+    if (frame !== null) { cancelAnimationFrame(frame); frame = null; }
+    tracking = false;
+    dlg.classList.remove("dragging");
+    dlg.style.transform = ""; dlg.style.opacity = "";
+  }
 
   dlg.addEventListener("touchstart", function (e) {
     if (!phone.matches || e.touches.length !== 1) { tracking = false; return; }
@@ -238,13 +259,13 @@
 
     e.preventDefault();
     if (axis === "y") {
-      dlg.style.transform = "translateY(" + dy + "px)";
-      dlg.style.opacity = String(Math.max(0.45, 1 - dy / 520));
+      pendY = dy;
     } else {
       // resist horizontally — the sheet hints at the move rather than following it
       var edge = (dx < 0 && !nextExists(1)) || (dx > 0 && !nextExists(-1));
-      dlg.style.transform = "translateX(" + dx * (edge ? 0.08 : 0.22) + "px)";
+      pendX = dx * (edge ? 0.08 : 0.22);
     }
+    schedule();
   }, { passive: false });
 
   function nextExists(dir) {
@@ -256,19 +277,13 @@
 
   dlg.addEventListener("touchend", function (e) {
     if (!tracking) return;
-    tracking = false;
-    dlg.classList.remove("dragging");
     var dt = Math.max(1, e.timeStamp - t0), vy = dy / dt, vx = dx / dt;
-
-    if (axis === "y" && (dy > 110 || vy > 0.55)) { closeSheet(); return; }
-    if (axis === "x" && (Math.abs(dx) > 70 || Math.abs(vx) > 0.5)) step(dx < 0 ? 1 : -1);
-    // otherwise spring back to rest
-    dlg.style.transform = ""; dlg.style.opacity = "";
+    var dismiss = axis === "y" && (dy > 110 || vy > 0.55);
+    var stepped = axis === "x" && (Math.abs(dx) > 70 || Math.abs(vx) > 0.5);
+    stopDrag();                       // cancels any queued frame, springs back
+    if (dismiss) { closeSheet(); return; }
+    if (stepped) step(dx < 0 ? 1 : -1);
   });
 
-  dlg.addEventListener("touchcancel", function () {
-    tracking = false;
-    dlg.classList.remove("dragging");
-    dlg.style.transform = ""; dlg.style.opacity = "";
-  });
+  dlg.addEventListener("touchcancel", stopDrag);
 })();
