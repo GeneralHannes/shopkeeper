@@ -239,15 +239,26 @@ footer p{margin:.2rem 0}
   .count{margin-bottom:.75rem;font-size:.68rem}
   /* detail opens as a sheet rather than a cramped floating box */
   /* the grabber sits above the content and stays put while the sheet scrolls */
-  .grab{display:block;position:sticky;top:0;z-index:3;padding:.6rem 0 .2rem;background:var(--surface);
+  .grab{display:block;position:sticky;top:0;z-index:3;padding:.6rem 0 .25rem;background:var(--shot-a);
     border-radius:16px 16px 0 0;cursor:grab;touch-action:none}
-  .grab::after{content:"";display:block;width:38px;height:4px;margin:0 auto;border-radius:999px;background:var(--line-2)}
+  .grab::after{content:"";display:block;width:38px;height:4px;margin:0 auto;border-radius:999px;
+    background:color-mix(in srgb,var(--ink) 22%,transparent)}
   #dlg{max-width:100%;width:100%;margin:auto auto 0;border-radius:16px 16px 0 0;max-height:92vh;max-height:92svh;
     transform:translateY(100%);overscroll-behavior:contain}
   #dlg[open]{transform:none}
   @starting-style{#dlg[open]{transform:translateY(100%)}}
-  .dlg-shot{min-height:150px;padding:1rem}
-  .dlg-shot img{max-height:180px}
+  /* was a 135x180 bottle adrift in a 358px band — nearly two thirds empty.
+     Sizing by height lets the 3:4 photo fill the sheet's width naturally. */
+  /* Size the photo by height with width:auto so the 3:4 ratio is exact — no
+     letterboxing — and let the well hug it, so there's no dead space either. */
+  .dlg-shot{min-height:0;height:auto;padding:.15rem 1rem .9rem;border-radius:16px 16px 0 0}
+  .dlg-shot img{height:48vh;height:48svh;width:auto;max-width:100%;max-height:none}
+  .dlg-txt{padding:1rem 1.15rem 1.7rem;gap:.15rem}
+  .dlg-txt .brand{font-size:.62rem}
+  .dlg-txt h2{font-size:1.24rem;margin:.1rem 0 .1rem}
+  .dlg-txt .price{font-size:1.45rem;margin-top:.45rem}
+  .rows{margin:.85rem 0 0;font-size:.84rem}
+  .rows div{padding:.5rem 0}
   .dlg-txt{padding:1.05rem 1.1rem 1.6rem}
   .dlg-txt h2{font-size:1.2rem}
   .dlg-txt .price{font-size:1.3rem}
