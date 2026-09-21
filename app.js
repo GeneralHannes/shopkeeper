@@ -145,7 +145,20 @@
   }
 
   // ---- detail sheet ----
-  var openCard = null, body = dlg.querySelector(".dlg-body");
+  var openCard = null, body = dlg.querySelector(".dlg-body"),
+      prevBtn = document.getElementById("prev"),
+      nextBtn = document.getElementById("next"),
+      posEl   = document.getElementById("pos");
+
+  function visible() { return cards.filter(function (c) { return !c.hidden; }); }
+
+  // Chevrons and an "n of m" counter, so the swipe is discoverable rather than hidden.
+  function syncNav() {
+    var vis = visible(), i = vis.indexOf(openCard);
+    posEl.textContent = i < 0 ? "" : (i + 1) + " / " + vis.length;
+    prevBtn.disabled = i <= 0;
+    nextBtn.disabled = i < 0 || i >= vis.length - 1;
+  }
 
   function render(card, from) {
     var img = card.querySelector(".shot img"), rows = "";
@@ -169,6 +182,7 @@
         '<dl class="rows">' + rows + "</dl></div>";
     openCard = card;
     dlg.scrollTop = 0;
+    syncNav();
   }
 
   function open(card) {
@@ -179,8 +193,7 @@
   // Move to the neighbouring bottle within whatever is currently filtered in.
   function step(dir) {
     if (!openCard) return;
-    var vis = cards.filter(function (c) { return !c.hidden; });
-    var i = vis.indexOf(openCard);
+    var vis = visible(), i = vis.indexOf(openCard);
     if (i < 0) return;
     var next = vis[i + dir];
     if (!next) return;                       // ends of the list are hard stops, as on iOS
@@ -222,6 +235,8 @@
     if (e.key !== "Enter" && e.key !== " ") return;
     var c = e.target.closest(".card"); if (c) { e.preventDefault(); open(c); }
   });
+  prevBtn.addEventListener("click", function () { step(-1); });
+  nextBtn.addEventListener("click", function () { step(1); });
   document.getElementById("x").addEventListener("click", closeSheet);
   dlg.addEventListener("click", function (e) { if (e.target === dlg) closeSheet(); });
   dlg.addEventListener("close", function () {
@@ -292,8 +307,7 @@
 
   function nextExists(dir) {
     if (!openCard) return false;
-    var vis = cards.filter(function (c) { return !c.hidden; });
-    var i = vis.indexOf(openCard);
+    var vis = visible(), i = vis.indexOf(openCard);
     return i >= 0 && !!vis[i + dir];
   }
 
