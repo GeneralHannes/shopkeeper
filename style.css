@@ -77,8 +77,8 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
   transition:transform .2s cubic-bezier(.2,.7,.3,1),box-shadow .2s,border-color .2s}
 .card:focus-visible{transform:translateY(-3px);box-shadow:var(--shadow-lift);border-color:var(--gold-soft)}
 @media (hover:hover){.card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lift);border-color:var(--gold-soft)}}
-.shot{aspect-ratio:1;background:linear-gradient(168deg,var(--shot-a),var(--shot-b));display:grid;place-items:center;padding:.7rem}
-.shot img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;mix-blend-mode:multiply}
+.shot{aspect-ratio:3/4;background:linear-gradient(168deg,var(--shot-a),var(--shot-b));display:grid;place-items:center;padding:.7rem}
+.shot img{width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .shot img{mix-blend-mode:normal}}
 .info{display:flex;flex-direction:column;gap:.18rem;padding:.7rem .8rem .85rem;flex:1}
 .brand{margin:0;font-size:.63rem;text-transform:uppercase;letter-spacing:.14em;color:var(--steel);font-weight:600;
