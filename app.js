@@ -101,11 +101,14 @@
     if (hit) hit.click();
   }
 
-  function open(card) {
+  // ---- detail sheet ----
+  var openCard = null, body = dlg.querySelector(".dlg-body");
+
+  function render(card, from) {
     var img = card.querySelector(".shot img"), rows = "";
     var meta = card.querySelector(".meta").textContent.trim();
     if (meta) {
-      meta.split("·").forEach(function (part) {
+      meta.split("\u00b7").forEach(function (part) {
         part = part.trim(); if (!part) return;
         var label = /ABV/i.test(part) ? "Strength" : /^\d{4}$/.test(part) ? "Vintage" : "Size";
         rows += "<div><dt>" + label + "</dt><dd>" + part + "</dd></div>";
@@ -113,14 +116,40 @@
     }
     rows += "<div><dt>Category</dt><dd>" + card.dataset.fam + "</dd></div>";
     if (card.dataset.shelf) rows += "<div><dt>Shelf</dt><dd>" + card.dataset.shelf + "</dd></div>";
-    dlg.querySelector(".dlg-body").innerHTML =
+    body.className = "dlg-body";
+    if (from) { void body.offsetWidth; body.classList.add(from); }
+    body.innerHTML =
       '<div class="dlg-shot"><img src="' + img.getAttribute("src") + '" alt="' + img.getAttribute("alt") + '"></div>' +
       '<div class="dlg-txt">' + card.querySelector(".brand").outerHTML +
         "<h2>" + card.querySelector(".nm").textContent + "</h2>" +
         card.querySelector(".price").outerHTML +
         '<dl class="rows">' + rows + "</dl></div>";
+    openCard = card;
+    dlg.scrollTop = 0;
+  }
+
+  function open(card) {
+    render(card);
     if (typeof dlg.showModal === "function") dlg.showModal();
   }
+
+  // Move to the neighbouring bottle within whatever is currently filtered in.
+  function step(dir) {
+    if (!openCard) return;
+    var vis = cards.filter(function (c) { return !c.hidden; });
+    var i = vis.indexOf(openCard);
+    if (i < 0) return;
+    var next = vis[i + dir];
+    if (!next) return;                       // ends of the list are hard stops, as on iOS
+    render(next, dir > 0 ? "from-r" : "from-l");
+  }
+
+  function closeSheet() {
+    dlg.classList.remove("dragging");
+    dlg.style.transform = ""; dlg.style.opacity = "";
+    dlg.close();
+  }
+
   grid.addEventListener("click", function (e) {
     var c = e.target.closest(".card"); if (c) open(c);
   });
@@ -128,6 +157,76 @@
     if (e.key !== "Enter" && e.key !== " ") return;
     var c = e.target.closest(".card"); if (c) { e.preventDefault(); open(c); }
   });
-  document.getElementById("x").addEventListener("click", function () { dlg.close(); });
-  dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
+  document.getElementById("x").addEventListener("click", closeSheet);
+  dlg.addEventListener("click", function (e) { if (e.target === dlg) closeSheet(); });
+  dlg.addEventListener("close", function () {
+    dlg.classList.remove("dragging");
+    dlg.style.transform = ""; dlg.style.opacity = "";
+  });
+  // arrow keys mirror the swipe on desktop
+  document.addEventListener("keydown", function (e) {
+    if (!dlg.open) return;
+    if (e.key === "ArrowRight") { e.preventDefault(); step(1); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); step(-1); }
+  });
+
+  // ---- iOS-style sheet gestures (touch, phone layout only) ----
+  var phone = window.matchMedia("(max-width: 640px)");
+  var y0 = 0, x0 = 0, t0 = 0, dy = 0, dx = 0, axis = null, tracking = false;
+
+  dlg.addEventListener("touchstart", function (e) {
+    if (!phone.matches || e.touches.length !== 1) { tracking = false; return; }
+    var t = e.touches[0];
+    y0 = t.clientY; x0 = t.clientX; t0 = e.timeStamp;
+    dy = 0; dx = 0; axis = null; tracking = true;
+  }, { passive: true });
+
+  dlg.addEventListener("touchmove", function (e) {
+    if (!tracking || e.touches.length !== 1) return;
+    var t = e.touches[0];
+    dy = t.clientY - y0; dx = t.clientX - x0;
+
+    if (axis === null) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      // bias towards vertical, so a slightly-diagonal pull still scrolls or dismisses
+      axis = Math.abs(dx) > Math.abs(dy) * 1.3 ? "x" : "y";
+      if (axis === "y" && (dlg.scrollTop > 0 || dy < 0)) { tracking = false; return; }
+      dlg.classList.add("dragging");
+    }
+
+    e.preventDefault();
+    if (axis === "y") {
+      dlg.style.transform = "translateY(" + dy + "px)";
+      dlg.style.opacity = String(Math.max(0.45, 1 - dy / 520));
+    } else {
+      // resist horizontally — the sheet hints at the move rather than following it
+      var edge = (dx < 0 && !nextExists(1)) || (dx > 0 && !nextExists(-1));
+      dlg.style.transform = "translateX(" + dx * (edge ? 0.08 : 0.22) + "px)";
+    }
+  }, { passive: false });
+
+  function nextExists(dir) {
+    if (!openCard) return false;
+    var vis = cards.filter(function (c) { return !c.hidden; });
+    var i = vis.indexOf(openCard);
+    return i >= 0 && !!vis[i + dir];
+  }
+
+  dlg.addEventListener("touchend", function (e) {
+    if (!tracking) return;
+    tracking = false;
+    dlg.classList.remove("dragging");
+    var dt = Math.max(1, e.timeStamp - t0), vy = dy / dt, vx = dx / dt;
+
+    if (axis === "y" && (dy > 110 || vy > 0.55)) { closeSheet(); return; }
+    if (axis === "x" && (Math.abs(dx) > 70 || Math.abs(vx) > 0.5)) step(dx < 0 ? 1 : -1);
+    // otherwise spring back to rest
+    dlg.style.transform = ""; dlg.style.opacity = "";
+  });
+
+  dlg.addEventListener("touchcancel", function () {
+    tracking = false;
+    dlg.classList.remove("dragging");
+    dlg.style.transform = ""; dlg.style.opacity = "";
+  });
 })();

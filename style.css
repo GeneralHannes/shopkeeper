@@ -110,6 +110,11 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
 @media (hover:hover){.card:hover .fam-tag{opacity:1}}
 .card:focus-visible .fam-tag{opacity:1}
 .card[hidden]{display:none}
+/* stepping between bottles inside the sheet */
+@keyframes sheetInL{from{opacity:0;transform:translateX(26px)}to{opacity:1;transform:none}}
+@keyframes sheetInR{from{opacity:0;transform:translateX(-26px)}to{opacity:1;transform:none}}
+.dlg-body.from-r{animation:sheetInL .26s cubic-bezier(.22,.68,.32,1) both}
+.dlg-body.from-l{animation:sheetInR .26s cubic-bezier(.22,.68,.32,1) both}
 @keyframes riseIn{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
 .grid.settling .card:not([hidden]){animation:riseIn .34s cubic-bezier(.22,.68,.32,1) both;
   animation-delay:calc(var(--i,0) * 14ms)}
@@ -139,6 +144,8 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
 .rows div{display:flex;justify-content:space-between;gap:1rem;padding:.42rem 0;border-bottom:1px solid var(--line)}
 .rows dt{color:var(--ink-3)}
 .rows dd{margin:0;font-variant-numeric:tabular-nums;text-align:right}
+.grab{display:none}
+#dlg.dragging{transition:none}
 .x{position:absolute;top:.5rem;right:.6rem;z-index:2;width:30px;height:30px;font-size:1.3rem;line-height:1;
   color:var(--ink-2);background:color-mix(in srgb,var(--surface) 80%,transparent);border:1px solid var(--line);
   border-radius:50%;cursor:pointer}
@@ -173,8 +180,12 @@ footer p{margin:.2rem 0}
   .shot{padding:.5rem}
   .count{margin-bottom:.75rem;font-size:.68rem}
   /* detail opens as a sheet rather than a cramped floating box */
+  /* the grabber sits above the content and stays put while the sheet scrolls */
+  .grab{display:block;position:sticky;top:0;z-index:3;padding:.6rem 0 .2rem;background:var(--surface);
+    border-radius:16px 16px 0 0;cursor:grab;touch-action:none}
+  .grab::after{content:"";display:block;width:38px;height:4px;margin:0 auto;border-radius:999px;background:var(--line-2)}
   #dlg{max-width:100%;width:100%;margin:auto auto 0;border-radius:16px 16px 0 0;max-height:92vh;max-height:92svh;
-    transform:translateY(100%)}
+    transform:translateY(100%);overscroll-behavior:contain}
   #dlg[open]{transform:none}
   @starting-style{#dlg[open]{transform:translateY(100%)}}
   .dlg-shot{min-height:150px;padding:1rem}
