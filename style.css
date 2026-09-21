@@ -79,6 +79,9 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
 @media (hover:hover){.card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lift);border-color:var(--gold-soft)}}
 .shot{aspect-ratio:3/4;background:linear-gradient(168deg,var(--shot-a),var(--shot-b));display:grid;place-items:center;padding:.7rem}
 .shot img{width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply}
+/* only once JS is running — without it images must stay visible */
+.js .shot img{opacity:0;transition:opacity .4s ease}
+.js .shot img.ready{opacity:1}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .shot img{mix-blend-mode:normal}}
 .info{display:flex;flex-direction:column;gap:.18rem;padding:.7rem .8rem .85rem;flex:1}
 .brand{margin:0;font-size:.63rem;text-transform:uppercase;letter-spacing:.14em;color:var(--steel);font-weight:600;
@@ -107,12 +110,23 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
 @media (hover:hover){.card:hover .fam-tag{opacity:1}}
 .card:focus-visible .fam-tag{opacity:1}
 .card[hidden]{display:none}
+@keyframes riseIn{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+.grid.settling .card:not([hidden]){animation:riseIn .34s cubic-bezier(.22,.68,.32,1) both;
+  animation-delay:calc(var(--i,0) * 14ms)}
 .empty{text-align:center;color:var(--ink-3);padding:3.5rem 1rem;font-size:.92rem}
 
 /* ---------- detail ---------- */
 #dlg{border:1px solid var(--line-2);border-radius:15px;background:var(--surface);color:var(--ink);
-  padding:0;max-width:min(560px,92vw);width:100%;max-height:88vh;max-height:88svh;overflow:auto;box-shadow:var(--shadow-lift)}
-#dlg::backdrop{background:rgba(5,9,16,.66);backdrop-filter:blur(3px)}
+  padding:0;max-width:min(560px,92vw);width:100%;max-height:88vh;max-height:88svh;overflow:auto;box-shadow:var(--shadow-lift);
+  opacity:0;transform:scale(.965) translateY(8px);
+  transition:opacity .24s ease,transform .26s cubic-bezier(.22,.68,.32,1),
+             overlay .26s allow-discrete,display .26s allow-discrete}
+#dlg[open]{opacity:1;transform:none}
+@starting-style{#dlg[open]{opacity:0;transform:scale(.965) translateY(8px)}}
+#dlg::backdrop{background:rgba(5,9,16,.66);backdrop-filter:blur(3px);opacity:0;
+  transition:opacity .24s ease,overlay .24s allow-discrete,display .24s allow-discrete}
+#dlg[open]::backdrop{opacity:1}
+@starting-style{#dlg[open]::backdrop{opacity:0}}
 .dlg-body{display:grid;grid-template-columns:1fr;gap:0}
 @media (min-width:641px){.dlg-body{grid-template-columns:200px 1fr}}
 .dlg-shot{background:linear-gradient(168deg,var(--shot-a),var(--shot-b));display:grid;place-items:center;padding:1.2rem;min-height:190px}
@@ -159,7 +173,10 @@ footer p{margin:.2rem 0}
   .shot{padding:.5rem}
   .count{margin-bottom:.75rem;font-size:.68rem}
   /* detail opens as a sheet rather than a cramped floating box */
-  #dlg{max-width:100%;width:100%;margin:auto auto 0;border-radius:16px 16px 0 0;max-height:92vh;max-height:92svh}
+  #dlg{max-width:100%;width:100%;margin:auto auto 0;border-radius:16px 16px 0 0;max-height:92vh;max-height:92svh;
+    transform:translateY(100%)}
+  #dlg[open]{transform:none}
+  @starting-style{#dlg[open]{transform:translateY(100%)}}
   .dlg-shot{min-height:150px;padding:1rem}
   .dlg-shot img{max-height:180px}
   .dlg-txt{padding:1.05rem 1.1rem 1.6rem}
