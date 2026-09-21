@@ -1,0 +1,126 @@
+/* Shopkeeper — wines & spirits catalogue
+   Palette: bottle-glass ink, aged brass, verdigris. Neutrals carry a green bias. */
+:root{
+  --ground:#F1F3F1; --surface:#FFFFFF; --sunk:#E7EAE7;
+  --ink:#151C19; --ink-2:#4A5751; --ink-3:#7C8A83;
+  --line:#D8DED9; --line-2:#C3CCC6;
+  --brass:#9A6B22; --brass-soft:#C08A3E; --verd:#4A7365;
+  --shot-a:#FBFCFB; --shot-b:#E4E9E5;
+  --shadow:0 1px 2px rgba(21,28,25,.06),0 8px 24px -12px rgba(21,28,25,.18);
+  --shadow-lift:0 2px 4px rgba(21,28,25,.08),0 18px 40px -16px rgba(21,28,25,.28);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#12171A; --surface:#1A2125; --sunk:#141A1D;
+    --ink:#E8EDEA; --ink-2:#A2B0AA; --ink-3:#71807A;
+    --line:#262F33; --line-2:#374347;
+    --brass:#D9A459; --brass-soft:#C08A3E; --verd:#6E9E8D;
+    --shot-a:#222B2F; --shot-b:#161D21;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);
+    --shadow-lift:0 2px 6px rgba(0,0,0,.5),0 20px 44px -16px rgba(0,0,0,.75);
+  }
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:15px; line-height:1.55; overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+.sr,.skip{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.skip:focus{position:fixed;top:.6rem;left:.6rem;width:auto;height:auto;clip:auto;margin:0;padding:.6rem 1rem;background:var(--brass);color:#fff;border-radius:7px;z-index:60}
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px;border-radius:4px}
+
+/* ---------- header ---------- */
+.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--ground) 88%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.bar{display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;padding:.85rem clamp(1rem,4vw,2.5rem) .7rem;max-width:1600px;margin:0 auto}
+.ident{display:flex;align-items:center;gap:.7rem;margin-right:auto}
+.mark{width:26px;height:26px;border-radius:50%;flex:none;
+  background:radial-gradient(circle at 34% 30%,var(--brass-soft),var(--brass) 62%,#6E4A14);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
+.shop{margin:0;font-family:"Bodoni Moda",Georgia,serif;font-weight:700;font-size:1.32rem;letter-spacing:-.01em;line-height:1.1}
+.tag{margin:.1rem 0 0;font-size:.66rem;text-transform:uppercase;letter-spacing:.17em;color:var(--ink-3)}
+.tools{display:flex;gap:.6rem;align-items:center;flex:1 1 22rem;min-width:0}
+.search{position:relative;display:flex;align-items:center;flex:1 1 auto;min-width:0}
+.search svg{position:absolute;left:.8rem;width:16px;height:16px;fill:none;stroke:var(--ink-3);stroke-width:2;stroke-linecap:round;pointer-events:none}
+#q{width:100%;min-width:0;padding:.62rem .9rem .62rem 2.3rem;font:inherit;font-size:.9rem;color:var(--ink);
+  background:var(--surface);border:1px solid var(--line-2);border-radius:9px}
+#q::placeholder{color:var(--ink-3)}
+#q:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px color-mix(in srgb,var(--brass) 18%,transparent)}
+#sort{font:inherit;font-size:.82rem;color:var(--ink-2);background:var(--surface);border:1px solid var(--line-2);border-radius:9px;padding:.62rem .7rem}
+
+.chips{display:flex;gap:.4rem;overflow-x:auto;padding:0 clamp(1rem,4vw,2.5rem) .75rem;max-width:1600px;margin:0 auto;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;display:inline-flex;align-items:center;gap:.42rem;padding:.36rem .72rem;font:inherit;font-size:.8rem;
+  color:var(--ink-2);background:var(--surface);border:1px solid var(--line-2);border-radius:999px;cursor:pointer;
+  transition:background .16s,color .16s,border-color .16s}
+.chip i{font-style:normal;font-size:.7rem;font-variant-numeric:tabular-nums;color:var(--ink-3);
+  background:var(--sunk);border-radius:999px;padding:.05rem .38rem}
+.chip:hover{border-color:var(--brass-soft);color:var(--ink)}
+.chip.on{background:var(--brass);border-color:var(--brass);color:#fff}
+.chip.on i{background:rgba(255,255,255,.22);color:#fff}
+
+/* ---------- catalogue ---------- */
+main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
+.count{margin:0 0 1rem;font-size:.72rem;text-transform:uppercase;letter-spacing:.15em;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.grid{display:grid;gap:clamp(.8rem,1.6vw,1.3rem);grid-template-columns:repeat(auto-fill,minmax(min(100%,190px),1fr))}
+.card{position:relative;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);
+  border-radius:13px;overflow:hidden;box-shadow:var(--shadow);cursor:pointer;
+  transition:transform .2s cubic-bezier(.2,.7,.3,1),box-shadow .2s,border-color .2s}
+.card:hover,.card:focus-visible{transform:translateY(-3px);box-shadow:var(--shadow-lift);border-color:var(--brass-soft)}
+.shot{aspect-ratio:1;background:linear-gradient(168deg,var(--shot-a),var(--shot-b));display:grid;place-items:center;padding:.7rem}
+.shot img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;mix-blend-mode:multiply}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .shot img{mix-blend-mode:normal}}
+.info{display:flex;flex-direction:column;gap:.18rem;padding:.7rem .8rem .85rem;flex:1}
+.brand{margin:0;font-size:.63rem;text-transform:uppercase;letter-spacing:.14em;color:var(--verd);font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nm{margin:0;font-family:"Bodoni Moda",Georgia,serif;font-size:.95rem;font-weight:600;line-height:1.25;
+  letter-spacing:-.005em;text-wrap:balance;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.meta{margin:.1rem 0 0;font-size:.73rem;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.price{margin:.45rem 0 0;font-size:1rem;font-weight:700;color:var(--brass);font-variant-numeric:tabular-nums}
+.special{display:inline-flex;align-items:center;gap:.32rem;font-size:.7rem;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--brass);font-variant-numeric:normal;
+  padding:.2rem .5rem .2rem .42rem;border:1px solid color-mix(in srgb,var(--brass) 45%,transparent);
+  border-radius:999px;background:color-mix(in srgb,var(--brass) 9%,transparent)}
+.special::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--brass);flex:none}
+.card[data-special="1"]{border-color:color-mix(in srgb,var(--brass) 32%,var(--line))}
+.card[data-special="1"] .shot{background:linear-gradient(168deg,var(--shot-a),color-mix(in srgb,var(--brass) 7%,var(--shot-b)))}
+.chip.sp{border-color:color-mix(in srgb,var(--brass) 42%,transparent);color:var(--brass)}
+.chip.sp i{background:color-mix(in srgb,var(--brass) 14%,transparent);color:var(--brass)}
+.chip.sp.on{background:var(--brass);border-color:var(--brass);color:#fff}
+.chip.sp.on i{background:rgba(255,255,255,.22);color:#fff}
+.fam-tag{position:absolute;inset:.55rem .55rem auto auto;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;
+  padding:.2rem .45rem;border-radius:5px;background:color-mix(in srgb,var(--surface) 82%,transparent);
+  color:var(--ink-3);border:1px solid var(--line);opacity:0;transition:opacity .18s;pointer-events:none}
+.card:hover .fam-tag,.card:focus-visible .fam-tag{opacity:1}
+.card[hidden]{display:none}
+.empty{text-align:center;color:var(--ink-3);padding:3.5rem 1rem;font-size:.92rem}
+
+/* ---------- detail ---------- */
+#dlg{border:1px solid var(--line-2);border-radius:15px;background:var(--surface);color:var(--ink);
+  padding:0;max-width:min(560px,92vw);width:100%;box-shadow:var(--shadow-lift)}
+#dlg::backdrop{background:rgba(6,10,9,.62);backdrop-filter:blur(3px)}
+.dlg-body{display:grid;grid-template-columns:1fr;gap:0}
+@media(min-width:520px){.dlg-body{grid-template-columns:200px 1fr}}
+.dlg-shot{background:linear-gradient(168deg,var(--shot-a),var(--shot-b));display:grid;place-items:center;padding:1.2rem;min-height:190px}
+.dlg-shot img{max-width:100%;max-height:230px;object-fit:contain;mix-blend-mode:multiply}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dlg-shot img{mix-blend-mode:normal}}
+.dlg-txt{padding:1.3rem 1.4rem 1.5rem;display:flex;flex-direction:column;gap:.3rem}
+.dlg-txt h2{margin:.15rem 0 .2rem;font-family:"Bodoni Moda",Georgia,serif;font-size:1.35rem;font-weight:700;line-height:1.2;text-wrap:balance}
+.dlg-txt .price{font-size:1.5rem;margin-top:.6rem}
+.rows{margin:.9rem 0 0;border-top:1px solid var(--line);font-size:.82rem}
+.rows div{display:flex;justify-content:space-between;gap:1rem;padding:.42rem 0;border-bottom:1px solid var(--line)}
+.rows dt{color:var(--ink-3)}
+.rows dd{margin:0;font-variant-numeric:tabular-nums;text-align:right}
+.x{position:absolute;top:.5rem;right:.6rem;z-index:2;width:30px;height:30px;font-size:1.3rem;line-height:1;
+  color:var(--ink-2);background:color-mix(in srgb,var(--surface) 80%,transparent);border:1px solid var(--line);
+  border-radius:50%;cursor:pointer}
+.x:hover{color:var(--ink);border-color:var(--line-2)}
+
+footer{border-top:1px solid var(--line);padding:1.6rem clamp(1rem,4vw,2.5rem) 2.4rem;max-width:1600px;margin:0 auto;
+  font-size:.78rem;color:var(--ink-2)}
+footer p{margin:.2rem 0}
+.fine{color:var(--ink-3)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}

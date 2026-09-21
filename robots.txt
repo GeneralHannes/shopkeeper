@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://generalhannes.github.io/shopkeeper/sitemap.xml
