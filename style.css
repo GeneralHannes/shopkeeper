@@ -10,6 +10,13 @@
   --gold:#8A6D10; --gold-soft:#B8912A; --steel:#4E6A8A;
   --shot-a:#FBFCFE; --shot-b:#E6ECF3;
   --shadow:0 1px 2px rgba(19,26,36,.06),0 8px 24px -12px rgba(19,26,36,.18);
+  /* liquid glass: a translucent pane, a specular top edge, and depth beneath */
+  --glass:linear-gradient(to bottom,color-mix(in srgb,var(--surface) 78%,transparent),
+                                    color-mix(in srgb,var(--surface) 62%,transparent));
+  --glass-blur:blur(16px) saturate(180%);
+  --glass-edge:inset 0 1px 0 rgba(255,255,255,.75),inset 0 -1px 0 rgba(15,23,35,.05);
+  --glass-lift:0 10px 32px -10px rgba(15,23,35,.3),0 2px 8px -2px rgba(15,23,35,.12);
+  --glass-line:color-mix(in srgb,var(--ink) 12%,transparent);
   --shadow-lift:0 2px 4px rgba(19,26,36,.08),0 18px 40px -16px rgba(19,26,36,.3);
   --bifrost:linear-gradient(90deg,#B8912A,#C4762F,#5C7FA4,#6B5E9E,#41539A);
   /* crossed diagonals = a lattice; reads as woven cloth or a shield face */
@@ -24,6 +31,11 @@
     --gold:#D4AF37; --gold-soft:#C9A227; --steel:#8FA6BF;
     --shot-a:#1E2836; --shot-b:#131B27;
     --shadow:0 1px 2px rgba(0,0,0,.45),0 8px 24px -12px rgba(0,0,0,.65);
+    --glass:linear-gradient(to bottom,color-mix(in srgb,var(--surface) 72%,transparent),
+                                      color-mix(in srgb,var(--surface) 55%,transparent));
+    --glass-edge:inset 0 1px 0 rgba(255,255,255,.14),inset 0 -1px 0 rgba(0,0,0,.35);
+    --glass-lift:0 12px 38px -10px rgba(0,0,0,.7),0 2px 10px -2px rgba(0,0,0,.45);
+    --glass-line:color-mix(in srgb,#fff 14%,transparent);
     --shadow-lift:0 2px 6px rgba(0,0,0,.55),0 20px 44px -16px rgba(0,0,0,.8);
     --bifrost:linear-gradient(90deg,#D4AF37,#D98A3C,#8FA6BF,#8B7BC4,#5A6FC0);
     --weave:repeating-linear-gradient(45deg,transparent 0 9px,color-mix(in srgb,var(--gold) 9%,transparent) 9px 10px),
@@ -42,9 +54,23 @@ body{
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:4px}
 
 /* ---------- header ---------- */
-.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--ground) 88%,transparent);backdrop-filter:blur(14px)}
+.top{position:sticky;top:0;z-index:20;
+  background:linear-gradient(to bottom,color-mix(in srgb,var(--ground) 82%,transparent),
+                                       color-mix(in srgb,var(--ground) 66%,transparent));
+  backdrop-filter:var(--glass-blur)}
 /* the Bifrost: one hairline, the only place more than one hue appears */
-.top::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--bifrost);opacity:.85}
+.top::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--bifrost);
+  background-size:220% 100%;opacity:.85;animation:bifrost 18s linear infinite}
+@keyframes bifrost{to{background-position:220% 0}}
+@keyframes eyeIn{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:none}}
+@keyframes ringIn{from{opacity:0;transform:scale(.4) rotate(-90deg)}to{opacity:1;transform:none}}
+.js .mark{animation:ringIn .62s cubic-bezier(.2,.9,.3,1.25) both}
+.js .shop{animation:eyeIn .5s cubic-bezier(.22,.68,.32,1) .08s both}
+.js .tag{animation:eyeIn .5s cubic-bezier(.22,.68,.32,1) .16s both}
+@media (min-width:641px){
+  .js .tools{animation:eyeIn .55s cubic-bezier(.22,.68,.32,1) .22s both}
+  .js .chips{animation:eyeIn .55s cubic-bezier(.22,.68,.32,1) .28s both}
+}
 .bar{display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;padding:.9rem clamp(1rem,4vw,2.5rem) .7rem;max-width:1600px;margin:0 auto}
 .ident{display:flex;align-items:center;gap:.75rem;margin-right:auto}
 /* a gold arm-ring — Norse oath-token and currency both, which suits a shop */
@@ -81,7 +107,11 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
   border-radius:13px;overflow:hidden;box-shadow:var(--shadow);cursor:pointer;
   transition:transform .2s cubic-bezier(.2,.7,.3,1),box-shadow .2s,border-color .2s}
 .card:focus-visible{transform:translateY(-3px);box-shadow:var(--shadow-lift);border-color:var(--gold-soft)}
-@media (hover:hover){.card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lift);border-color:var(--gold-soft)}}
+@media (hover:hover){
+  .card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lift);border-color:var(--gold-soft)}
+  .shot img{transition:transform .55s cubic-bezier(.22,.68,.32,1)}
+  .card:hover .shot img{transform:scale(1.06)}
+}
 /* press feedback — must land on the finger down, not when the sheet opens */
 .card{-webkit-tap-highlight-color:transparent}
 .card.pressed,.card:active{transform:scale(.972);border-color:var(--gold);
@@ -141,6 +171,9 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
 @keyframes riseIn{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
 /* applied by script to the first screenful only — animating 170 cards at once
    is what makes a filter change stutter rather than glide */
+.grid.reveal .card.veil{opacity:0;transform:translateY(14px)}
+.grid.reveal .card.shown{opacity:1;transform:none;
+  transition:opacity .5s ease,transform .55s cubic-bezier(.22,.68,.32,1)}
 .card.rise{animation:riseIn .34s cubic-bezier(.22,.68,.32,1) both;animation-delay:calc(var(--i,0) * 14ms)}
 .empty{text-align:center;color:var(--ink-3);padding:3.5rem 1rem;font-size:.92rem}
 
@@ -173,21 +206,25 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
 #dlg.dragging{transition:none;will-change:transform,opacity}
 .dlg-nav{display:flex;align-items:center;justify-content:center;gap:.7rem;
   padding:.6rem 1rem calc(.7rem + env(safe-area-inset-bottom));
-  border-top:1px solid var(--line);background:var(--surface);
+  border-top:1px solid var(--glass-line);background:var(--glass);
+  backdrop-filter:var(--glass-blur);box-shadow:var(--glass-edge);
   position:sticky;bottom:0;z-index:3}
 .dlg-nav button{width:34px;height:34px;display:grid;place-items:center;
   border-radius:50%;cursor:pointer;color:var(--ink);
-  background:color-mix(in srgb,var(--surface) 84%,transparent);border:1px solid var(--line-2);
-  backdrop-filter:blur(6px);transition:opacity .18s ease,transform .18s ease}
+  background:var(--glass);border:1px solid var(--glass-line);
+  backdrop-filter:var(--glass-blur);box-shadow:var(--glass-edge);
+  transition:opacity .18s ease,transform .18s ease}
+.dlg-nav button:not([disabled]):active{transform:scale(.9)}
 .dlg-nav button svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.4;
   stroke-linecap:round;stroke-linejoin:round}
 .dlg-nav button[disabled]{opacity:.3;cursor:default}
 .dlg-nav .pos{pointer-events:none;font-size:.7rem;font-weight:600;letter-spacing:.06em;
   font-variant-numeric:tabular-nums;color:var(--ink-2);padding:.2rem .55rem;border-radius:999px;
-  background:color-mix(in srgb,var(--surface) 84%,transparent);border:1px solid var(--line-2);
-  backdrop-filter:blur(6px)}
+  background:var(--glass);border:1px solid var(--glass-line);
+  backdrop-filter:var(--glass-blur);box-shadow:var(--glass-edge)}
 .x{position:absolute;top:.5rem;right:.6rem;z-index:4;width:30px;height:30px;font-size:1.3rem;line-height:1;
-  color:var(--ink-2);background:color-mix(in srgb,var(--surface) 80%,transparent);border:1px solid var(--line);
+  color:var(--ink-2);background:var(--glass);border:1px solid var(--glass-line);
+  backdrop-filter:var(--glass-blur);box-shadow:var(--glass-edge);
   border-radius:50%;cursor:pointer}
 @media (hover:hover){.x:hover{color:var(--ink);border-color:var(--line-2)}}
 
@@ -217,10 +254,10 @@ footer p{margin:.2rem 0}
     transform:translateX(-50%);z-index:30;
     width:calc(100% - 1.5rem);max-width:26rem;flex:none;gap:.35rem;
     padding:.38rem .4rem;border-radius:999px;
-    background:color-mix(in srgb,var(--surface) 97%,transparent);
-    backdrop-filter:blur(8px);
-    border:1px solid var(--line-2);
-    box-shadow:0 10px 34px -10px rgba(0,0,0,.45),0 2px 8px rgba(0,0,0,.14);
+    background:var(--glass);
+    backdrop-filter:var(--glass-blur);
+    border:1px solid var(--glass-line);
+    box-shadow:var(--glass-edge),var(--glass-lift);
   }
   .search svg{left:.7rem}
   #q{border:none;background:transparent;border-radius:999px;padding:.5rem .4rem .5rem 2.1rem}
@@ -232,7 +269,9 @@ footer p{margin:.2rem 0}
     color:var(--gold);background:color-mix(in srgb,var(--gold) 12%,transparent);
     border:1px solid color-mix(in srgb,var(--gold) 38%,transparent);
     border-radius:999px;cursor:pointer;white-space:nowrap;
-    transition:background .18s ease,border-color .18s ease}
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.35);
+    transition:background .18s ease,border-color .18s ease,transform .14s ease}
+  .catbtn:active{transform:scale(.94)}
   .catbtn span{overflow:hidden;text-overflow:ellipsis}
   .catbtn svg{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:2.4;
     stroke-linecap:round;stroke-linejoin:round;transition:transform .24s cubic-bezier(.22,.68,.32,1)}
@@ -249,12 +288,15 @@ footer p{margin:.2rem 0}
     width:calc(100% - 1.5rem);max-width:26rem;z-index:29;
     display:flex;flex-wrap:wrap;gap:.35rem;padding:.7rem;
     max-height:54vh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
-    background:var(--surface);border:1px solid var(--line-2);border-radius:20px;
-    box-shadow:0 16px 44px -12px rgba(0,0,0,.5);
+    background:var(--glass);backdrop-filter:var(--glass-blur);
+    border:1px solid var(--glass-line);border-radius:20px;
+    box-shadow:var(--glass-edge),var(--glass-lift);
     opacity:0;visibility:hidden;pointer-events:none;
     transition:opacity .2s ease,transform .26s cubic-bezier(.22,.68,.32,1),visibility .26s}
   .chips.open{opacity:1;visibility:visible;pointer-events:auto;transform:translateX(-50%) translateY(0) scale(1)}
-  .chip{font-size:.82rem;padding:.42rem .72rem}
+  .chip{font-size:.82rem;padding:.42rem .72rem;
+    background:color-mix(in srgb,var(--surface) 55%,transparent);border-color:var(--glass-line)}
+  .chip.on,.chip.shelf.on{background:var(--gold);border-color:var(--gold)}
   .sheet-scrim{display:block;position:fixed;inset:0;z-index:28;background:rgba(5,9,16,.4);
     opacity:0;transition:opacity .22s ease}
   .sheet-scrim.open{opacity:1}
@@ -284,7 +326,8 @@ footer p{margin:.2rem 0}
   .grab::after{content:"";display:block;width:38px;height:4px;margin:0 auto;border-radius:999px;
     background:color-mix(in srgb,var(--ink) 22%,transparent)}
   #dlg{max-width:100%;width:100%;margin:auto auto 0;border-radius:16px 16px 0 0;max-height:92vh;max-height:92svh;
-    transform:translateY(100%);overscroll-behavior:contain}
+    transform:translateY(100%);overscroll-behavior:contain;
+    border-color:var(--glass-line);box-shadow:var(--glass-edge),var(--glass-lift)}
   #dlg[open]{transform:none}
   @starting-style{#dlg[open]{transform:translateY(100%)}}
   /* was a 135x180 bottle adrift in a 358px band — nearly two thirds empty.

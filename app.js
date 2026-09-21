@@ -18,6 +18,7 @@
   // Mark the document as scripted, then immediately settle any image the browser
   // already decoded — otherwise those would flash visible and re-fade.
   document.documentElement.classList.add("js");
+  var calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   function watchImage(img) {
     if (img.complete && img.naturalWidth) { img.classList.add("ready"); return; }
     img.addEventListener("load", function () { img.classList.add("ready"); }, { once: true });
@@ -27,6 +28,24 @@
 
   // Re-run the rise-in on the cards that survived a filter change. The stagger is
   // capped so the 170th card doesn't wait two seconds for its turn.
+  // One observer, cards unobserved once seen — no scroll handler, no per-frame work.
+  if (!calm && "IntersectionObserver" in window) {
+    grid.classList.add("reveal");
+    cards.forEach(function (c) { c.classList.add("veil"); });
+    var seen = new IntersectionObserver(function (entries, obs) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        en.target.classList.add("shown");
+        obs.unobserve(en.target);
+      });
+    }, { rootMargin: "80px 0px", threshold: 0.01 });
+    cards.forEach(function (c) { seen.observe(c); });
+    // safety net: anything still veiled after 3s is shown regardless
+    setTimeout(function () {
+      cards.forEach(function (c) { c.classList.add("shown"); });
+    }, 3000);
+  }
+
   var RISE_MAX = 24;              // roughly a screenful; beyond that nobody sees it
   function settle() {
     cards.forEach(function (c) { c.classList.remove("rise"); });
@@ -47,12 +66,29 @@
       c.hidden = !ok;
       if (ok) shown++;
     });
-    countEl.textContent = shown + (shown === 1 ? " bottle" : " bottles")
+    setCount(shown, (shown === 1 ? " bottle" : " bottles")
       + (shelf ? " · " + shelf : "") + (fam ? " · " + fam : "")
-      + (t ? ' · "' + term.trim() + '"' : "");
+      + (t ? ' · "' + term.trim() + '"' : ""));
     emptyEl.hidden = shown > 0;
     var pick = shelf || fam;
     history.replaceState(null, "", pick ? "#" + slug(pick) : " ");
+  }
+
+  // Tween the tally so a filter reads as a change rather than a jump cut.
+  var countShown = cards.length, countRAF = null;
+  function setCount(target, label) {
+    if (countRAF) { cancelAnimationFrame(countRAF); countRAF = null; }
+    if (calm || countShown === target) {
+      countShown = target; countEl.textContent = target + label; return;
+    }
+    var from = countShown, t0 = performance.now(), dur = 340;
+    (function tick(now) {
+      var p = Math.min(1, (now - t0) / dur);
+      var v = Math.round(from + (target - from) * (1 - Math.pow(1 - p, 3)));
+      countEl.textContent = v + label;
+      if (p < 1) { countRAF = requestAnimationFrame(tick); }
+      else { countRAF = null; countShown = target; }
+    })(t0);
   }
 
   function sortBy(mode) {
