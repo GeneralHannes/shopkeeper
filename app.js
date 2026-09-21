@@ -150,6 +150,7 @@
     chipsNav.classList.add("open");
     catBtn.setAttribute("aria-expanded", "true");
     document.body.classList.add("picker-open");
+    document.body.classList.remove("bar-hidden");
     scrim.hidden = false;
     void scrim.offsetWidth;                 // let the scrim paint before fading it in
     scrim.classList.add("open");
@@ -165,6 +166,17 @@
   function togglePicker() {
     chipsNav.classList.contains("open") ? closePicker() : openPicker();
   }
+  // The island slides away while you scroll down and returns on the way up, so
+  // it never sits on top of what you are reading. Passive + direction-only, so
+  // there is no per-frame work while scrolling.
+  var lastY = window.scrollY || 0;
+  window.addEventListener("scroll", function () {
+    var y = window.scrollY || 0;
+    if (y > lastY + 6 && y > 140) document.body.classList.add("bar-hidden");
+    else if (y < lastY - 6 || y < 80) document.body.classList.remove("bar-hidden");
+    lastY = y;
+  }, { passive: true });
+
   catBtn.addEventListener("click", togglePicker);
 
   // Swipe the drawer back off the right edge. Axis is locked on the first few
@@ -212,7 +224,7 @@
   }
 
   // ---- detail sheet ----
-  var openCard = null, body = dlg.querySelector(".dlg-body"),
+  var openCard = null, shots = [], photoIdx = 0, body = dlg.querySelector(".dlg-body"),
       prevBtn = document.getElementById("prev"),
       nextBtn = document.getElementById("next"),
       posEl   = document.getElementById("pos");
@@ -241,8 +253,16 @@
     if (card.dataset.shelf) rows += "<div><dt>Shelf</dt><dd>" + card.dataset.shelf + "</dd></div>";
     body.className = "dlg-body";
     if (from) { void body.offsetWidth; body.classList.add(from); }
+    shots = (card.dataset.imgs || "").split(",").filter(Boolean);
+    photoIdx = 0;
+    var dots = shots.length > 1
+      ? '<div class="dots">' + shots.map(function (_, i) {
+          return "<i" + (i === 0 ? ' class="on"' : "") + "></i>";
+        }).join("") + "</div>"
+      : "";
+    var first = shots.length ? "img/" + shots[0] + ".jpg" : img.getAttribute("src");
     body.innerHTML =
-      '<div class="dlg-shot"><img src="' + img.getAttribute("src") + '" alt="' + img.getAttribute("alt") + '"></div>' +
+      '<div class="dlg-shot"><img src="' + first + '" alt="' + img.getAttribute("alt") + '">' + dots + "</div>" +
       '<div class="dlg-txt">' + card.querySelector(".brand").outerHTML +
         "<h2>" + card.querySelector(".nm").textContent + "</h2>" +
         card.querySelector(".price").outerHTML +
@@ -265,6 +285,23 @@
     var next = vis[i + dir];
     if (!next) return;                       // ends of the list are hard stops, as on iOS
     render(next, dir > 0 ? "from-r" : "from-l");
+  }
+
+  // Swap the photo in place. Only ever called from inside the image area.
+  function stepPhoto(dir) {
+    if (shots.length < 2) return false;
+    var next = photoIdx + dir;
+    if (next < 0 || next >= shots.length) return false;
+    photoIdx = next;
+    var el = body.querySelector(".dlg-shot img");
+    if (!el) return false;
+    el.classList.remove("from-l", "from-r");
+    void el.offsetWidth;
+    el.src = "img/" + shots[photoIdx] + ".jpg";
+    el.classList.add(dir > 0 ? "from-r" : "from-l");
+    var ds = body.querySelectorAll(".dots i");
+    for (var i = 0; i < ds.length; i++) ds[i].classList.toggle("on", i === photoIdx);
+    return true;
   }
 
   function closeSheet() {
@@ -319,7 +356,7 @@
 
   // ---- iOS-style sheet gestures (touch, phone layout only) ----
   var phone = window.matchMedia("(max-width: 640px)");
-  var y0 = 0, x0 = 0, t0 = 0, dy = 0, dx = 0, axis = null, tracking = false;
+  var y0 = 0, x0 = 0, t0 = 0, dy = 0, dx = 0, axis = null, tracking = false, inImage = false;
   // Touch events can outpace the display. Coalescing the writes into one
   // requestAnimationFrame keeps the sheet on the frame clock instead of
   // thrashing style on every event.
@@ -346,6 +383,9 @@
     var t = e.touches[0];
     y0 = t.clientY; x0 = t.clientX; t0 = e.timeStamp;
     dy = 0; dx = 0; axis = null; tracking = true;
+    // A sideways gesture only counts inside the photo. Anywhere else it is
+    // ignored, so it can never collide with the drawer or the page behind.
+    inImage = !!(e.target.closest && e.target.closest(".dlg-shot"));
   }, { passive: true });
 
   dlg.addEventListener("touchmove", function (e) {
@@ -357,6 +397,7 @@
       if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
       // bias towards vertical, so a slightly-diagonal pull still scrolls or dismisses
       axis = Math.abs(dx) > Math.abs(dy) * 1.3 ? "x" : "y";
+      if (axis === "x" && !inImage) { tracking = false; return; }
       if (axis === "y" && (dlg.scrollTop > 0 || dy < 0)) { tracking = false; return; }
       dlg.classList.add("dragging");
     }
@@ -366,7 +407,10 @@
       pendY = dy;
     } else {
       // resist horizontally — the sheet hints at the move rather than following it
-      var edge = (dx < 0 && !nextExists(1)) || (dx > 0 && !nextExists(-1));
+      var dirX = dx < 0 ? 1 : -1;
+      var hasPhoto = shots.length > 1 &&
+        photoIdx + dirX >= 0 && photoIdx + dirX < shots.length;
+      var edge = !hasPhoto && !nextExists(dirX);
       pendX = dx * (edge ? 0.08 : 0.22);
     }
     schedule();
@@ -382,10 +426,12 @@
     if (!tracking) return;
     var dt = Math.max(1, e.timeStamp - t0), vy = dy / dt, vx = dx / dt;
     var dismiss = axis === "y" && (dy > 110 || vy > 0.55);
-    var stepped = axis === "x" && (Math.abs(dx) > 70 || Math.abs(vx) > 0.5);
+    var swiped = axis === "x" && inImage && (Math.abs(dx) > 55 || Math.abs(vx) > 0.45);
+    var dir = dx < 0 ? 1 : -1;
     stopDrag();                       // cancels any queued frame, springs back
     if (dismiss) { closeSheet(); return; }
-    if (stepped) step(dx < 0 ? 1 : -1);
+    // more than one photo -> move through them; otherwise fall through to bottles
+    if (swiped && !stepPhoto(dir)) step(dir);
   });
 
   dlg.addEventListener("touchcancel", stopDrag);

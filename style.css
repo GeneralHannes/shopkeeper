@@ -204,6 +204,17 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
 .rows dd{margin:0;font-variant-numeric:tabular-nums;text-align:right}
 .grab{display:none}
 #dlg.dragging{transition:none;will-change:transform,opacity}
+/* photo gallery inside the sheet */
+.dlg-shot{overflow:hidden}
+.dots{position:absolute;left:0;right:0;bottom:.5rem;display:flex;justify-content:center;gap:.32rem;
+  z-index:2;pointer-events:none}
+.dots i{width:6px;height:6px;border-radius:50%;background:color-mix(in srgb,var(--ink) 26%,transparent);
+  transition:background .22s ease,transform .22s ease}
+.dots i.on{background:var(--gold);transform:scale(1.25)}
+@keyframes shotInL{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+@keyframes shotInR{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:none}}
+.dlg-shot img.from-r{animation:shotInL .28s cubic-bezier(.22,.68,.32,1) both}
+.dlg-shot img.from-l{animation:shotInR .28s cubic-bezier(.22,.68,.32,1) both}
 .dlg-nav{display:flex;align-items:center;justify-content:center;gap:.7rem;
   padding:.6rem 1rem calc(.7rem + env(safe-area-inset-bottom));
   border-top:1px solid var(--glass-line);background:var(--glass);
@@ -258,7 +269,11 @@ footer p{margin:.2rem 0}
     backdrop-filter:var(--glass-blur);
     border:1px solid var(--glass-line);
     box-shadow:var(--glass-edge),var(--glass-lift);
+    transition:transform .32s cubic-bezier(.22,.68,.32,1),opacity .24s ease;
   }
+  body.picker-open .tools,
+  body.bar-hidden .tools{
+    transform:translateX(-50%) translateY(160%);opacity:0;pointer-events:none}
   .search svg{left:.7rem}
   #q{border:none;background:transparent;border-radius:999px;padding:.5rem .4rem .5rem 2.1rem}
   #q:focus{box-shadow:none;border-color:transparent}
@@ -286,11 +301,12 @@ footer p{margin:.2rem 0}
      every shelf, category and the sort control without squeezing. */
   .chips{
     position:fixed;inset:0 0 0 auto;left:auto;bottom:0;
-    width:min(80vw,21rem);max-width:21rem;max-height:none;z-index:29;
+    width:min(80vw,21rem);max-width:21rem;max-height:none;z-index:32;
     transform:translateX(100%);
     display:flex;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:.28rem;
     padding:calc(1rem + env(safe-area-inset-top)) .75rem calc(1.2rem + env(safe-area-inset-bottom));
     overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;
+    -webkit-overflow-scrolling:touch;scroll-behavior:smooth;
     background:var(--glass);backdrop-filter:var(--glass-blur);
     border:1px solid var(--glass-line);border-right:0;border-radius:20px 0 0 20px;
     box-shadow:var(--glass-edge),-14px 0 44px -14px rgba(0,0,0,.5);
@@ -307,7 +323,7 @@ footer p{margin:.2rem 0}
   .chip{background:color-mix(in srgb,var(--surface) 52%,transparent);border-color:var(--glass-line)}
   .chip.on,.chip.shelf.on{background:var(--gold);border-color:var(--gold);color:var(--surface)}
   .chips .sort select{font-size:16px;padding:.6rem .7rem}
-  .sheet-scrim{display:block;position:fixed;inset:0;z-index:28;background:rgba(5,9,16,.4);
+  .sheet-scrim{display:block;position:fixed;inset:0;z-index:31;background:rgba(5,9,16,.4);
     opacity:0;transition:opacity .22s ease}
   .sheet-scrim.open{opacity:1}
   .sheet-scrim[hidden]{display:none}
