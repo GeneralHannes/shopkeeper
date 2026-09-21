@@ -82,6 +82,13 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
   transition:transform .2s cubic-bezier(.2,.7,.3,1),box-shadow .2s,border-color .2s}
 .card:focus-visible{transform:translateY(-3px);box-shadow:var(--shadow-lift);border-color:var(--gold-soft)}
 @media (hover:hover){.card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lift);border-color:var(--gold-soft)}}
+/* press feedback — must land on the finger down, not when the sheet opens */
+.card{-webkit-tap-highlight-color:transparent}
+.card.pressed,.card:active{transform:scale(.972);border-color:var(--gold);
+  box-shadow:0 1px 2px rgba(0,0,0,.14);transition:transform .09s ease-out,border-color .09s ease-out}
+.card.pressed .shot,.card:active .shot{border-color:color-mix(in srgb,var(--gold) 45%,var(--line))}
+.card.pressed .shot::before,.card.pressed .shot::after,
+.card:active .shot::before,.card:active .shot::after{border-color:var(--gold)}
 .shot{position:relative;aspect-ratio:3/4;display:grid;place-items:center;padding:.7rem;
   margin:.5rem .5rem 0;border-radius:10px;border:1px solid var(--line);overflow:hidden;
   background:var(--weave),linear-gradient(168deg,var(--shot-a),var(--shot-b))}

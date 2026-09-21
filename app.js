@@ -193,8 +193,30 @@
     dlg.close();
   }
 
+  // ---- press feedback ----
+  // :active alone is unreliable on touch (iOS needs a touch listener present, and
+  // browsers delay it to tell a tap from a scroll). Driving it explicitly makes the
+  // highlight land on touchdown, and we drop it the moment the finger travels,
+  // so scrolling past a card never lights it up.
+  var pressedCard = null, pressX = 0, pressY = 0;
+  function clearPress() {
+    if (pressedCard) { pressedCard.classList.remove("pressed"); pressedCard = null; }
+  }
+  grid.addEventListener("touchstart", function (e) {
+    var c = e.target.closest(".card"); if (!c) return;
+    pressedCard = c; pressX = e.touches[0].clientX; pressY = e.touches[0].clientY;
+    c.classList.add("pressed");
+  }, { passive: true });
+  grid.addEventListener("touchmove", function (e) {
+    if (!pressedCard) return;
+    var t = e.touches[0];
+    if (Math.abs(t.clientX - pressX) > 8 || Math.abs(t.clientY - pressY) > 8) clearPress();
+  }, { passive: true });
+  grid.addEventListener("touchend", clearPress, { passive: true });
+  grid.addEventListener("touchcancel", clearPress, { passive: true });
+
   grid.addEventListener("click", function (e) {
-    var c = e.target.closest(".card"); if (c) open(c);
+    var c = e.target.closest(".card"); if (c) { clearPress(); open(c); }
   });
   grid.addEventListener("keydown", function (e) {
     if (e.key !== "Enter" && e.key !== " ") return;
