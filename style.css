@@ -103,6 +103,8 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
 .chip.shelf i{background:color-mix(in srgb,var(--gold) 15%,transparent);color:var(--gold)}
 .chip.shelf.on{background:var(--gold);border-color:var(--gold);color:var(--surface)}
 .chip.shelf.on i{background:color-mix(in srgb,var(--surface) 30%,transparent);color:var(--surface)}
+.catbtn{display:none}
+.sheet-scrim{display:none}
 .chip-div{flex:none;align-self:center;width:1px;height:1.1rem;background:var(--line-2);margin:0 .25rem}
 .fam-tag{position:absolute;inset:.55rem .55rem auto auto;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;
   padding:.2rem .45rem;border-radius:5px;background:color-mix(in srgb,var(--surface) 82%,transparent);
@@ -160,8 +162,59 @@ footer p{margin:.2rem 0}
 @media (max-width:640px){
   /* two columns, always — auto-fill collapses to one huge card at this width */
   .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem}
-  .top{background:var(--ground);backdrop-filter:none}
+  /* the header stops being sticky — the controls now live at the bottom, in reach */
+  .top{position:static;background:var(--ground);backdrop-filter:none}
   .bar{gap:.7rem;padding:.75rem 1rem .55rem}
+  main{padding-bottom:6rem}
+
+  /* the island: search + category, floating centre-bottom */
+  .tools{
+    position:fixed;left:50%;bottom:calc(.75rem + env(safe-area-inset-bottom));
+    transform:translateX(-50%);z-index:30;
+    width:calc(100% - 1.5rem);max-width:26rem;flex:none;gap:.35rem;
+    padding:.38rem .4rem;border-radius:999px;
+    background:color-mix(in srgb,var(--surface) 90%,transparent);
+    backdrop-filter:blur(18px) saturate(1.5);
+    border:1px solid var(--line-2);
+    box-shadow:0 10px 34px -10px rgba(0,0,0,.45),0 2px 8px rgba(0,0,0,.14);
+  }
+  .search svg{left:.7rem}
+  #q{border:none;background:transparent;border-radius:999px;padding:.5rem .4rem .5rem 2.1rem}
+  #q:focus{box-shadow:none;border-color:transparent}
+  /* the small island beside it */
+  .catbtn{
+    display:inline-flex;align-items:center;gap:.22rem;flex:none;max-width:9.5rem;
+    padding:.5rem .6rem .5rem .75rem;font:inherit;font-size:.82rem;font-weight:600;
+    color:var(--gold);background:color-mix(in srgb,var(--gold) 12%,transparent);
+    border:1px solid color-mix(in srgb,var(--gold) 38%,transparent);
+    border-radius:999px;cursor:pointer;white-space:nowrap;
+    transition:background .18s ease,border-color .18s ease}
+  .catbtn span{overflow:hidden;text-overflow:ellipsis}
+  .catbtn svg{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:2.4;
+    stroke-linecap:round;stroke-linejoin:round;transition:transform .24s cubic-bezier(.22,.68,.32,1)}
+  .catbtn[aria-expanded="true"]{background:var(--gold);border-color:var(--gold);color:var(--surface)}
+  .catbtn[aria-expanded="true"] svg{transform:rotate(180deg)}
+  .sort{display:none}                       /* relocated into the picker */
+  .chips .sort{display:block;flex:1 1 100%;margin-bottom:.15rem}
+  .chips .sort select{width:100%;max-width:none}
+
+  /* the picker sheet the island opens */
+  .chips{
+    position:fixed;left:50%;bottom:calc(4.4rem + env(safe-area-inset-bottom));
+    transform:translateX(-50%) translateY(10px) scale(.98);
+    width:calc(100% - 1.5rem);max-width:26rem;z-index:29;
+    display:flex;flex-wrap:wrap;gap:.35rem;padding:.7rem;
+    max-height:54vh;overflow-y:auto;overscroll-behavior:contain;
+    background:var(--surface);border:1px solid var(--line-2);border-radius:20px;
+    box-shadow:0 16px 44px -12px rgba(0,0,0,.5);
+    opacity:0;visibility:hidden;pointer-events:none;
+    transition:opacity .2s ease,transform .26s cubic-bezier(.22,.68,.32,1),visibility .26s}
+  .chips.open{opacity:1;visibility:visible;pointer-events:auto;transform:translateX(-50%) translateY(0) scale(1)}
+  .chip{font-size:.82rem;padding:.42rem .72rem}
+  .sheet-scrim{display:block;position:fixed;inset:0;z-index:28;background:rgba(5,9,16,.4);
+    opacity:0;transition:opacity .22s ease}
+  .sheet-scrim.open{opacity:1}
+  .sheet-scrim[hidden]{display:none}
   .ident{gap:.6rem}
   .shop{font-size:1.15rem}
   .tag{font-size:.68rem}

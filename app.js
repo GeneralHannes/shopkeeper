@@ -81,6 +81,8 @@
       ch.classList.add("on"); ch.setAttribute("aria-selected", "true");
       shelf = ch.dataset.shelf || "";
       fam   = ch.dataset.fam   || "";
+      catLabel.textContent = ch.querySelector("span").textContent || "All";
+      closePicker();
       apply();
       settle();
       // after narrowing the list, don't leave the reader stranded below it
@@ -89,6 +91,46 @@
         window.scrollTo({ top: window.scrollY + top - 90, behavior: "smooth" });
       }
     });
+  });
+
+  // ---- mobile: the category picker the bottom island opens ----
+  var chipsNav = document.getElementById("chips"),
+      catBtn   = document.getElementById("catbtn"),
+      catLabel = document.getElementById("catbtn-label"),
+      scrim    = document.getElementById("scrim"),
+      phoneMQ  = window.matchMedia("(max-width: 640px)");
+
+  // Sort belongs inside the picker on phones — the island has room for two controls, not three.
+  var sortWrap = sortEl.parentNode;
+  function placeSort() {
+    var target = phoneMQ.matches ? chipsNav : document.querySelector(".tools");
+    if (sortWrap.parentNode !== target) {
+      phoneMQ.matches ? target.insertBefore(sortWrap, target.firstChild) : target.appendChild(sortWrap);
+    }
+  }
+  placeSort();
+  phoneMQ.addEventListener("change", function () { placeSort(); closePicker(); });
+
+  function openPicker() {
+    chipsNav.classList.add("open");
+    catBtn.setAttribute("aria-expanded", "true");
+    scrim.hidden = false;
+    void scrim.offsetWidth;                 // let the scrim paint before fading it in
+    scrim.classList.add("open");
+  }
+  function closePicker() {
+    chipsNav.classList.remove("open");
+    catBtn.setAttribute("aria-expanded", "false");
+    scrim.classList.remove("open");
+    setTimeout(function () { if (!chipsNav.classList.contains("open")) scrim.hidden = true; }, 240);
+  }
+  function togglePicker() {
+    chipsNav.classList.contains("open") ? closePicker() : openPicker();
+  }
+  catBtn.addEventListener("click", togglePicker);
+  scrim.addEventListener("click", closePicker);
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && chipsNav.classList.contains("open")) { closePicker(); catBtn.focus(); }
   });
 
   // deep link: #whisky or #limited-edition opens that shelf on load
