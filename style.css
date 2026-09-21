@@ -83,7 +83,7 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
 .info{display:flex;flex-direction:column;gap:.18rem;padding:.7rem .8rem .85rem;flex:1}
 .brand{margin:0;font-size:.63rem;text-transform:uppercase;letter-spacing:.14em;color:var(--steel);font-weight:600;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.nm{margin:0;font-family:"Marcellus",Georgia,serif;font-size:.97rem;line-height:1.3;letter-spacing:.004em;
+.nm{margin:0;font-family:"Marcellus",Georgia,serif;font-size:.97rem;line-height:1.3;letter-spacing:.004em;overflow-wrap:anywhere;
   text-wrap:balance;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .meta{margin:.12rem 0 0;font-size:.73rem;color:var(--ink-3);font-variant-numeric:tabular-nums}
 .price{margin:.45rem 0 0;font-size:1rem;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums}
@@ -139,6 +139,7 @@ footer p{margin:.2rem 0}
 @media (max-width:640px){
   /* two columns, always — auto-fill collapses to one huge card at this width */
   .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem}
+  .top{background:var(--ground);backdrop-filter:none}
   .bar{gap:.7rem;padding:.75rem 1rem .55rem}
   .ident{gap:.6rem}
   .shop{font-size:1.15rem}
