@@ -57,7 +57,7 @@ body{
   transition:background .16s,color .16s,border-color .16s}
 .chip i{font-style:normal;font-size:.7rem;font-variant-numeric:tabular-nums;color:var(--ink-3);
   background:var(--sunk);border-radius:999px;padding:.05rem .38rem}
-.chip:hover{border-color:var(--brass-soft);color:var(--ink)}
+@media (hover:hover){.chip:hover{border-color:var(--brass-soft);color:var(--ink)}}
 .chip.on{background:var(--brass);border-color:var(--brass);color:#fff}
 .chip.on i{background:rgba(255,255,255,.22);color:#fff}
 
@@ -68,7 +68,8 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
 .card{position:relative;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);
   border-radius:13px;overflow:hidden;box-shadow:var(--shadow);cursor:pointer;
   transition:transform .2s cubic-bezier(.2,.7,.3,1),box-shadow .2s,border-color .2s}
-.card:hover,.card:focus-visible{transform:translateY(-3px);box-shadow:var(--shadow-lift);border-color:var(--brass-soft)}
+.card:focus-visible{transform:translateY(-3px);box-shadow:var(--shadow-lift);border-color:var(--brass-soft)}
+@media (hover:hover){.card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lift);border-color:var(--brass-soft)}}
 .shot{aspect-ratio:1;background:linear-gradient(168deg,var(--shot-a),var(--shot-b));display:grid;place-items:center;padding:.7rem}
 .shot img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;mix-blend-mode:multiply}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .shot img{mix-blend-mode:normal}}
@@ -97,16 +98,17 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
 .fam-tag{position:absolute;inset:.55rem .55rem auto auto;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;
   padding:.2rem .45rem;border-radius:5px;background:color-mix(in srgb,var(--surface) 82%,transparent);
   color:var(--ink-3);border:1px solid var(--line);opacity:0;transition:opacity .18s;pointer-events:none}
-.card:hover .fam-tag,.card:focus-visible .fam-tag{opacity:1}
+@media (hover:hover){.card:hover .fam-tag{opacity:1}}
+.card:focus-visible .fam-tag{opacity:1}
 .card[hidden]{display:none}
 .empty{text-align:center;color:var(--ink-3);padding:3.5rem 1rem;font-size:.92rem}
 
 /* ---------- detail ---------- */
 #dlg{border:1px solid var(--line-2);border-radius:15px;background:var(--surface);color:var(--ink);
-  padding:0;max-width:min(560px,92vw);width:100%;box-shadow:var(--shadow-lift)}
+  padding:0;max-width:min(560px,92vw);width:100%;max-height:88vh;max-height:88svh;overflow:auto;box-shadow:var(--shadow-lift)}
 #dlg::backdrop{background:rgba(6,10,9,.62);backdrop-filter:blur(3px)}
 .dlg-body{display:grid;grid-template-columns:1fr;gap:0}
-@media(min-width:520px){.dlg-body{grid-template-columns:200px 1fr}}
+@media (min-width:641px){.dlg-body{grid-template-columns:200px 1fr}}
 .dlg-shot{background:linear-gradient(168deg,var(--shot-a),var(--shot-b));display:grid;place-items:center;padding:1.2rem;min-height:190px}
 .dlg-shot img{max-width:100%;max-height:230px;object-fit:contain;mix-blend-mode:multiply}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dlg-shot img{mix-blend-mode:normal}}
@@ -120,10 +122,44 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
 .x{position:absolute;top:.5rem;right:.6rem;z-index:2;width:30px;height:30px;font-size:1.3rem;line-height:1;
   color:var(--ink-2);background:color-mix(in srgb,var(--surface) 80%,transparent);border:1px solid var(--line);
   border-radius:50%;cursor:pointer}
-.x:hover{color:var(--ink);border-color:var(--line-2)}
+@media (hover:hover){.x:hover{color:var(--ink);border-color:var(--line-2)}}
 
 footer{border-top:1px solid var(--line);padding:1.6rem clamp(1rem,4vw,2.5rem) 2.4rem;max-width:1600px;margin:0 auto;
   font-size:.78rem;color:var(--ink-2)}
 footer p{margin:.2rem 0}
 .fine{color:var(--ink-3)}
+/* ---------- phones ---------- */
+@media (max-width:640px){
+  /* two columns, always — auto-fill collapsed to a single huge card at this width */
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem}
+  .bar{gap:.7rem;padding:.7rem 1rem .55rem}
+  .ident{gap:.55rem}
+  .shop{font-size:1.12rem}
+  .tag{font-size:.6rem;letter-spacing:.14em}
+  .tools{flex:1 1 100%}
+  /* 16px minimum: anything smaller makes iOS Safari zoom the page on focus */
+  #q,#sort{font-size:16px}
+  #q{padding:.55rem .75rem .55rem 2.2rem}
+  #sort{padding:.55rem .5rem;max-width:8.5rem}
+  .chips{padding:0 1rem .6rem}
+  main{padding:1rem 1rem 2.5rem}
+  .info{padding:.55rem .6rem .7rem}
+  .nm{font-size:.86rem}
+  .brand{font-size:.58rem}
+  .meta{font-size:.68rem}
+  .price{font-size:.92rem;margin-top:.35rem}
+  .shot{padding:.5rem}
+  .count{margin-bottom:.75rem;font-size:.68rem}
+  /* detail opens as a sheet rather than a cramped floating box */
+  #dlg{max-width:100%;width:100%;margin:auto auto 0;border-radius:16px 16px 0 0;max-height:92vh;max-height:92svh}
+  .dlg-shot{min-height:150px;padding:1rem}
+  .dlg-shot img{max-height:180px}
+  .dlg-txt{padding:1.05rem 1.1rem 1.6rem}
+  .dlg-txt h2{font-size:1.2rem}
+  .dlg-txt .price{font-size:1.3rem}
+}
+@media (max-width:360px){
+  .grid{gap:.55rem}
+  .nm{font-size:.8rem}
+}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
