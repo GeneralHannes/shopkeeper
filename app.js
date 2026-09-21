@@ -156,6 +156,7 @@
   }
   function closePicker() {
     chipsNav.classList.remove("open");
+    chipsNav.style.transition = ""; chipsNav.style.transform = "";
     catBtn.setAttribute("aria-expanded", "false");
     document.body.classList.remove("picker-open");
     scrim.classList.remove("open");
@@ -165,6 +166,36 @@
     chipsNav.classList.contains("open") ? closePicker() : openPicker();
   }
   catBtn.addEventListener("click", togglePicker);
+
+  // Swipe the drawer back off the right edge. Axis is locked on the first few
+  // pixels so flicking down the list never drags it sideways.
+  var dx0 = 0, dy0 = 0, drawerAxis = null, drawerDrag = false;
+  chipsNav.addEventListener("touchstart", function (e) {
+    if (e.touches.length !== 1) { drawerDrag = false; return; }
+    dx0 = e.touches[0].clientX; dy0 = e.touches[0].clientY;
+    drawerAxis = null; drawerDrag = true;
+  }, { passive: true });
+  chipsNav.addEventListener("touchmove", function (e) {
+    if (!drawerDrag || e.touches.length !== 1) return;
+    var dx = e.touches[0].clientX - dx0, dy = e.touches[0].clientY - dy0;
+    if (drawerAxis === null) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      drawerAxis = Math.abs(dx) > Math.abs(dy) * 1.3 ? "x" : "y";
+      if (drawerAxis === "y") { drawerDrag = false; return; }
+      chipsNav.style.transition = "none";
+    }
+    chipsNav.style.transform = "translateX(" + Math.max(0, dx) + "px)";
+  }, { passive: true });
+  function endDrawerDrag(e) {
+    if (!drawerDrag) return;
+    drawerDrag = false;
+    var dx = e.changedTouches ? e.changedTouches[0].clientX - dx0 : 0;
+    chipsNav.style.transition = "";
+    chipsNav.style.transform = "";
+    if (drawerAxis === "x" && dx > 70) closePicker();
+  }
+  chipsNav.addEventListener("touchend", endDrawerDrag, { passive: true });
+  chipsNav.addEventListener("touchcancel", endDrawerDrag, { passive: true });
   scrim.addEventListener("click", closePicker);
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape" && chipsNav.classList.contains("open")) { closePicker(); catBtn.focus(); }

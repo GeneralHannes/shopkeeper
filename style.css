@@ -281,22 +281,32 @@ footer p{margin:.2rem 0}
   .chips .sort{display:block;flex:1 1 100%;margin-bottom:.15rem}
   .chips .sort select{width:100%;max-width:none}
 
-  /* the picker sheet the island opens */
+  /* the picker: a full-height drawer off the right edge. A single scrolling
+     column of rows is far easier to aim at than wrapped chips, and it can hold
+     every shelf, category and the sort control without squeezing. */
   .chips{
-    position:fixed;left:50%;bottom:calc(4.4rem + env(safe-area-inset-bottom));
-    transform:translateX(-50%) translateY(10px) scale(.98);
-    width:calc(100% - 1.5rem);max-width:26rem;z-index:29;
-    display:flex;flex-wrap:wrap;gap:.35rem;padding:.7rem;
-    max-height:54vh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
+    position:fixed;inset:0 0 0 auto;left:auto;bottom:0;
+    width:min(80vw,21rem);max-width:21rem;max-height:none;z-index:29;
+    transform:translateX(100%);
+    display:flex;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:.28rem;
+    padding:calc(1rem + env(safe-area-inset-top)) .75rem calc(1.2rem + env(safe-area-inset-bottom));
+    overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;
     background:var(--glass);backdrop-filter:var(--glass-blur);
-    border:1px solid var(--glass-line);border-radius:20px;
-    box-shadow:var(--glass-edge),var(--glass-lift);
-    opacity:0;visibility:hidden;pointer-events:none;
-    transition:opacity .2s ease,transform .26s cubic-bezier(.22,.68,.32,1),visibility .26s}
-  .chips.open{opacity:1;visibility:visible;pointer-events:auto;transform:translateX(-50%) translateY(0) scale(1)}
-  .chip{font-size:.82rem;padding:.42rem .72rem;
-    background:color-mix(in srgb,var(--surface) 55%,transparent);border-color:var(--glass-line)}
-  .chip.on,.chip.shelf.on{background:var(--gold);border-color:var(--gold)}
+    border:1px solid var(--glass-line);border-right:0;border-radius:20px 0 0 20px;
+    box-shadow:var(--glass-edge),-14px 0 44px -14px rgba(0,0,0,.5);
+    transition:transform .34s cubic-bezier(.22,.68,.32,1),visibility .34s;
+    opacity:1;visibility:hidden;pointer-events:none}
+  .chips.open{visibility:visible;pointer-events:auto;transform:translateX(0)}
+  .chips::before{content:"Browse";display:block;flex:none;
+    font-size:.66rem;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-3);
+    padding:.1rem .35rem .5rem}
+  /* rows, not chips: full width, label left, count right */
+  .chips .chip{width:100%;flex:none;justify-content:space-between;
+    padding:.72rem .85rem;border-radius:12px;font-size:.92rem}
+  .chip-div{width:auto;height:1px;align-self:stretch;margin:.45rem .35rem}
+  .chip{background:color-mix(in srgb,var(--surface) 52%,transparent);border-color:var(--glass-line)}
+  .chip.on,.chip.shelf.on{background:var(--gold);border-color:var(--gold);color:var(--surface)}
+  .chips .sort select{font-size:16px;padding:.6rem .7rem}
   .sheet-scrim{display:block;position:fixed;inset:0;z-index:28;background:rgba(5,9,16,.4);
     opacity:0;transition:opacity .22s ease}
   .sheet-scrim.open{opacity:1}
