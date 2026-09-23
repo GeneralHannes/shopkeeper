@@ -213,7 +213,9 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
 .grid.reveal .card.veil{opacity:0;transform:translateY(14px)}
 .grid.reveal .card.shown{opacity:1;transform:none;
   transition:opacity .5s ease,transform .55s cubic-bezier(.22,.68,.32,1)}
-.card.rise{animation:riseIn .34s cubic-bezier(.22,.68,.32,1) both;animation-delay:calc(var(--i,0) * 14ms)}
+/* `backwards` for the same reason as the islands: filling forwards would pin
+   transform and the hover lift would stop working after any filter change. */
+.card.rise{animation:riseIn .34s cubic-bezier(.22,.68,.32,1) backwards;animation-delay:calc(var(--i,0) * 14ms)}
 .empty{text-align:center;color:var(--ink-3);padding:3.5rem 1rem;font-size:.92rem}
 
 /* ---------- detail ---------- */
@@ -407,51 +409,67 @@ body.picker-open{overflow:hidden}
      thing on the page; a mostly-opaque ground reads the same and costs nothing */
   .top{backdrop-filter:none}
 
-  /* the island: search + category, floating centre-bottom */
+  /* Two islands at the bottom, not one capsule holding both: the search on the
+     left and the category on its own at the right. Both are fixed and sized by
+     left/right rather than a width plus a centring transform, which keeps
+     transform free for the moves below — and keeps the search island from being
+     a containing block for anything. The category is a fixed width so the
+     search can reserve exactly the space beside it and never collide, however
+     long the chosen category's name is. */
   .tools{
-    position:fixed;left:50%;bottom:calc(.75rem + env(safe-area-inset-bottom));
-    transform:translateX(-50%);z-index:30;
-    width:calc(100% - 1.5rem);max-width:26rem;flex:none;gap:.35rem;
-    padding:.38rem .4rem;border-radius:999px;
+    position:fixed;left:.7rem;right:6.6rem;bottom:calc(.75rem + env(safe-area-inset-bottom));
+    transform:none;z-index:30;width:auto;max-width:none;flex:none;gap:0;
+    padding:.32rem .5rem .32rem .34rem;border-radius:999px;
     background:var(--glass);
     backdrop-filter:var(--glass-blur);
+    -webkit-backdrop-filter:var(--glass-blur);
     border:1px solid var(--glass-line);
     box-shadow:var(--glass-edge),var(--glass-lift);
-    transition:transform .32s cubic-bezier(.22,.68,.32,1),opacity .24s ease,
-               max-width .32s cubic-bezier(.22,.68,.32,1),gap .3s ease,
-               /* Deliberately short. Where the browser reports the keyboard
-                  continuously this only smooths the steps; where it reports it
-                  once, this is what turns a teleport into a move. Any longer
-                  and the island visibly trails the keyboard instead. */
-               bottom .18s ease-out;
+    transition:transform .34s cubic-bezier(.22,.68,.32,1),opacity .24s ease,
+               right .34s cubic-bezier(.22,.68,.32,1),
+               background .24s ease,border-color .24s ease,box-shadow .28s ease;
   }
-  /* Scrolling down collapses the search away but keeps the category pill —
-     it stays reachable, and the island shrinks to it rather than leaving. */
-  .search{flex:1 1 5rem;min-width:0;overflow:hidden;
-    transition:max-width .3s cubic-bezier(.22,.68,.32,1),opacity .2s ease;max-width:30rem}
-  body.bar-hidden .tools{max-width:10rem;gap:0;padding:.38rem .4rem}
-  body.bar-hidden .search{max-width:0;opacity:0;pointer-events:none}
-  /* Typing moves the island to the top of the screen, clear of the keyboard for
+  .catbtn{
+    position:fixed;right:.7rem;left:auto;top:auto;
+    bottom:calc(.75rem + env(safe-area-inset-bottom));z-index:30;
+    width:5.6rem;max-width:5.6rem;justify-content:space-between;
+    padding:.58rem .62rem .58rem .8rem;font-size:.82rem;
+    background:var(--glass);
+    backdrop-filter:var(--glass-blur);
+    -webkit-backdrop-filter:var(--glass-blur);
+    border:1px solid color-mix(in srgb,var(--gold) 36%,var(--glass-line));
+    box-shadow:var(--glass-edge),var(--glass-lift);
+    transition:transform .34s cubic-bezier(.22,.68,.32,1),opacity .24s ease,
+               background .2s ease,border-color .2s ease;
+  }
+  .search{flex:1 1 auto;min-width:0;overflow:hidden}
+
+  /* they rise in from the edge they live on */
+  @keyframes islandUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+  .js .tools{animation:islandUp .5s cubic-bezier(.22,.68,.32,1) .14s backwards}
+  .js .catbtn{animation:islandUp .5s cubic-bezier(.22,.68,.32,1) .22s backwards}
+
+  /* scrolling down sends the search away and leaves the category in reach */
+  body.bar-hidden .tools{transform:translateY(165%);opacity:0;pointer-events:none}
+
+  /* Typing moves the search to the top of the screen, clear of the keyboard for
      good — see liftIsland() in app.js for why it is done this way rather than by
-     measuring the keyboard. It travels by transform, so it is composited and the
-     island's existing transform transition animates it. The category pill folds
-     away at the same time, giving the field the whole width; both come back the
-     moment the field is let go. */
-  body.searching .tools{gap:0;max-width:26rem;
-    transform:translateX(-50%) translateY(calc(-1 * var(--lift,0px)));
+     measuring the keyboard. It travels by transform, so the move is composited.
+     At the same time it takes the category's width as well, and the category
+     drops away; both return the moment the field is let go. */
+  body.searching .tools{right:.7rem;
+    transform:translateY(calc(-1 * var(--lift,0px)));
     /* At the top of the screen it lands over the shop name and the first row of
        cards. Translucent there means the page bleeds through the very text you
        are trying to read, so while typing the pane goes near-solid. */
     background:var(--glass-solid);
     border-color:color-mix(in srgb,var(--gold) 40%,var(--glass-line));
     box-shadow:var(--glass-edge),0 14px 36px -10px rgba(0,0,0,.55)}
-  body.searching .catbtn{max-width:0;padding-left:0;padding-right:0;
-    opacity:0;pointer-events:none;border-color:transparent}
-  /* belt and braces: the field must never be collapsed while it holds the caret */
-  body.searching .search{max-width:30rem;opacity:1;pointer-events:auto}
-  /* the drawer replaces the whole island, so that one does slide away */
-  body.picker-open .tools{
-    transform:translateX(-50%) translateY(160%);opacity:0;pointer-events:none}
+  body.searching .catbtn{transform:translateY(165%);opacity:0;pointer-events:none}
+
+  /* the drawer replaces both, so both slide away */
+  body.picker-open .tools,body.picker-open .catbtn{
+    transform:translateY(175%);opacity:0;pointer-events:none}
   .search svg{left:.7rem}
   #q{border:none;background:transparent;border-radius:999px;padding:.5rem .3rem .5rem 2rem;
     text-overflow:ellipsis}
@@ -555,7 +573,7 @@ body.picker-open{overflow:hidden}
   /* the search island */
   .tools{position:fixed;top:.9rem;left:0;right:0;margin-inline:auto;transform:none;
     pointer-events:auto;z-index:31;
-    width:min(30rem,40vw);min-width:0;max-width:30rem;flex:none;
+    width:min(30rem,40vw);min-width:0;max-width:none;flex:none;
     display:flex;align-items:center;gap:0;
     padding:.3rem .5rem .3rem .32rem;border-radius:999px;
     background:var(--glass);backdrop-filter:var(--glass-blur);
@@ -563,8 +581,11 @@ body.picker-open{overflow:hidden}
     border:1px solid var(--glass-line);
     box-shadow:var(--glass-edge),var(--glass-lift);
     transition:box-shadow .28s ease,border-color .22s ease,
-               transform .26s cubic-bezier(.2,.7,.3,1)}
-  .tools:focus-within{border-color:color-mix(in srgb,var(--gold) 45%,var(--glass-line));
+               transform .26s cubic-bezier(.2,.7,.3,1),
+               width .34s cubic-bezier(.22,.68,.32,1)}
+  /* using it gives it room: the island grows, still centred by its auto margins */
+  .tools:focus-within{width:min(42rem,62vw);
+    border-color:color-mix(in srgb,var(--gold) 45%,var(--glass-line));
     box-shadow:var(--glass-edge),0 18px 44px -12px rgba(15,23,35,.52)}
 
   /* the category island */
@@ -591,9 +612,13 @@ body.picker-open{overflow:hidden}
   /* one keyframe for all three, staggered — none of them are centred by a
      transform now, so none of them need their own variant */
   @keyframes islandIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
-  .js .ident{animation:islandIn .55s cubic-bezier(.22,.68,.32,1) .05s both}
-  .js .tools{animation:islandIn .55s cubic-bezier(.22,.68,.32,1) .12s both}
-  .js .catbtn{animation:islandIn .55s cubic-bezier(.22,.68,.32,1) .19s both}
+  /* `backwards`, never `both`: a filled-forwards animation keeps its last
+     keyframe applied for good, and animation declarations outrank normal ones —
+     so `transform:none` would win over every :hover and :focus transform below
+     and the islands would never move again. */
+  .js .ident{animation:islandIn .55s cubic-bezier(.22,.68,.32,1) .05s backwards}
+  .js .tools{animation:islandIn .55s cubic-bezier(.22,.68,.32,1) .12s backwards}
+  .js .catbtn{animation:islandIn .55s cubic-bezier(.22,.68,.32,1) .19s backwards}
 
   .search{flex:1 1 auto;min-width:0}
   #q{background:transparent;border:none;box-shadow:none;border-radius:999px;
@@ -653,7 +678,8 @@ body.picker-open{overflow:hidden}
      them touching, so they stack: name above, controls below, both still
      floating. */
   .ident{top:.75rem;left:0;right:0;margin-inline:auto;width:max-content;padding:0}
-  .tools{top:3.5rem;width:min(26rem,62vw);max-width:26rem}
+  .tools{top:3.5rem;width:min(26rem,62vw);max-width:none}
+  .tools:focus-within{width:min(34rem,80vw)}
   .catbtn{top:3.5rem;right:1rem}
   .shop{font-size:.95rem}
   .tag{display:none}
@@ -717,7 +743,8 @@ body.picker-open{overflow:hidden}
   .shop{font-size:.88rem}
   .tag{display:none}
   .tools{position:fixed;top:.5rem;bottom:auto;left:0;right:0;margin-inline:auto;
-    width:min(24rem,40vw);max-width:24rem;padding:.26rem .4rem .26rem .28rem}
+    width:min(24rem,40vw);max-width:none;padding:.26rem .4rem .26rem .28rem}
+  .tools:focus-within{width:min(34rem,60vw)}
   /* the portrait island lifts to dodge the keyboard; up here it is already clear */
   body.searching .tools{transform:none;background:var(--glass)}
   /* the category keeps to the far right, clear of the search capsule */

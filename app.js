@@ -211,20 +211,15 @@
   }
   placeSort();
 
-  // Above phone size the category is its own floating island, so it has to leave
-  // the search island in the DOM as well as on screen: .tools carries a
+  // The category is its own floating island at every size, so it has to leave the
+  // search island in the DOM as well as on screen: .tools carries a
   // backdrop-filter, and that makes it the containing block for any
-  // position:fixed descendant — a category pinned to the corner from inside it
-  // would anchor to the search capsule instead of the viewport.
-  var catHome = catBtn.parentNode;               // the island, on phones
+  // position:fixed descendant — a category pinned to a corner from inside it
+  // would anchor to the search capsule rather than to the viewport.
   var topEl = document.querySelector(".top");
-  function placeCat() {
-    var target = phoneMQ.matches ? catHome : topEl;
-    if (catBtn.parentNode !== target) target.appendChild(catBtn);
-  }
-  placeCat();
+  if (topEl && catBtn.parentNode !== topEl) topEl.appendChild(catBtn);
 
-  phoneMQ.addEventListener("change", function () { placeCat(); closePicker(); });
+  phoneMQ.addEventListener("change", closePicker);
 
   function openPicker() {
     chipsNav.classList.add("open");
