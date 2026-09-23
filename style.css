@@ -19,6 +19,17 @@
   --glass-line:color-mix(in srgb,var(--ink) 12%,transparent);
   --shadow-lift:0 2px 4px rgba(19,26,36,.08),0 18px 40px -16px rgba(19,26,36,.3);
   --bifrost:linear-gradient(90deg,#B8912A,#C4762F,#5C7FA4,#6B5E9E,#41539A);
+  /* Glass only reads as glass when there is something behind it. This is that
+     something: a fixed, very low-contrast wash the panes sit over. Two soft
+     lights — gold low east, cold steel high west — so translucency reveals a
+     gradient rather than flat paint. */
+  --ambient:radial-gradient(1100px 700px at 12% -8%,color-mix(in srgb,var(--steel) 13%,transparent),transparent 62%),
+            radial-gradient(900px 620px at 100% 108%,color-mix(in srgb,var(--gold) 12%,transparent),transparent 60%);
+  /* a denser pane for wide surfaces (cards, the sheet) — text stays legible */
+  --glass-solid:linear-gradient(to bottom,color-mix(in srgb,var(--surface) 92%,transparent),
+                                          color-mix(in srgb,var(--surface) 80%,transparent));
+  /* the specular that follows the pointer across a pane */
+  --sheen:color-mix(in srgb,#fff 40%,transparent);
   /* crossed diagonals = a lattice; reads as woven cloth or a shield face */
   --weave:repeating-linear-gradient(45deg,transparent 0 9px,color-mix(in srgb,var(--gold) 7%,transparent) 9px 10px),
           repeating-linear-gradient(-45deg,transparent 0 9px,color-mix(in srgb,var(--gold) 7%,transparent) 9px 10px);
@@ -40,6 +51,11 @@
     --bifrost:linear-gradient(90deg,#D4AF37,#D98A3C,#8FA6BF,#8B7BC4,#5A6FC0);
     --weave:repeating-linear-gradient(45deg,transparent 0 9px,color-mix(in srgb,var(--gold) 9%,transparent) 9px 10px),
             repeating-linear-gradient(-45deg,transparent 0 9px,color-mix(in srgb,var(--gold) 9%,transparent) 9px 10px);
+    --ambient:radial-gradient(1100px 700px at 12% -8%,color-mix(in srgb,var(--steel) 17%,transparent),transparent 62%),
+              radial-gradient(900px 620px at 100% 108%,color-mix(in srgb,var(--gold) 13%,transparent),transparent 60%);
+    --glass-solid:linear-gradient(to bottom,color-mix(in srgb,var(--surface) 88%,transparent),
+                                            color-mix(in srgb,var(--surface) 72%,transparent));
+    --sheen:color-mix(in srgb,#fff 15%,transparent);
   }
 }
 *,*::before,*::after{box-sizing:border-box}
@@ -49,6 +65,9 @@ body{
   font-family:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   font-size:15px; line-height:1.55; overflow-x:hidden; -webkit-font-smoothing:antialiased;
 }
+/* One fixed layer, painted once and composited thereafter — the atmosphere the
+   glass sits in. Behind all content, so it never costs a repaint on scroll. */
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:var(--ambient)}
 .sr,.skip{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .skip:focus{position:fixed;top:.6rem;left:.6rem;width:auto;height:auto;clip:auto;margin:0;padding:.6rem 1rem;background:var(--gold);color:#0D131E;border-radius:7px;z-index:60}
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:4px}
@@ -67,10 +86,6 @@ body{
 .js .mark{animation:ringIn .62s cubic-bezier(.2,.9,.3,1.25) both}
 .js .shop{animation:eyeIn .5s cubic-bezier(.22,.68,.32,1) .08s both}
 .js .tag{animation:eyeIn .5s cubic-bezier(.22,.68,.32,1) .16s both}
-@media (min-width:641px){
-  .js .tools{animation:eyeIn .55s cubic-bezier(.22,.68,.32,1) .22s both}
-  .js .chips{animation:eyeIn .55s cubic-bezier(.22,.68,.32,1) .28s both}
-}
 .bar{display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;padding:.9rem clamp(1rem,4vw,2.5rem) .7rem;max-width:1600px;margin:0 auto}
 .ident{display:flex;align-items:center;gap:.75rem;margin-right:auto}
 /* a gold arm-ring — Norse oath-token and currency both, which suits a shop */
@@ -90,6 +105,17 @@ body{
 
 .chips{display:flex;gap:.4rem;overflow-x:auto;padding:0 clamp(1rem,4vw,2.5rem) .8rem;max-width:1600px;margin:0 auto;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
+.chip,.catbtn,.dlg-nav button{position:relative;overflow:hidden;isolation:isolate}
+.droplet{position:absolute;width:var(--d,120px);height:var(--d,120px);left:var(--x,50%);top:var(--y,50%);
+  border-radius:50%;pointer-events:none;z-index:-1;
+  background:radial-gradient(circle closest-side,
+    color-mix(in srgb,var(--gold) 55%,transparent) 0%,
+    color-mix(in srgb,var(--gold) 22%,transparent) 45%,transparent 72%);
+  transform:translate(-50%,-50%) scale(0);opacity:.95;
+  animation:droplet .62s cubic-bezier(.22,.68,.32,1) forwards}
+@keyframes droplet{
+  60%{opacity:.5}
+  to{transform:translate(-50%,-50%) scale(1);opacity:0}}
 .chip{flex:none;display:inline-flex;align-items:center;gap:.42rem;padding:.36rem .72rem;font:inherit;font-size:.8rem;
   color:var(--ink-2);background:var(--surface);border:1px solid var(--line-2);border-radius:999px;cursor:pointer;
   transition:background .16s,color .16s,border-color .16s}
@@ -103,10 +129,17 @@ body{
 main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
 .count{margin:0 0 1rem;font-size:.72rem;text-transform:uppercase;letter-spacing:.15em;color:var(--ink-3);font-variant-numeric:tabular-nums}
 .grid{display:grid;gap:clamp(.8rem,1.6vw,1.3rem);grid-template-columns:repeat(auto-fill,minmax(min(100%,190px),1fr))}
-.card{position:relative;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);
+/* Cards carry the glass language at every size — translucent fill, specular
+   edge, real depth — but deliberately no backdrop-filter: there are ~170 of
+   them, and what sits behind each is the ambient gradient, which has nothing to
+   blur anyway. The look is identical and the scroll stays at refresh rate. */
+.card{position:relative;display:flex;flex-direction:column;
+  background:var(--glass-solid);border:1px solid var(--glass-line);
   border-radius:13px;overflow:hidden;box-shadow:var(--shadow);cursor:pointer;
   transition:transform .2s cubic-bezier(.2,.7,.3,1),box-shadow .2s,border-color .2s}
-.card:focus-visible{transform:translateY(-3px);box-shadow:var(--shadow-lift);border-color:var(--gold-soft)}
+.card{box-shadow:var(--glass-edge),var(--shadow)}
+.card:focus-visible{transform:translateY(-3px);box-shadow:var(--glass-edge),var(--shadow-lift);
+  border-color:var(--gold-soft)}
 @media (hover:hover){
   .card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lift);border-color:var(--gold-soft)}
   .shot img{transition:transform .55s cubic-bezier(.22,.68,.32,1)}
@@ -171,6 +204,12 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
 @keyframes riseIn{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
 /* applied by script to the first screenful only — animating 170 cards at once
    is what makes a filter change stutter rather than glide */
+/* Scroll-linked reveal is driven from script (see app.js) rather than from a
+   native scroll timeline: Gecko still ships those off by default and older
+   WebKit lacks them, so one hand-driven path gives every browser the same
+   motion instead of a good one here and a fallback there. The script writes the
+   independent `translate` property, never `transform`, so hover and press keep
+   that to themselves and the two never fight over one property. */
 .grid.reveal .card.veil{opacity:0;transform:translateY(14px)}
 .grid.reveal .card.shown{opacity:1;transform:none;
   transition:opacity .5s ease,transform .55s cubic-bezier(.22,.68,.32,1)}
@@ -179,7 +218,10 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
 
 /* ---------- detail ---------- */
 #dlg{border:1px solid var(--line-2);border-radius:15px;background:var(--surface);color:var(--ink);
-  padding:0;max-width:min(560px,92vw);width:100%;max-height:88vh;max-height:88svh;overflow:auto;box-shadow:var(--shadow-lift);
+  padding:0;max-width:min(560px,92vw);width:100%;max-height:88vh;max-height:88svh;
+  /* the swipe translates .dlg-body past the edge; without this that counts as
+     scrollable overflow and the sheet can be dragged sideways off its own content */
+  overflow:auto;overflow-x:hidden;box-shadow:var(--shadow-lift);
   opacity:0;transform:scale(.965) translateY(8px);
   transition:opacity .24s ease,transform .26s cubic-bezier(.22,.68,.32,1),
              overlay .26s allow-discrete,display .26s allow-discrete}
@@ -198,8 +240,9 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
 .dlg-txt{padding:1.3rem 1.4rem 1.5rem;display:flex;flex-direction:column;gap:.3rem}
 .dlg-txt h2{margin:.15rem 0 .2rem;font-family:"Marcellus",Georgia,serif;font-size:1.36rem;font-weight:400;line-height:1.24;text-wrap:balance}
 .dlg-txt .price{font-size:1.5rem;margin-top:.6rem}
-.rows{margin:.9rem 0 0;border-top:1px solid var(--line);font-size:.82rem}
-.rows div{display:flex;justify-content:space-between;gap:1rem;padding:.42rem 0;border-bottom:1px solid var(--line)}
+.rows{margin:.9rem 0 0;border-top:1px solid var(--glass-line);font-size:.82rem}
+.rows div{display:flex;justify-content:space-between;gap:1rem;padding:.42rem 0;
+  border-bottom:1px solid var(--glass-line)}
 .rows dt{color:var(--ink-3)}
 .rows dd{margin:0;font-variant-numeric:tabular-nums;text-align:right}
 .grab{display:none}
@@ -215,7 +258,7 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
 @keyframes shotInR{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:none}}
 .dlg-shot img.from-r{animation:shotInL .28s cubic-bezier(.22,.68,.32,1) both}
 .dlg-shot img.from-l{animation:shotInR .28s cubic-bezier(.22,.68,.32,1) both}
-.dlg-nav{display:flex;align-items:center;justify-content:center;gap:.7rem;
+.dlg-nav{display:flex;align-items:center;justify-content:center;gap:.7rem;position:relative;
   padding:.6rem 1rem calc(.7rem + env(safe-area-inset-bottom));
   border-top:1px solid var(--glass-line);background:var(--glass);
   backdrop-filter:var(--glass-blur);box-shadow:var(--glass-edge);
@@ -226,6 +269,8 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
   backdrop-filter:var(--glass-blur);box-shadow:var(--glass-edge);
   transition:opacity .18s ease,transform .18s ease}
 .dlg-nav button:not([disabled]):active{transform:scale(.9)}
+.dlg-nav .close{position:absolute;left:1rem}
+@media (min-width:641px){.dlg-nav .close{display:none}}
 .dlg-nav button svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.4;
   stroke-linecap:round;stroke-linejoin:round}
 .dlg-nav button[disabled]{opacity:.3;cursor:default}
@@ -239,10 +284,113 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
   border-radius:50%;cursor:pointer}
 @media (hover:hover){.x:hover{color:var(--ink);border-color:var(--line-2)}}
 
-footer{border-top:1px solid var(--line);padding:1.6rem clamp(1rem,4vw,2.5rem) 2.4rem;max-width:1600px;margin:0 auto;
+footer{border-top:1px solid var(--glass-line);
+  background:linear-gradient(to bottom,transparent,color-mix(in srgb,var(--surface) 38%,transparent));
+  padding:1.6rem clamp(1rem,4vw,2.5rem) 2.4rem;max-width:1600px;margin:0 auto;
   font-size:.78rem;color:var(--ink-2)}
 footer p{margin:.2rem 0}
 .fine{color:var(--ink-3)}
+
+/* ---------- the category drawer ----------
+   Shared by every screen size. It began as the phone picker, but the desktop
+   island uses the same control: one floating capsule holding search and a
+   category button, and a single scrolling column of rows behind it. Rows are
+   easier to aim at than wrapped chips at any size, and the drawer can hold
+   every shelf, category and the sort control without squeezing. */
+.catbtn{
+  display:inline-flex;align-items:center;gap:.22rem;flex:none;max-width:12rem;
+  padding:.5rem .6rem .5rem .75rem;font:inherit;font-size:.82rem;font-weight:600;
+  color:var(--gold);background:color-mix(in srgb,var(--gold) 12%,transparent);
+  border:1px solid color-mix(in srgb,var(--gold) 38%,transparent);
+  border-radius:999px;cursor:pointer;white-space:nowrap;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35);
+  transition:background .18s ease,border-color .18s ease,transform .14s ease,
+             max-width .3s cubic-bezier(.22,.68,.32,1),opacity .2s ease,padding .3s ease}
+.catbtn:active{transform:scale(.94)}
+.catbtn span{overflow:hidden;text-overflow:ellipsis}
+.catbtn svg{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:2.4;
+  stroke-linecap:round;stroke-linejoin:round;transition:transform .24s cubic-bezier(.22,.68,.32,1)}
+.catbtn[aria-expanded="true"]{background:var(--gold);border-color:var(--gold);color:var(--surface)}
+.catbtn[aria-expanded="true"] svg{transform:rotate(180deg)}
+.sort{display:none}                       /* relocated into the picker */
+.chips .sort{display:block;flex:none;width:100%;margin:0 0 .2rem}
+/* the id beats the base #sort rule; without it the select keeps its old box */
+.chips #sort{width:100%;max-width:none;font:inherit;font-size:.86rem;
+  color:var(--ink-2);padding:.62rem .85rem;border-radius:14px;cursor:pointer;
+  background:linear-gradient(to bottom,color-mix(in srgb,var(--surface) 62%,transparent),
+                                       color-mix(in srgb,var(--surface) 44%,transparent));
+  border:1px solid var(--glass-line);box-shadow:var(--glass-edge);
+  transition:border-color .18s ease,color .18s ease}
+@media (hover:hover){.chips #sort:hover{border-color:var(--gold-soft);color:var(--ink)}}
+
+/* the picker: a full-height drawer off the right edge. A single scrolling
+   column of rows is far easier to aim at than wrapped chips, and it can hold
+   every shelf, category and the sort control without squeezing. */
+.chips{
+  position:fixed;top:auto;left:auto;right:.6rem;bottom:.6rem;
+  width:min(82vw,21rem);max-width:21rem;z-index:32;
+  height:min(68vh,34rem);height:min(68svh,34rem);
+  /* far enough to clear its own gap and shadow when closed */
+  transform:translateX(calc(100% + 1.4rem));
+  display:flex;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:.28rem;
+  padding:.9rem .75rem calc(1rem + env(safe-area-inset-bottom));
+  overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;
+  -webkit-overflow-scrolling:touch;scroll-behavior:smooth;
+  background:var(--glass);backdrop-filter:var(--glass-blur);
+  border:1px solid var(--glass-line);border-radius:22px;
+  box-shadow:var(--glass-edge),var(--glass-lift);
+  transition:transform .34s cubic-bezier(.22,.68,.32,1),visibility .34s;
+  opacity:1;visibility:hidden;pointer-events:none}
+.chips.open{visibility:visible;pointer-events:auto;transform:translateX(0)}
+.chips::before{content:"Browse";display:block;flex:none;margin-top:auto;
+  font-size:.66rem;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-3);
+  padding:.1rem .35rem .5rem}
+/* A heading, not a footnote — it is the first thing in the panel. */
+.chips::before{font-size:.62rem;letter-spacing:.2em;color:var(--ink-3);
+  padding:.1rem .5rem .55rem}
+
+/* Rows, not chips: full width, label left, count right — and each one its own
+   pane. No backdrop-filter per row: the panel behind them is already blurred,
+   so seventeen more blurs would cost a great deal and show nothing. The glass
+   reads from the translucent fill and the specular top edge instead. */
+.chips .chip{width:100%;flex:none;justify-content:space-between;
+  padding:.72rem .9rem;border-radius:14px;font-size:.92rem;
+  color:var(--ink-2);
+  background:linear-gradient(to bottom,color-mix(in srgb,var(--surface) 62%,transparent),
+                                       color-mix(in srgb,var(--surface) 44%,transparent));
+  border:1px solid var(--glass-line);
+  box-shadow:var(--glass-edge);
+  transition:background .18s ease,color .18s ease,border-color .18s ease,
+             box-shadow .22s ease,transform .16s cubic-bezier(.2,.7,.3,1)}
+/* the count is a pane too, sunk into the row rather than sitting on it */
+.chips .chip i{font-size:.72rem;padding:.12rem .45rem;
+  color:var(--ink-3);background:color-mix(in srgb,var(--ink) 7%,transparent);
+  border:1px solid var(--glass-line);box-shadow:none}
+.chips .chip:active{transform:scale(.985)}
+/* the selected shelf glows rather than merely filling */
+.chips .chip.on,.chips .chip.shelf.on{
+  color:var(--surface);border-color:var(--gold);
+  background:linear-gradient(to bottom,color-mix(in srgb,var(--gold) 92%,#fff),var(--gold));
+  box-shadow:var(--glass-edge),0 8px 20px -8px color-mix(in srgb,var(--gold) 65%,transparent)}
+.chips .chip.on i,.chips .chip.shelf.on i{
+  color:var(--surface);border-color:color-mix(in srgb,var(--surface) 45%,transparent);
+  background:color-mix(in srgb,var(--surface) 26%,transparent)}
+/* the curated shelves read as gold glass before they are chosen */
+.chips .chip.shelf{color:var(--gold);
+  border-color:color-mix(in srgb,var(--gold) 34%,var(--glass-line));
+  background:linear-gradient(to bottom,color-mix(in srgb,var(--gold) 13%,transparent),
+                                       color-mix(in srgb,var(--gold) 6%,transparent))}
+.chips .chip.shelf i{color:var(--gold);
+  background:color-mix(in srgb,var(--gold) 14%,transparent);
+  border-color:color-mix(in srgb,var(--gold) 28%,transparent)}
+/* a hairline that fades out at both ends, not a hard rule */
+.chip-div{width:auto;height:1px;align-self:stretch;margin:.55rem .4rem;background:
+  linear-gradient(90deg,transparent,var(--glass-line) 18%,var(--glass-line) 82%,transparent)}
+.sheet-scrim{display:block;position:fixed;inset:0;z-index:31;background:rgba(5,9,16,.4);
+  opacity:0;transition:opacity .22s ease}
+.sheet-scrim.open{opacity:1}
+.sheet-scrim[hidden]{display:none}
+body.picker-open{overflow:hidden}
 
 /* ---------- phones ---------- */
 @media (max-width:640px){
@@ -270,71 +418,45 @@ footer p{margin:.2rem 0}
     border:1px solid var(--glass-line);
     box-shadow:var(--glass-edge),var(--glass-lift);
     transition:transform .32s cubic-bezier(.22,.68,.32,1),opacity .24s ease,
-               max-width .32s cubic-bezier(.22,.68,.32,1),gap .3s ease;
+               max-width .32s cubic-bezier(.22,.68,.32,1),gap .3s ease,
+               /* Deliberately short. Where the browser reports the keyboard
+                  continuously this only smooths the steps; where it reports it
+                  once, this is what turns a teleport into a move. Any longer
+                  and the island visibly trails the keyboard instead. */
+               bottom .18s ease-out;
   }
   /* Scrolling down collapses the search away but keeps the category pill —
      it stays reachable, and the island shrinks to it rather than leaving. */
-  .search{transition:max-width .3s cubic-bezier(.22,.68,.32,1),opacity .2s ease;
-    max-width:30rem;overflow:hidden}
+  .search{flex:1 1 5rem;min-width:0;overflow:hidden;
+    transition:max-width .3s cubic-bezier(.22,.68,.32,1),opacity .2s ease;max-width:30rem}
   body.bar-hidden .tools{max-width:10rem;gap:0;padding:.38rem .4rem}
   body.bar-hidden .search{max-width:0;opacity:0;pointer-events:none}
+  /* Typing moves the island to the top of the screen, clear of the keyboard for
+     good — see liftIsland() in app.js for why it is done this way rather than by
+     measuring the keyboard. It travels by transform, so it is composited and the
+     island's existing transform transition animates it. The category pill folds
+     away at the same time, giving the field the whole width; both come back the
+     moment the field is let go. */
+  body.searching .tools{gap:0;max-width:26rem;
+    transform:translateX(-50%) translateY(calc(-1 * var(--lift,0px)));
+    /* At the top of the screen it lands over the shop name and the first row of
+       cards. Translucent there means the page bleeds through the very text you
+       are trying to read, so while typing the pane goes near-solid. */
+    background:var(--glass-solid);
+    border-color:color-mix(in srgb,var(--gold) 40%,var(--glass-line));
+    box-shadow:var(--glass-edge),0 14px 36px -10px rgba(0,0,0,.55)}
+  body.searching .catbtn{max-width:0;padding-left:0;padding-right:0;
+    opacity:0;pointer-events:none;border-color:transparent}
+  /* belt and braces: the field must never be collapsed while it holds the caret */
+  body.searching .search{max-width:30rem;opacity:1;pointer-events:auto}
   /* the drawer replaces the whole island, so that one does slide away */
   body.picker-open .tools{
     transform:translateX(-50%) translateY(160%);opacity:0;pointer-events:none}
   .search svg{left:.7rem}
-  #q{border:none;background:transparent;border-radius:999px;padding:.5rem .4rem .5rem 2.1rem}
+  #q{border:none;background:transparent;border-radius:999px;padding:.5rem .3rem .5rem 2rem;
+    text-overflow:ellipsis}
   #q:focus{box-shadow:none;border-color:transparent}
-  /* the small island beside it */
-  .catbtn{
-    display:inline-flex;align-items:center;gap:.22rem;flex:none;max-width:9.5rem;
-    padding:.5rem .6rem .5rem .75rem;font:inherit;font-size:.82rem;font-weight:600;
-    color:var(--gold);background:color-mix(in srgb,var(--gold) 12%,transparent);
-    border:1px solid color-mix(in srgb,var(--gold) 38%,transparent);
-    border-radius:999px;cursor:pointer;white-space:nowrap;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.35);
-    transition:background .18s ease,border-color .18s ease,transform .14s ease}
-  .catbtn:active{transform:scale(.94)}
-  .catbtn span{overflow:hidden;text-overflow:ellipsis}
-  .catbtn svg{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:2.4;
-    stroke-linecap:round;stroke-linejoin:round;transition:transform .24s cubic-bezier(.22,.68,.32,1)}
-  .catbtn[aria-expanded="true"]{background:var(--gold);border-color:var(--gold);color:var(--surface)}
-  .catbtn[aria-expanded="true"] svg{transform:rotate(180deg)}
-  .sort{display:none}                       /* relocated into the picker */
-  .chips .sort{display:block;flex:1 1 100%;margin-bottom:.15rem}
-  .chips .sort select{width:100%;max-width:none}
-
-  /* the picker: a full-height drawer off the right edge. A single scrolling
-     column of rows is far easier to aim at than wrapped chips, and it can hold
-     every shelf, category and the sort control without squeezing. */
-  .chips{
-    position:fixed;inset:0 0 0 auto;left:auto;bottom:0;
-    width:min(80vw,21rem);max-width:21rem;max-height:none;z-index:32;
-    transform:translateX(100%);
-    display:flex;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:.28rem;
-    padding:calc(1rem + env(safe-area-inset-top)) .75rem calc(1.2rem + env(safe-area-inset-bottom));
-    overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;
-    -webkit-overflow-scrolling:touch;scroll-behavior:smooth;
-    background:var(--glass);backdrop-filter:var(--glass-blur);
-    border:1px solid var(--glass-line);border-right:0;border-radius:20px 0 0 20px;
-    box-shadow:var(--glass-edge),-14px 0 44px -14px rgba(0,0,0,.5);
-    transition:transform .34s cubic-bezier(.22,.68,.32,1),visibility .34s;
-    opacity:1;visibility:hidden;pointer-events:none}
-  .chips.open{visibility:visible;pointer-events:auto;transform:translateX(0)}
-  .chips::before{content:"Browse";display:block;flex:none;
-    font-size:.66rem;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-3);
-    padding:.1rem .35rem .5rem}
-  /* rows, not chips: full width, label left, count right */
-  .chips .chip{width:100%;flex:none;justify-content:space-between;
-    padding:.72rem .85rem;border-radius:12px;font-size:.92rem}
-  .chip-div{width:auto;height:1px;align-self:stretch;margin:.45rem .35rem}
-  .chip{background:color-mix(in srgb,var(--surface) 52%,transparent);border-color:var(--glass-line)}
-  .chip.on,.chip.shelf.on{background:var(--gold);border-color:var(--gold);color:var(--surface)}
   .chips .sort select{font-size:16px;padding:.6rem .7rem}
-  .sheet-scrim{display:block;position:fixed;inset:0;z-index:31;background:rgba(5,9,16,.4);
-    opacity:0;transition:opacity .22s ease}
-  .sheet-scrim.open{opacity:1}
-  .sheet-scrim[hidden]{display:none}
-  body.picker-open{overflow:hidden}
   .ident{gap:.6rem}
   .shop{font-size:1.15rem}
   .tag{font-size:.68rem}
@@ -354,13 +476,23 @@ footer p{margin:.2rem 0}
   .count{margin-bottom:.75rem;font-size:.68rem}
   /* detail opens as a sheet rather than a cramped floating box */
   /* the grabber sits above the content and stays put while the sheet scrolls */
-  .grab{display:block;position:sticky;top:0;z-index:3;padding:.6rem 0 .25rem;background:var(--shot-a);
-    border-radius:16px 16px 0 0;cursor:grab;touch-action:none}
+  .grab{display:block;position:sticky;top:0;z-index:3;padding:.6rem 0 .25rem;
+    border-radius:18px 18px 0 0;cursor:grab;touch-action:none}
   .grab::after{content:"";display:block;width:38px;height:4px;margin:0 auto;border-radius:999px;
     background:color-mix(in srgb,var(--ink) 22%,transparent)}
-  #dlg{max-width:100%;width:100%;margin:auto auto 0;border-radius:16px 16px 0 0;max-height:92vh;max-height:92svh;
+  /* The sheet is a pane like everything else now. The blur is worth paying for
+     here even on a phone: the dialog is modal, so the grid behind it is frozen
+     while it is open and the blurred backdrop is painted once, not per frame. */
+  #dlg{max-width:100%;width:100%;margin:auto auto 0;border-radius:18px 18px 0 0;max-height:92vh;max-height:92svh;
     transform:translateY(100%);overscroll-behavior:contain;
+    background:var(--glass-solid);backdrop-filter:var(--glass-blur);
+    -webkit-backdrop-filter:var(--glass-blur);
     border-color:var(--glass-line);box-shadow:var(--glass-edge),var(--glass-lift)}
+  /* the grabber floats on the sheet rather than being a solid strip across it */
+  .grab{background:linear-gradient(to bottom,
+      color-mix(in srgb,var(--shot-a) 90%,transparent),
+      color-mix(in srgb,var(--shot-a) 62%,transparent));
+    backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
   #dlg[open]{transform:none}
   @starting-style{#dlg[open]{transform:translateY(100%)}}
   /* was a 135x180 bottle adrift in a 358px band — nearly two thirds empty.
@@ -384,5 +516,245 @@ footer p{margin:.2rem 0}
 @media (max-width:360px){
   .grid{gap:.55rem}
   .nm{font-size:.81rem}
+}
+/* ---------- glass: tablet and desktop ----------
+   The phone build deliberately avoids backdrop blur behind the scrolling grid —
+   it is the most expensive thing a phone GPU can be asked to do. From 641px up
+   there is both the room and the headroom for the full treatment, so every
+   chrome surface becomes a pane: translucent fill, a specular top edge, and
+   depth cast onto the ambient wash beneath. */
+@media (min-width:641px){
+  /* All of the desktop chrome is one floating island — the same object the phone
+     puts at the bottom of the screen, moored at the top where a pointer expects
+     it. Fixed rather than sticky, so the catalogue runs underneath and shows
+     through the pane; the categories live in the shared drawer behind the
+     button, which is what keeps this a capsule instead of a bar. */
+  /* Three separate things floating over the catalogue: the shop's name bare at
+     the left, the search as its own capsule in the middle, and the category as
+     its own capsule at the right. The header is only a positioning frame.
+     Note the centring is done with auto margins, not translateX: a transform
+     here would make this a containing block for the fixed category inside it. */
+  .top{position:fixed;top:0;left:0;right:0;z-index:30;
+    width:auto;max-width:none;margin:0;transform:none;
+    background:none;backdrop-filter:none;-webkit-backdrop-filter:none;
+    border:none;box-shadow:none;border-radius:0;pointer-events:none}
+  .top::after{display:none}
+  .bar{display:block;padding:0;max-width:none;margin:0}
+
+  /* the name, with no pane behind it — just a shadow so it survives the cards
+     that scroll underneath */
+  .ident{position:fixed;top:1rem;left:1.25rem;bottom:auto;right:auto;transform:none;
+    gap:.6rem;margin:0;padding:0;border:none;border-radius:0;
+    background:none;backdrop-filter:none;-webkit-backdrop-filter:none;
+    box-shadow:none;pointer-events:auto}
+  .shop,.tag{text-shadow:0 1px 4px color-mix(in srgb,var(--ground) 85%,transparent)}
+  .mark{width:22px;height:22px}
+  .shop{font-size:1rem}
+  .tag{font-size:.63rem;margin-top:.02rem}
+
+  /* the search island */
+  .tools{position:fixed;top:.9rem;left:0;right:0;margin-inline:auto;transform:none;
+    pointer-events:auto;z-index:31;
+    width:min(30rem,40vw);min-width:0;max-width:30rem;flex:none;
+    display:flex;align-items:center;gap:0;
+    padding:.3rem .5rem .3rem .32rem;border-radius:999px;
+    background:var(--glass);backdrop-filter:var(--glass-blur);
+    -webkit-backdrop-filter:var(--glass-blur);
+    border:1px solid var(--glass-line);
+    box-shadow:var(--glass-edge),var(--glass-lift);
+    transition:box-shadow .28s ease,border-color .22s ease,
+               transform .26s cubic-bezier(.2,.7,.3,1)}
+  .tools:focus-within{border-color:color-mix(in srgb,var(--gold) 45%,var(--glass-line));
+    box-shadow:var(--glass-edge),0 18px 44px -12px rgba(15,23,35,.52)}
+
+  /* the category island */
+  .catbtn{position:fixed;top:.9rem;right:1.15rem;left:auto;bottom:auto;z-index:31;
+    pointer-events:auto;max-width:none;
+    padding:.58rem .9rem .58rem 1.05rem;font-size:.86rem;border-radius:999px;
+    color:var(--gold);
+    background:var(--glass);backdrop-filter:var(--glass-blur);
+    -webkit-backdrop-filter:var(--glass-blur);
+    border:1px solid color-mix(in srgb,var(--gold) 34%,var(--glass-line));
+    box-shadow:var(--glass-edge),var(--glass-lift);
+    transition:box-shadow .28s ease,border-color .22s ease,
+               transform .24s cubic-bezier(.2,.7,.3,1),background .2s ease}
+  .catbtn svg{width:15px;height:15px}
+
+  @media (hover:hover){
+    .tools:hover,.catbtn:hover{transform:translateY(-1px);
+      box-shadow:var(--glass-edge),0 16px 38px -12px rgba(15,23,35,.46)}
+  }
+  .catbtn:active{transform:translateY(0) scale(.96)}
+  body.scrolled .tools,body.scrolled .catbtn{
+    box-shadow:var(--glass-edge),0 20px 50px -14px rgba(15,23,35,.5)}
+
+  /* one keyframe for all three, staggered — none of them are centred by a
+     transform now, so none of them need their own variant */
+  @keyframes islandIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
+  .js .ident{animation:islandIn .55s cubic-bezier(.22,.68,.32,1) .05s both}
+  .js .tools{animation:islandIn .55s cubic-bezier(.22,.68,.32,1) .12s both}
+  .js .catbtn{animation:islandIn .55s cubic-bezier(.22,.68,.32,1) .19s both}
+
+  .search{flex:1 1 auto;min-width:0}
+  #q{background:transparent;border:none;box-shadow:none;border-radius:999px;
+    padding:.6rem .7rem .6rem 2.15rem}
+  #q:focus{outline:none;border:none;box-shadow:none}
+  .search svg{left:.72rem}
+  /* all three are out of the flow, so the grid clears them itself */
+  main{padding-top:5.4rem}
+
+  /* The drawer is an island too, not a panel welded to the edge: detached on all
+     four sides, rounded all round, floating clear of the screen like the bar. */
+  .chips{right:1rem;bottom:1rem;width:min(24rem,32vw);max-width:24rem;
+    height:min(72vh,38rem);padding:1rem .8rem 1.05rem;gap:.34rem;
+    border:1px solid var(--glass-line);border-radius:22px;
+    box-shadow:var(--glass-edge),var(--glass-lift)}
+  .chips.open{transform:none}
+  .chips{transform:translateX(calc(100% + 1.5rem))}
+  /* a pointer does not need the list pushed down into thumb reach */
+  .chips::before{margin-top:0}
+  .chips .chip{padding:.62rem .85rem;font-size:.9rem;border-radius:12px}
+  @media (hover:hover){
+    .chip:hover{border-color:var(--gold-soft);color:var(--ink);
+      background:color-mix(in srgb,var(--surface) 74%,transparent)}
+  }
+  .chip:active{transform:scale(.99)}
+  .chip.on{box-shadow:var(--glass-edge),0 6px 18px -8px color-mix(in srgb,var(--gold) 55%,transparent)}
+
+  @media (hover:hover){
+    .card:hover{box-shadow:var(--glass-edge),var(--shadow-lift)}
+    /* a highlight that tracks the pointer across the pane, as light would move
+       over real glass. The script feeds it --mx/--my; without JS it never shows. */
+    .card::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+      opacity:0;transition:opacity .28s ease;
+      background:radial-gradient(240px circle at var(--mx,50%) var(--my,0%),
+        var(--sheen),transparent 62%)}
+    .card:hover::after{opacity:1}
+  }
+
+  /* the detail sheet is a single pane — here the blur is worth paying for */
+  #dlg{background:var(--glass-solid);backdrop-filter:var(--glass-blur);
+    -webkit-backdrop-filter:var(--glass-blur);
+    border-color:var(--glass-line);box-shadow:var(--glass-edge),var(--shadow-lift)}
+  .dlg-txt{background:transparent}
+
+}
+
+/* ---------- tablets ----------
+   iPad portrait is 768, iPad Pro 11" is 834, and 12.9" landscape lands exactly
+   on 1024 — so the band runs to 1024 inclusive and the desktop grid takes over
+   above it. Column counts are explicit rather than auto-fill: at these widths
+   auto-fill swings between four cramped cards and three wide ones depending on
+   the scrollbar, and a catalogue should not reflow like that. */
+@media (min-width:641px) and (max-width:1024px){
+  .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(.8rem,1.5vw,1.1rem)}
+  main{padding:8.4rem clamp(1rem,3.5vw,1.8rem) 3rem}
+  /* Not enough width for a mark on the left and a capsule in the middle without
+     them touching, so they stack: name above, controls below, both still
+     floating. */
+  .ident{top:.75rem;left:0;right:0;margin-inline:auto;width:max-content;padding:0}
+  .tools{top:3.5rem;width:min(26rem,62vw);max-width:26rem}
+  .catbtn{top:3.5rem;right:1rem}
+  .shop{font-size:.95rem}
+  .tag{display:none}
+  .chips{width:min(22rem,54vw)}
+  /* 170 cards is a long grid on a tablet too — skip what is off-screen */
+  .card{content-visibility:auto;contain-intrinsic-size:auto 340px}
+  /* the sheet has room to breathe here: a wider pane and a taller bottle */
+  #dlg{max-width:min(680px,88vw)}
+  .dlg-body{grid-template-columns:240px 1fr}
+  .dlg-shot img{max-height:280px}
+}
+/* the wider half of the band — iPad Pro, landscape, and Android 10" — carries a
+   fourth column comfortably */
+@media (min-width:835px) and (max-width:1024px){
+  .grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+/* a tablet held in landscape has width but very little height; keep the sheet
+   from running off the screen */
+@media (min-width:641px) and (max-height:600px){
+  #dlg{max-height:94vh;max-height:94svh}
+  .dlg-shot img{max-height:min(230px,44vh)}
+}
+
+/* ---------- touch, above phone size ----------
+   A tablet is a touch device with a desktop-width layout, so it falls between
+   the two sets of rules above: it needs the desktop chrome at finger sizes, and
+   it must not depend on hover for anything. Trackpad-equipped tablets report
+   hover:hover and simply keep the pointer treatment. */
+@media (hover:none) and (min-width:641px){
+  /* Apple's 44px minimum — chips were 30px tall and aimed at with a fingertip */
+  .chip{min-height:44px;padding:.5rem .95rem;font-size:.86rem;border-radius:14px}
+  .chip i{font-size:.72rem;padding:.1rem .42rem}
+  .chips{gap:.5rem;padding-bottom:.9rem}
+  .dlg-nav button{width:44px;height:44px}
+  .dlg-nav button svg{width:17px;height:17px}
+  .x{width:38px;height:38px;font-size:1.5rem}
+  /* 16px or iPadOS Safari zooms the page the moment the field takes focus */
+  #q,#sort{font-size:16px;padding-top:.7rem;padding-bottom:.7rem}
+  #q{padding-left:2.5rem}
+  /* the family tag is revealed by hover on desktop; with no pointer it would
+     never appear at all, so show it outright */
+  .fam-tag{opacity:.68}
+  .card{-webkit-tap-highlight-color:transparent}
+}
+
+/* ---------- phones held sideways ----------
+   A phone in landscape is 700–930px wide but only 330–430px tall. By width it
+   lands squarely in the tablet band, which stacks two islands and reserves
+   8.4rem for them — a fifth of the screen — while having less headroom than the
+   same phone had in portrait. So landscape gets its own layout, and every rule
+   here buys back vertical space: the chrome collapses to one slim row along the
+   top, the grid goes wide and shallow so a row costs less height, and the
+   drawer runs nearly the full height because there is none to waste. */
+@media (orientation:landscape) and (max-height:500px){
+  /* one row of chrome: name at the left, controls beside it, both floating */
+  .ident{position:fixed;top:.55rem;left:.7rem;right:auto;bottom:auto;transform:none;
+    gap:.45rem;margin:0;padding:0;border:none;border-radius:0;
+    background:none;backdrop-filter:none;-webkit-backdrop-filter:none;
+    box-shadow:none;pointer-events:auto}
+  .mark{width:19px;height:19px}
+  .shop{font-size:.88rem}
+  .tag{display:none}
+  .tools{position:fixed;top:.5rem;bottom:auto;left:0;right:0;margin-inline:auto;
+    width:min(24rem,40vw);max-width:24rem;padding:.26rem .4rem .26rem .28rem}
+  /* the portrait island lifts to dodge the keyboard; up here it is already clear */
+  body.searching .tools{transform:none;background:var(--glass)}
+  /* the category keeps to the far right, clear of the search capsule */
+  @media (min-width:641px){
+    .catbtn{top:.5rem;right:.6rem;padding:.44rem .72rem .44rem .85rem;font-size:.78rem}
+    .catbtn svg{width:13px;height:13px}
+  }
+  #q{padding:.5rem .7rem .5rem 2rem;font-size:16px}
+  .search svg{left:.66rem;width:15px;height:15px}
+  main{padding:3.5rem .8rem 2.4rem}
+  /* wide and shallow — more columns means a row costs less of the little height */
+  .grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr));gap:.7rem}
+  .card{content-visibility:auto;contain-intrinsic-size:auto 250px}
+  .info{padding:.5rem .6rem .65rem}
+  .nm{font-size:.85rem}
+  .brand{font-size:.56rem}
+  .meta{font-size:.66rem}
+  .price{font-size:.9rem;margin-top:.3rem}
+  .count{margin-bottom:.5rem;font-size:.66rem}
+  /* the drawer takes the whole height; there is none spare to leave empty */
+  .chips{top:.6rem;bottom:.6rem;height:auto;width:min(19rem,40vw);max-width:19rem;
+    padding:.7rem .6rem .8rem;gap:.26rem}
+  .chips .chip{padding:.5rem .75rem;font-size:.85rem;min-height:0;border-radius:12px}
+  .chips::before{padding:.05rem .4rem .35rem;margin-top:0}
+  .chips #sort{padding:.5rem .75rem;font-size:.85rem}
+  /* the sheet is a centred pane here, never a bottom sheet — there is no room */
+  .grab{display:none}
+  #dlg{max-width:min(92vw,42rem);max-height:94svh;margin:auto;border-radius:16px;
+    transform:scale(.97)}
+  #dlg[open]{transform:none}
+  .dlg-body{grid-template-columns:minmax(0,38%) 1fr}
+  .dlg-shot{border-radius:16px 0 0 16px;padding:.8rem}
+  .dlg-shot img{height:auto;width:auto;max-width:100%;max-height:64svh}
+  .dlg-txt{padding:1rem 1.1rem 1.2rem}
+  .dlg-txt h2{font-size:1.1rem}
+  .dlg-txt .price{font-size:1.2rem;margin-top:.35rem}
+  .rows{margin:.6rem 0 0;font-size:.78rem}
+  .rows div{padding:.32rem 0}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}

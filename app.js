@@ -19,6 +19,49 @@
   // already decoded — otherwise those would flash visible and re-fade.
   document.documentElement.classList.add("js");
   var calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // The reveal is scrubbed by hand for every browser alike. Native scroll
+  // timelines would be cheaper where they exist, but they do not exist in Gecko
+  // by default or in older WebKit, and a reveal that feels different depending
+  // on the phone is worse than one that costs a little. Only the few cards
+  // actually mid-reveal are touched per frame, so the cost stays small.
+  var band = [], scrubQueued = false;
+  function requestScrub() {
+    if (scrubQueued || !band.length) return;
+    scrubQueued = true;
+    requestAnimationFrame(paintScrub);
+  }
+  function paintScrub() {
+    scrubQueued = false;
+    var n = band.length;
+    if (!n) return;
+    var h = window.innerHeight || document.documentElement.clientHeight;
+    var i, ps = new Array(n);
+    for (i = 0; i < n; i++) {                 // every read first, so writing
+      var r = band[i].getBoundingClientRect(); // below cannot force a reflow
+      var travel = (r.height * 0.75) || 1;     // same 75%-of-itself as the CSS
+      var p = (h - r.top) / travel;
+      ps[i] = p < 0 ? 0 : p > 1 ? 1 : p;
+    }
+    for (i = 0; i < n; i++) {                 // then every write
+      var el = band[i], q = ps[i];
+      if (el._p === q) continue;              // nothing moved; skip the style set
+      el._p = q;
+      if (q >= 1) { el.style.opacity = ""; el.style.translate = ""; }
+      else {
+        el.style.opacity = String(q);
+        el.style.translate = "0 " + ((1 - q) * 20).toFixed(1) + "px";
+      }
+    }
+  }
+
+  // A rolling estimate of scroll speed in px/ms, smoothed so one stuttery event
+  // cannot flip the mode on its own.
+  var scrollV = 0, lastT = 0;
+  function flicking() {
+    // no scroll event for a moment means it has stopped — that is not a flick
+    if (!lastT || (performance.now() - lastT) > 120) return false;
+    return scrollV > 1.2;
+  }
   function watchImage(img) {
     if (img.complete && img.naturalWidth) { img.classList.add("ready"); return; }
     img.addEventListener("load", function () { img.classList.add("ready"); }, { once: true });
@@ -34,21 +77,46 @@
     cards.forEach(function (c) { c.classList.add("veil"); });
     var seen = new IntersectionObserver(function (entries, obs) {
       entries.forEach(function (en) {
-        if (!en.isIntersecting) return;
-        en.target.classList.add("shown");
-        obs.unobserve(en.target);
+        var el = en.target;
+        if (!en.isIntersecting) {             // left the screen; stop scrubbing it
+          var k = band.indexOf(el);
+          if (k > -1) band.splice(k, 1);
+          return;
+        }
+        el.classList.remove("veil");
+        // A flick brings dozens of cards past at once; scrubbing them all is
+        // both pointless — they are gone before you could watch one — and the
+        // thing that makes a fast scroll stutter. So a deliberate scroll gets
+        // the scrubbed reveal that tracks the finger, and a flick gets the
+        // plain timed one. Whichever it picks is latched, so a card never
+        // switches mode halfway through its own animation.
+        if (calm || flicking()) {             // a flick: plain timed reveal
+          el.classList.add("shown");
+          obs.unobserve(el);
+        } else {                              // scrubbed against scroll position
+          if (band.indexOf(el) < 0) { el._p = -1; band.push(el); }
+          requestScrub();                     // stays observed, so it can reverse
+        }
       });
     }, { rootMargin: "80px 0px", threshold: 0.01 });
     cards.forEach(function (c) { seen.observe(c); });
     // safety net: anything still veiled after 3s is shown regardless
     setTimeout(function () {
-      cards.forEach(function (c) { c.classList.add("shown"); });
+      cards.forEach(function (c) {
+        c.classList.remove("veil");
+        // a card mid-scrub owns its own opacity; .shown would fight it
+        if (band.indexOf(c) < 0) c.classList.add("shown");
+      });
     }, 3000);
   }
 
   var RISE_MAX = 24;              // roughly a screenful; beyond that nobody sees it
   function settle() {
-    cards.forEach(function (c) { c.classList.remove("rise"); });
+    band.length = 0;
+    cards.forEach(function (c) {
+      c.classList.remove("rise");
+      c.style.opacity = ""; c.style.translate = ""; c._p = -1;
+    });
     var first = [];
     for (var i = 0; i < cards.length && first.length < RISE_MAX; i++) {
       if (!cards[i].hidden) first.push(cards[i]);
@@ -135,16 +203,28 @@
       scrim    = document.getElementById("scrim"),
       phoneMQ  = window.matchMedia("(max-width: 640px)");
 
-  // Sort belongs inside the picker on phones — the island has room for two controls, not three.
+  // Sort lives inside the picker at every size — the drawer is where someone is
+  // already choosing how to look at the list.
   var sortWrap = sortEl.parentNode;
   function placeSort() {
-    var target = phoneMQ.matches ? chipsNav : document.querySelector(".tools");
-    if (sortWrap.parentNode !== target) {
-      phoneMQ.matches ? target.insertBefore(sortWrap, target.firstChild) : target.appendChild(sortWrap);
-    }
+    if (sortWrap.parentNode !== chipsNav) chipsNav.insertBefore(sortWrap, chipsNav.firstChild);
   }
   placeSort();
-  phoneMQ.addEventListener("change", function () { placeSort(); closePicker(); });
+
+  // Above phone size the category is its own floating island, so it has to leave
+  // the search island in the DOM as well as on screen: .tools carries a
+  // backdrop-filter, and that makes it the containing block for any
+  // position:fixed descendant — a category pinned to the corner from inside it
+  // would anchor to the search capsule instead of the viewport.
+  var catHome = catBtn.parentNode;               // the island, on phones
+  var topEl = document.querySelector(".top");
+  function placeCat() {
+    var target = phoneMQ.matches ? catHome : topEl;
+    if (catBtn.parentNode !== target) target.appendChild(catBtn);
+  }
+  placeCat();
+
+  phoneMQ.addEventListener("change", function () { placeCat(); closePicker(); });
 
   function openPicker() {
     chipsNav.classList.add("open");
@@ -170,12 +250,102 @@
   // it never sits on top of what you are reading. Passive + direction-only, so
   // there is no per-frame work while scrolling.
   var lastY = window.scrollY || 0;
-  window.addEventListener("scroll", function () {
+  window.addEventListener("scroll", function (e) {
     var y = window.scrollY || 0;
-    if (y > lastY + 6 && y > 140) document.body.classList.add("bar-hidden");
+    var now = e.timeStamp || performance.now();
+    if (lastT) {
+      var dt = Math.max(1, now - lastT);
+      scrollV = scrollV * 0.6 + (Math.abs(y - lastY) / dt) * 0.4;
+    }
+    lastT = now;
+    requestScrub();
+    // Collapsing the field while it holds the caret hides what is being typed,
+    // so scrolling only shrinks the island when the search is idle.
+    if (y > lastY + 6 && y > 140 && !document.body.classList.contains("searching"))
+      document.body.classList.add("bar-hidden");
     else if (y < lastY - 6 || y < 80) document.body.classList.remove("bar-hidden");
+    // the floating header deepens its shadow once the catalogue is under it
+    document.body.classList.toggle("scrolled", y > 8);
     lastY = y;
   }, { passive: true });
+
+  // ---- keyboard-proof search ----
+  // The island lives at the bottom of the screen, which is exactly where the
+  // keyboard opens over it — so you type into a field you cannot see. Measuring
+  // the keyboard and sitting just above it is the obvious fix and it is not
+  // reliable: iOS does not shrink the layout viewport, it scrolls the visual one
+  // independently, and the numbers arrive late, once, or not at all.
+  //
+  // So the island does not try to dodge the keyboard. While the field has focus
+  // it moves to the TOP of the screen, which is the one place a keyboard can
+  // never cover, and it travels by transform, so the move is composited and the
+  // existing .tools transition animates it for free.
+  var toolsEl = document.querySelector(".tools");
+  var TOP_GAP = 10;
+  function liftIsland() {
+    if (!toolsEl) return;
+    if (!phoneMQ.matches || !document.body.classList.contains("searching")) {
+      document.documentElement.style.removeProperty("--lift");
+      return;
+    }
+    var vv = window.visualViewport;
+    var cs = getComputedStyle(toolsEl);
+    // Landscape moors the island at the top already, where no keyboard reaches.
+    // Without this the "auto" would read as 0 and the island would be flung off
+    // the top of the screen.
+    if (cs.bottom === "auto") {
+      document.documentElement.style.removeProperty("--lift");
+      return;
+    }
+    var r = toolsEl.getBoundingClientRect();
+    // rect.height is unaffected by the transform, so this stays correct even
+    // when the island is already lifted and we are only re-measuring
+    var bottomPx = parseFloat(cs.bottom) || 0;
+    var restingTop = window.innerHeight - bottomPx - r.height;
+    // if the engine scrolled the visual viewport to reveal the field, the top of
+    // what is actually on screen is no longer the top of the layout viewport
+    var visibleTop = vv ? vv.offsetTop : 0;
+    var lift = restingTop - visibleTop - TOP_GAP;
+    document.documentElement.style.setProperty("--lift", Math.max(0, Math.round(lift)) + "px");
+  }
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", liftIsland);
+    window.visualViewport.addEventListener("scroll", liftIsland);
+  }
+  window.addEventListener("orientationchange", function () { setTimeout(liftIsland, 120); });
+
+  qEl.addEventListener("focus", function () {
+    document.body.classList.add("searching");
+    document.body.classList.remove("bar-hidden");   // undo any collapse in progress
+    liftIsland();
+  });
+  qEl.addEventListener("blur", function () {
+    document.body.classList.remove("searching");
+    liftIsland();                                   // drops --lift, island falls back
+  });
+
+  // A droplet of light blooms from where the finger lands and spreads across the
+  // glass. Sized to cover the control so it reads as the surface reacting, not a dot.
+  function droplet(e) {
+    if (calm) return;
+    var el = e.currentTarget, r = el.getBoundingClientRect();
+    var p = e.touches ? e.touches[0] : e;
+    var d = Math.max(r.width, r.height) * 2.2;
+    var n = document.createElement("span");
+    n.className = "droplet";
+    n.style.setProperty("--x", ((p.clientX - r.left) || r.width / 2) + "px");
+    n.style.setProperty("--y", ((p.clientY - r.top) || r.height / 2) + "px");
+    n.style.setProperty("--d", d + "px");
+    el.appendChild(n);
+    setTimeout(function () { n.remove(); }, 640);
+  }
+  function dropletOn(el) {
+    if (!el) return;
+    el.addEventListener("touchstart", droplet, { passive: true });
+    el.addEventListener("mousedown", droplet);
+  }
+  chips.forEach(dropletOn);
+  dropletOn(catBtn);
 
   catBtn.addEventListener("click", togglePicker);
 
@@ -227,7 +397,10 @@
   var openCard = null, shots = [], photoIdx = 0, body = dlg.querySelector(".dlg-body"),
       prevBtn = document.getElementById("prev"),
       nextBtn = document.getElementById("next"),
+      closeBtn = document.getElementById("closebtn"),
       posEl   = document.getElementById("pos");
+
+  [prevBtn, nextBtn, closeBtn].forEach(dropletOn);
 
   function visible() { return cards.filter(function (c) { return !c.hidden; }); }
 
@@ -278,17 +451,22 @@
   }
 
   // Move to the neighbouring bottle within whatever is currently filtered in.
-  function step(dir) {
-    if (!openCard) return;
+  function nextCard(dir) {
+    if (!openCard) return null;
     var vis = visible(), i = vis.indexOf(openCard);
-    if (i < 0) return;
-    var next = vis[i + dir];
+    return i < 0 ? null : (vis[i + dir] || null);
+  }
+
+  // `quiet` swaps the content with no entry animation of its own — the swipe is
+  // already mid-flight and drives the motion itself.
+  function step(dir, quiet) {
+    var next = nextCard(dir);
     if (!next) return;                       // ends of the list are hard stops, as on iOS
-    render(next, dir > 0 ? "from-r" : "from-l");
+    render(next, quiet ? null : (dir > 0 ? "from-r" : "from-l"));
   }
 
   // Swap the photo in place. Only ever called from inside the image area.
-  function stepPhoto(dir) {
+  function stepPhoto(dir, quiet) {
     if (shots.length < 2) return false;
     var next = photoIdx + dir;
     if (next < 0 || next >= shots.length) return false;
@@ -298,7 +476,7 @@
     el.classList.remove("from-l", "from-r");
     void el.offsetWidth;
     el.src = "img/" + shots[photoIdx] + ".jpg";
-    el.classList.add(dir > 0 ? "from-r" : "from-l");
+    if (!quiet) el.classList.add(dir > 0 ? "from-r" : "from-l");
     var ds = body.querySelectorAll(".dots i");
     for (var i = 0; i < ds.length; i++) ds[i].classList.toggle("on", i === photoIdx);
     return true;
@@ -307,7 +485,33 @@
   function closeSheet() {
     dlg.classList.remove("dragging");
     dlg.style.transform = ""; dlg.style.opacity = "";
+    clearScrub(body);
+    gen++;
     dlg.close();
+  }
+
+  // ---- pointer sheen ----
+  // Light moving across glass: the card's ::after highlight is positioned from
+  // --mx/--my. One delegated listener for the whole grid rather than 170, and
+  // the write is deferred to the next frame so a fast sweep across the
+  // catalogue cannot schedule a layout read per mousemove.
+  if (!calm && window.matchMedia("(hover: hover)").matches) {
+    var sheenCard = null, sheenX = 0, sheenY = 0, sheenQueued = false;
+    function paintSheen() {
+      sheenQueued = false;
+      if (!sheenCard) return;
+      var r = sheenCard.getBoundingClientRect();
+      sheenCard.style.setProperty("--mx", (sheenX - r.left) + "px");
+      sheenCard.style.setProperty("--my", (sheenY - r.top) + "px");
+    }
+    grid.addEventListener("pointermove", function (e) {
+      if (e.pointerType !== "mouse") return;
+      var c = e.target.closest(".card");
+      if (!c) { sheenCard = null; return; }
+      sheenCard = c; sheenX = e.clientX; sheenY = e.clientY;
+      if (!sheenQueued) { sheenQueued = true; requestAnimationFrame(paintSheen); }
+    }, { passive: true });
+    grid.addEventListener("pointerleave", function () { sheenCard = null; }, { passive: true });
   }
 
   // ---- press feedback ----
@@ -342,10 +546,13 @@
   prevBtn.addEventListener("click", function () { step(-1); });
   nextBtn.addEventListener("click", function () { step(1); });
   document.getElementById("x").addEventListener("click", closeSheet);
+  if (closeBtn) closeBtn.addEventListener("click", closeSheet);
   dlg.addEventListener("click", function (e) { if (e.target === dlg) closeSheet(); });
   dlg.addEventListener("close", function () {
     dlg.classList.remove("dragging");
     dlg.style.transform = ""; dlg.style.opacity = "";
+    clearScrub(body);            // Escape can close it mid-swipe
+    gen++;
   });
   // arrow keys mirror the swipe on desktop
   document.addEventListener("keydown", function (e) {
@@ -355,36 +562,114 @@
   });
 
   // ---- iOS-style sheet gestures (touch, phone layout only) ----
+  // The swipe is scrubbed, not triggered: the content tracks the finger one to
+  // one, so a slow drag moves it slowly and you can see the half-way state and
+  // change your mind. On release it finishes the journey at the speed you let
+  // go at, which is what keeps a flick snappy and a slow drag from snapping.
   var phone = window.matchMedia("(max-width: 640px)");
   var y0 = 0, x0 = 0, t0 = 0, dy = 0, dx = 0, axis = null, tracking = false, inImage = false;
-  // Touch events can outpace the display. Coalescing the writes into one
-  // requestAnimationFrame keeps the sheet on the frame clock instead of
-  // thrashing style on every event.
+  var scrubEl = null, scrubPhoto = false;
   var frame = null, pendY = 0, pendX = 0;
+  // Every touch starts a new generation. A glide that finishes after the finger
+  // is already down again belongs to the last one and must not touch anything,
+  // or it would wipe the transform the new drag is busy setting.
+  var gen = 0;
+
+  function lim(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function sheetW() { return dlg.clientWidth || window.innerWidth || 360; }
+  function canGo(dir) {
+    return scrubPhoto
+      ? (photoIdx + dir >= 0 && photoIdx + dir < shots.length)
+      : !!nextCard(dir);
+  }
+
   function paintDrag() {
     frame = null;
     if (axis === "y") {
       dlg.style.transform = "translateY(" + pendY + "px)";
       dlg.style.opacity = String(Math.max(0.45, 1 - pendY / 520));
-    } else if (axis === "x") {
-      dlg.style.transform = "translateX(" + pendX + "px)";
+    } else if (axis === "x" && scrubEl) {
+      scrubEl.style.transform = "translateX(" + pendX + "px)";
+      // it thins out as it travels, so the swap at the far end is never a cut
+      scrubEl.style.opacity = String(lim(1 - Math.abs(pendX) / (sheetW() * 0.9), 0.18, 1));
     }
   }
   function schedule() { if (frame === null) frame = requestAnimationFrame(paintDrag); }
+
+  function clearScrub(el) {
+    if (!el) return;
+    el.style.transition = ""; el.style.transform = ""; el.style.opacity = "";
+  }
   function stopDrag() {
     if (frame !== null) { cancelAnimationFrame(frame); frame = null; }
     tracking = false;
     dlg.classList.remove("dragging");
     dlg.style.transform = ""; dlg.style.opacity = "";
+    clearScrub(scrubEl); scrubEl = null;
+  }
+
+  // One transition, its duration taken from the speed of the finger rather than
+  // a constant — that is the whole difference between smooth and clunky here.
+  function glide(el, x, op, ms, done) {
+    el.style.transition = "transform " + ms + "ms cubic-bezier(.22,.68,.32,1)," +
+                          "opacity " + ms + "ms ease";
+    el.style.transform = "translateX(" + x + "px)";
+    el.style.opacity = String(op);
+    var fired = false, g = gen;
+    function end() {
+      if (fired) return;
+      fired = true;
+      el.removeEventListener("transitionend", end);
+      if (g !== gen) return;           // superseded by a newer gesture
+      if (done) done();
+    }
+    el.addEventListener("transitionend", end);
+    setTimeout(end, ms + 90);     // transitionend never arrives if nothing moved
+  }
+
+  function finishSwipe(commit, dir, speed) {
+    if (frame !== null) { cancelAnimationFrame(frame); frame = null; }
+    dlg.classList.remove("dragging");
+    var el = scrubEl, wasPhoto = scrubPhoto;
+    scrubEl = null;
+    if (!el) return;
+
+    if (calm) {                                   // reduced motion: just arrive
+      clearScrub(el);
+      if (commit) { if (wasPhoto) stepPhoto(dir, true); else step(dir, true); }
+      return;
+    }
+    if (!commit) {
+      // travel back over the distance actually covered, at the speed of release
+      var back = lim(Math.abs(pendX) / Math.max(speed, 0.5), 140, 280);
+      glide(el, 0, 1, back, function () { clearScrub(el); });
+      return;
+    }
+    var w = sheetW(), out = dir > 0 ? -w * 0.45 : w * 0.45;
+    var ms = lim(Math.abs(out - pendX) / Math.max(speed, 0.45), 120, 300);
+    glide(el, out, 0, ms, function () {
+      if (wasPhoto) stepPhoto(dir, true); else step(dir, true);
+      // render() rebuilds .dlg-body in place, so the element to bring back in is
+      // the same one for bottles, and the same <img> for photos
+      var target = wasPhoto ? body.querySelector(".dlg-shot img") : body;
+      clearScrub(el);
+      if (!target) return;
+      target.style.transition = "none";
+      target.style.transform = "translateX(" + (dir > 0 ? w * 0.45 : -w * 0.45) + "px)";
+      target.style.opacity = "0";
+      void target.offsetWidth;                    // commit the start position
+      glide(target, 0, 1, ms, function () { clearScrub(target); });
+    });
   }
 
   dlg.addEventListener("touchstart", function (e) {
     if (!phone.matches || e.touches.length !== 1) { tracking = false; return; }
     var t = e.touches[0];
     y0 = t.clientY; x0 = t.clientX; t0 = e.timeStamp;
-    dy = 0; dx = 0; axis = null; tracking = true;
-    // A sideways gesture only counts inside the photo. Anywhere else it is
-    // ignored, so it can never collide with the drawer or the page behind.
+    dy = 0; dx = 0; pendX = 0; axis = null; tracking = true; gen++;
+    // Where the gesture began decides what a sideways swipe means — photos under
+    // the picture, bottles everywhere else. It no longer decides whether the
+    // sheet responds at all.
     inImage = !!(e.target.closest && e.target.closest(".dlg-shot"));
   }, { passive: true });
 
@@ -397,8 +682,15 @@
       if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
       // bias towards vertical, so a slightly-diagonal pull still scrolls or dismisses
       axis = Math.abs(dx) > Math.abs(dy) * 1.3 ? "x" : "y";
-      if (axis === "x" && !inImage) { tracking = false; return; }
       if (axis === "y" && (dlg.scrollTop > 0 || dy < 0)) { tracking = false; return; }
+      if (axis === "x") {
+        // drag exactly the thing that is going to change
+        scrubPhoto = inImage && shots.length > 1;
+        scrubEl = scrubPhoto ? body.querySelector(".dlg-shot img") : body;
+        if (!scrubEl) { tracking = false; return; }
+        scrubEl.style.transition = "none";
+        scrubEl.classList.remove("from-l", "from-r");
+      }
       dlg.classList.add("dragging");
     }
 
@@ -406,32 +698,29 @@
     if (axis === "y") {
       pendY = dy;
     } else {
-      // resist horizontally — the sheet hints at the move rather than following it
-      var dirX = dx < 0 ? 1 : -1;
-      var hasPhoto = shots.length > 1 &&
-        photoIdx + dirX >= 0 && photoIdx + dirX < shots.length;
-      var edge = !hasPhoto && !nextExists(dirX);
-      pendX = dx * (edge ? 0.08 : 0.22);
+      // one to one where there is somewhere to go; the ends of the list pull back
+      pendX = canGo(dx < 0 ? 1 : -1) ? dx : dx * 0.14;
     }
     schedule();
   }, { passive: false });
 
-  function nextExists(dir) {
-    if (!openCard) return false;
-    var vis = visible(), i = vis.indexOf(openCard);
-    return i >= 0 && !!vis[i + dir];
-  }
 
   dlg.addEventListener("touchend", function (e) {
     if (!tracking) return;
+    tracking = false;
     var dt = Math.max(1, e.timeStamp - t0), vy = dy / dt, vx = dx / dt;
+
+    if (axis === "x") {
+      var dir = dx < 0 ? 1 : -1;
+      // a short flick counts as much as a long slow drag
+      var commit = canGo(dir) &&
+        (Math.abs(dx) > sheetW() * 0.28 || Math.abs(vx) > 0.5);
+      finishSwipe(commit, dir, Math.abs(vx));
+      return;
+    }
     var dismiss = axis === "y" && (dy > 110 || vy > 0.55);
-    var swiped = axis === "x" && inImage && (Math.abs(dx) > 55 || Math.abs(vx) > 0.45);
-    var dir = dx < 0 ? 1 : -1;
-    stopDrag();                       // cancels any queued frame, springs back
-    if (dismiss) { closeSheet(); return; }
-    // more than one photo -> move through them; otherwise fall through to bottles
-    if (swiped && !stepPhoto(dir)) step(dir);
+    stopDrag();
+    if (dismiss) closeSheet();
   });
 
   dlg.addEventListener("touchcancel", stopDrag);
