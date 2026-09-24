@@ -6,7 +6,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-set -a; [ -f .env ] && . ./.env; set +a
+. scripts/lib/env.sh
+load_env
 DB_USER="${POSTGRES_USER:-shopkeeper}"
 DB_NAME="${POSTGRES_DB:-shopkeeper}"
 KEEP="${BACKUP_KEEP:-30}"   # how many backups to retain
