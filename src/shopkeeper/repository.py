@@ -21,13 +21,13 @@ def add_item(item: Item) -> Item:
         row = conn.execute(
             """
             INSERT INTO items (name, brand, size, abv, vintage, style, origin, is_alcohol,
-                               sku, barcode, category, unit, quantity_on_hand, active, supplier, note)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                               sku, barcode, category, unit, quantity_on_hand, active, supplier, note, label)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
             """,
             (item.name, item.brand, item.size, item.abv, item.vintage, item.style, item.origin, item.is_alcohol,
              item.sku, item.barcode, item.category, item.unit,
-             item.quantity_on_hand, item.active, item.supplier, item.note),
+             item.quantity_on_hand, item.active, item.supplier, item.note, item.label),
         ).fetchone()
     item.id = row["id"]
     return item
@@ -223,14 +223,15 @@ def rename_item(item_id: int, name: str) -> None:
 
 def update_item_meta(item_id: int, name: str, brand: str | None, size: str | None,
                      category: str | None = None, supplier: str | None = None,
-                     unit: str | None = None) -> None:
+                     unit: str | None = None, label: str | None = None) -> None:
     """Set the full name plus its structured brand/size/category parts (blank -> NULL)."""
     with connection() as conn:
         conn.execute(
             "UPDATE items SET name = %s, brand = %s, size = %s, category = %s, "
-            "supplier = %s, unit = COALESCE(%s, unit) WHERE id = %s",
+            "supplier = %s, unit = COALESCE(%s, unit), label = %s WHERE id = %s",
             (name.strip(), (brand or "").strip() or None, (size or "").strip() or None,
-             (category or "").strip() or None, (supplier or "").strip() or None, unit, item_id),
+             (category or "").strip() or None, (supplier or "").strip() or None, unit,
+             (label or "").strip() or None, item_id),
         )
 
 
@@ -272,6 +273,23 @@ def delete_item(item_id: int) -> None:
         conn.execute("DELETE FROM items WHERE id = %s", (item_id,))
 
 
+SECTIONS = ("Special", "Limited Edition", "Discontinued", "New Arrival", "Rare")
+
+
+def set_section(item_id: int, section: str | None) -> None:
+    """Put an item on a published shelf (or take it off with None).
+
+    The DB also enforces the allowed values; checking here gives a clear error
+    instead of a constraint violation.
+    """
+    section = (section or "").strip() or None
+    if section is not None and section not in SECTIONS:
+        raise ValueError(f"unknown section {section!r} (expected one of {', '.join(SECTIONS)})")
+    with connection() as conn:
+        conn.execute("UPDATE items SET section = %s, updated_at = now() WHERE id = %s",
+                     (section, item_id))
+
+
 # --------------------------------------------------------------------------- #
 # Prices
 # --------------------------------------------------------------------------- #
@@ -293,6 +311,22 @@ def set_price(item_id: int, price: Decimal, kind: str = "retail",
         ).fetchone()
     return Price(id=row["id"], item_id=item_id, price=price, kind=kind, currency=currency,
                  effective_from=row["effective_from"], note=note)
+
+
+PRICE_KINDS = ("retail", "pack", "wholesale", "cost")
+
+
+def clear_price(item_id: int, kind: str = "retail") -> int:
+    """Remove one kind of price from an item entirely, returning rows deleted.
+
+    This drops that kind's history, so the item reads as unpriced everywhere —
+    which is the point: a price left at 0 would ring up as free.
+    """
+    if kind not in PRICE_KINDS:
+        raise ValueError(f"unknown price kind {kind!r} (expected one of {', '.join(PRICE_KINDS)})")
+    with connection() as conn:
+        cur = conn.execute("DELETE FROM prices WHERE item_id = %s AND kind = %s", (item_id, kind))
+        return cur.rowcount
 
 
 def current_price(item_id: int, kind: str = "retail") -> Price | None:

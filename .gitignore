@@ -46,3 +46,7 @@ htmlcov/
 *.swp
 .idea/
 .vscode/
+
+# --- generated public site + its gh-pages checkout ---
+site/
+.site-publish/

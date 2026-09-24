@@ -11,7 +11,24 @@
           --line:#3b4261; --ink:#c8d3f5; --muted:#828bb8;
           --accent:#82aaff; --accent-soft:rgba(130,170,255,.18); --good:#c3e88d; --warn:#ff966c;
           --good-soft:rgba(195,232,141,.15); --warn-soft:rgba(255,150,108,.16);
-          --nav:rgba(30,32,48,.74); --radius:14px; --radius-lg:18px; --shadow:0 2px 10px rgba(0,0,0,.4); }
+          --nav:rgba(30,32,48,.74); --radius:14px; --radius-lg:18px; --shadow:0 2px 10px rgba(0,0,0,.4);
+          /* ---- liquid glass ----
+             Two separate materials, because the cost of each is very different:
+             `--glass` is for chrome — a handful of large surfaces that can afford
+             a real backdrop blur. `--pane` is for the many (cards, tiles, rows):
+             the same translucency and specular edge, but NO blur, because what
+             sits behind them is the ambient wash below, which has nothing to
+             blur anyway. Identical look, none of the cost. */
+          --glass:linear-gradient(to bottom,rgba(34,36,54,.80),rgba(34,36,54,.62));
+          --pane:linear-gradient(to bottom,rgba(34,36,54,.92),rgba(34,36,54,.80));
+          --glass-blur:saturate(180%) blur(20px);
+          --glass-line:rgba(200,211,245,.11);
+          --glass-edge:inset 0 1px 0 rgba(255,255,255,.07),inset 0 -1px 0 rgba(0,0,0,.30);
+          --glass-lift:0 14px 38px -12px rgba(0,0,0,.62),0 2px 8px -3px rgba(0,0,0,.45);
+          /* the atmosphere the glass sits in — without it translucency reveals
+             flat paint and the panes read as plain grey boxes */
+          --ambient:radial-gradient(1200px 760px at 6% -12%,rgba(130,170,255,.11),transparent 60%),
+                    radial-gradient(900px 640px at 104% 110%,rgba(195,232,141,.055),transparent 58%); }
   * { box-sizing:border-box; }
   body { margin:0; font:17px/1.47 -apple-system,"SF Pro Text",system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
          background:var(--bg); color:var(--ink); -webkit-text-size-adjust:100%; -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent; }
@@ -95,16 +112,19 @@
   .modal-ov { position:fixed; inset:0; background:rgba(0,0,0,.4); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
               z-index:25; display:flex; align-items:center; justify-content:center; padding:1rem; }
   .modal-card { background:var(--card); border-radius:20px; box-shadow:0 20px 60px rgba(0,0,0,.35);
-                max-width:30rem; width:100%; max-height:88vh; overflow:auto; padding:1.2rem; }
+                max-width:min(30rem,calc(100vw - 2rem)); width:100%; max-height:calc(100dvh - 2rem);
+                overflow:auto; padding:clamp(.85rem,3vw,1.2rem); }
   .gallery { display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:.6rem; margin:.5rem 0 .9rem; }
   .gallery .cell { position:relative; aspect-ratio:1; }
-  .gallery img { width:100%; height:100%; object-fit:contain; border-radius:12px; background:var(--fill); cursor:pointer; }
+  .gallery img { width:100%; height:100%; max-width:100%; max-height:100%; object-fit:contain; border-radius:12px; background:var(--fill); cursor:pointer; }
   .gallery .x { position:absolute; top:.3rem; right:.3rem; width:1.65rem; height:1.65rem; border-radius:50%;
                 background:rgba(0,0,0,.55); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); color:#fff; border:none; cursor:pointer; font-size:.9rem; line-height:1; }
   /* ---- fullscreen lightbox ---- */
   .lightbox { position:fixed; inset:0; background:rgba(0,0,0,.94); z-index:40; display:flex;
-              align-items:center; justify-content:center; touch-action:none; }
-  .lightbox img { max-width:94vw; max-height:88vh; object-fit:contain; border-radius:8px; }
+              align-items:center; justify-content:center; touch-action:none; padding:env(safe-area-inset-top) env(safe-area-inset-right)
+              env(safe-area-inset-bottom) env(safe-area-inset-left); }
+  .lightbox img { width:auto; height:auto; max-width:calc(100vw - 2rem); max-height:calc(100dvh - 4rem);
+                  object-fit:contain; border-radius:8px; }
   .lightbox .nav { position:absolute; top:50%; transform:translateY(-50%); background:rgba(255,255,255,.16);
                    -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); color:#fff; border:none; width:3rem; height:3rem; border-radius:50%; font-size:1.5rem; cursor:pointer; }
   .lightbox .prev { left:1rem; } .lightbox .next { right:1rem; }
@@ -150,6 +170,17 @@
   .pedit { display:inline-flex; gap:.25rem; align-items:center; }
   .pedit input { width:4.2rem; padding:.22rem .35rem; font-size:.9rem; }
   .pedit select { width:auto; padding:.22rem .3rem; font-size:.85rem; }
+  .pedit .pclear { padding:.18rem .4rem; line-height:1; color:var(--warn); }
+  /* dashboard catalog filters: search + price range + unpriced */
+  .dash-filters { flex-wrap:wrap; gap:.4rem; }
+  .dash-filters input[type="number"] { max-width:5.2rem; }
+  .dash-filters .dash-cur { font-size:.8rem; font-weight:700; }
+  .dash-chk { display:flex; align-items:center; gap:.3rem; font-size:.78rem; white-space:nowrap; }
+  .dash-chk input { width:auto; margin:0; }
+  @media (max-width:640px){
+    .dash-filters #dash-q { flex:1 1 100%; }
+    .dash-filters input[type="number"] { flex:1 1 4rem; max-width:none; }
+  }
   /* ---- vim keyboard focus + help ---- */
   .vim-focus { outline:none; box-shadow:0 0 0 2px var(--accent), 0 0 0 6px var(--accent-soft); border-radius:14px; }
   .kbdbtn { padding:.4rem .55rem; font-size:.95rem; line-height:1; }
@@ -163,9 +194,42 @@
   .prod .ph { width:100%; aspect-ratio:1; object-fit:contain; object-position:center; display:block; background:var(--fill); }
   .prod .noimg { width:100%; aspect-ratio:1; display:flex; align-items:center; justify-content:center;
                  background:var(--fill); color:var(--muted); font-size:2rem; }
-  .prod .body { padding:.7rem .75rem .8rem; }
-  .prod .body .nm { font-weight:600; font-size:.95rem; line-height:1.3; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
-  .prod .body .pr { color:var(--accent); font-weight:600; font-size:1rem; margin-top:.35rem; cursor:pointer; letter-spacing:-.01em; }
+  .prod .body { padding:.7rem .75rem .8rem; min-width:0; overflow:hidden; }
+  .prod .body .nm { font-weight:600; font-size:.95rem; line-height:1.3; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; }
+  .prod .body .pr, .prod .body .stock-edit {
+    display:flex; align-items:center; justify-content:space-between; gap:.35rem;
+    width:100%; min-width:0; border:1px solid var(--accent); border-radius:9px;
+    padding:.28rem .45rem; background:var(--accent-soft);
+    box-shadow:0 0 8px rgba(130,170,255,.16); cursor:pointer;
+    transition:box-shadow .18s, transform .18s, background-color .18s;
+  }
+  .prod .body .pr { color:var(--accent); font-weight:700; font-size:.9rem; margin-top:.4rem; letter-spacing:0; }
+  .prod .body .stock-edit { color:var(--good); border-color:var(--good); background:var(--good-soft); font-size:.82rem; margin-top:.35rem; }
+  .prod .body .pr:hover, .prod .body .stock-edit:hover {
+    transform:translateY(-1px); box-shadow:0 0 16px rgba(130,170,255,.5);
+    background:rgba(130,170,255,.3);
+  }
+  .prod .body .stock-edit:hover { box-shadow:0 0 16px rgba(195,232,141,.45); background:rgba(195,232,141,.25); }
+  .prod .body .pr, .prod .body .stock-edit { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .prod .body .pedit { display:flex; align-items:center; gap:.25rem; width:100%; min-width:0; }
+  .prod .body .pedit input { min-width:0; width:100%; padding:.18rem .3rem; font-size:.85rem; }
+  .prod .body .pedit select { width:auto; min-width:3.5rem; padding:.18rem .2rem; font-size:.78rem; }
+  .dash-detail { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.2fr); gap:1rem; align-items:start; }
+  .dash-detail-photo { width:100%; max-height:min(48vh,24rem); object-fit:contain; border-radius:14px; background:var(--fill); }
+  .dash-detail-info { min-width:0; overflow-wrap:anywhere; }
+  .dash-detail-info h2 { margin:0 0 .35rem; font-size:1.2rem; line-height:1.25; }
+  .dash-detail-info .sub { color:var(--muted); margin-bottom:.7rem; }
+  .dash-detail-kv { width:100%; border-collapse:collapse; }
+  .dash-detail-kv td { padding:.38rem .1rem; border-bottom:.5px solid var(--line); vertical-align:top; }
+  .dash-detail-kv td:first-child { width:7rem; color:var(--muted); font-size:.85rem; }
+  .dash-detail-kv td:last-child { text-align:right; overflow-wrap:anywhere; }
+  .dash-editable { color:var(--accent); font-weight:700; cursor:pointer; border-radius:7px; padding:.2rem .35rem; }
+  .dash-editable:hover { background:var(--accent-soft); }
+  .dash-editable.stock-value { color:var(--good); }
+  .dash-popup-editor { display:flex; justify-content:flex-end; align-items:center; gap:.35rem; width:100%; }
+  .dash-popup-editor input { width:7rem; max-width:55%; text-align:right; font-size:.95rem; padding:.35rem .45rem; }
+  .dash-popup-editor select { width:4.3rem; font-size:.82rem; padding:.35rem .25rem; }
+  .dash-popup-editor.stock input { width:8.5rem; max-width:100%; }
   /* structured item label: brand · option · size */
   .brand-tag { font-weight:700; }
   .nm-mid { color:var(--ink); font-weight:500; }
@@ -185,7 +249,10 @@
   @keyframes zoomIn { from{ opacity:0; transform:scale(.9); } to{ opacity:1; transform:none; } }
   /* view + content entrances */
   main > section { animation:fadeUp .42s var(--ease-out) both; }
-  .prod { animation:fadeUp .4s var(--ease-out) both; }
+  /* `backwards`, not `both`: a forwards fill keeps the last keyframe applied for
+     good, and animation declarations outrank normal ones — so `transform:none`
+     was silently beating .prod:hover and .prod:active, and neither moved. */
+  .prod { animation:fadeUp .4s var(--ease-out) backwards; }
   .cat-group { animation:fadeIn .5s ease both; }
   .modal-ov { animation:overlayIn .22s ease both; }
   .modal-card { animation:popIn .4s var(--ease-out) both; }
@@ -324,10 +391,23 @@
   .kv td:first-child { color:var(--muted); width:8.5rem; font-size:.85rem; }
   .kv td.num { text-align:right; font-variant-numeric:tabular-nums; font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; }
   .sec-mini { font-size:.72rem; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:.06em; margin:1rem 0 .35rem; }
+  .sec-pill { display:inline-block; font-size:.7rem; font-weight:600; letter-spacing:.03em;
+                padding:.1rem .45rem; border-radius:999px; border:1px solid var(--accent);
+                color:var(--accent); background:transparent; }
   .drawer-restock { display:flex; gap:.5rem; align-items:center; margin-top:.5rem; }
   .drawer-restock input { max-width:6.5rem; }
   .drawer-actions { display:flex; flex-wrap:wrap; gap:.45rem; margin-top:.35rem; }
   .ui-mobile .drawer-panel { width:100vw; }
+  @media (max-width:600px){
+    .modal-ov { align-items:flex-start; padding:.75rem; overflow:auto; }
+    .modal-card { max-width:100%; max-height:calc(100dvh - 1.5rem); border-radius:16px; }
+    .gallery { grid-template-columns:repeat(auto-fill,minmax(76px,1fr)); gap:.45rem; }
+    .prod .body { padding:.6rem; }
+    .prod .body .nm { font-size:.88rem; }
+    .prod .body .pr, .prod .body .stock-edit { font-size:.76rem; padding:.25rem .35rem; }
+    .dash-detail { grid-template-columns:1fr; gap:.7rem; }
+    .dash-detail-photo { max-height:34vh; }
+  }
   /* Stock opens on the inventory overview; entry/import tools stay below it. */
   #view-stock { flex-direction:column; }
   #view-stock > .card:nth-of-type(1) { order:3; }
@@ -351,15 +431,89 @@
   .tab-slider:before { content:""; position:absolute; width:1.15rem; height:1.15rem; left:.22rem; top:.22rem;
                        border-radius:50%; background:var(--muted); transition:.15s; }
   .tab-switch input:checked + .tab-slider { background:var(--accent); }
-  .tab-switch input:checked + .tab-slider:before { transform:translateX:1.2rem; background:#fff; }
+  .tab-switch input:checked + .tab-slider:before { transform:translateX(1.2rem); background:#fff; }
   .item-edit-card { max-width:34rem; max-height:90vh; overflow:auto; }
   .item-edit-card h2 { margin:0; font-size:1.15rem; }
   .item-edit-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.55rem; }
   .item-edit-grid .wide { grid-column:1 / -1; }
   .item-edit-actions { display:flex; gap:.5rem; justify-content:flex-end; margin-top:1rem; }
+  .item-label { display:inline-block; margin:.2rem .25rem 0 0; padding:.16rem .42rem; border-radius:999px;
+                background:var(--warn); color:#fff; font-size:.68rem; font-weight:800; letter-spacing:.02em; }
   @media (max-width:600px){ .item-edit-card { max-width:none; width:100%; max-height:92vh; padding:1rem; }
     .item-edit-grid { grid-template-columns:1fr; } .item-edit-grid .wide { grid-column:auto; }
     .item-edit-actions button { flex:1; } }
+
+  /* ================= liquid glass =================
+     Layered deliberately by cost. The rule followed throughout: a backdrop blur
+     is paid for once per surface and scales with its area, so it goes only on
+     chrome that is few in number and mostly sits over frozen content (header,
+     tab bar, drawer, modals). Everything that repeats — cards, product tiles,
+     list rows, table cells — gets the same glass *look* from a translucent fill
+     and a specular top edge, and no blur at all. On the Dash catalogue that is
+     the difference between ~180 blurred layers and none. */
+
+  /* the atmosphere, painted once and composited thereafter */
+  html { background:var(--bg); }
+  body { background:transparent; }
+  body::before { content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+                 background:var(--ambient); }
+
+  /* ---- chrome: real blur, few surfaces ---- */
+  header { background:var(--glass); box-shadow:var(--glass-edge); border-bottom:1px solid var(--glass-line); }
+  #tabbar { background:var(--glass); box-shadow:var(--glass-edge); border-top:1px solid var(--glass-line); }
+  .modal-card, .drawer-panel, .tab-settings-card {
+    background:var(--glass); -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
+    border:1px solid var(--glass-line); box-shadow:var(--glass-edge),var(--glass-lift); }
+  #toast { background:var(--glass); border:1px solid var(--glass-line);
+           box-shadow:var(--glass-edge),var(--glass-lift); }
+
+  /* ---- panes: the same material, no blur, however many there are ---- */
+  .card, .metric, .prod, .inv-tablewrap {
+    background:var(--pane); border:1px solid var(--glass-line);
+    box-shadow:var(--glass-edge),var(--shadow); }
+  .add-card { background:var(--pane);
+              border:1px solid var(--accent);
+              box-shadow:var(--glass-edge),0 0 0 4px var(--accent-soft),0 10px 30px -8px rgba(0,0,0,.5); }
+
+  /* controls read as shapes cut into the glass rather than boxes stacked on it */
+  input, select, textarea { background:rgba(47,51,77,.55); border-color:var(--glass-line);
+                            box-shadow:var(--glass-edge); }
+  input:focus, select:focus, textarea:focus { border-color:var(--accent);
+    box-shadow:var(--glass-edge),0 0 0 3px var(--accent-soft); }
+  .chip, .qbtn, button.mini, .tabs { background:rgba(47,51,77,.5); border:1px solid var(--glass-line);
+                                     box-shadow:var(--glass-edge); }
+  .tabs { padding:3px; }
+  .tabs button.active { box-shadow:var(--glass-edge),0 4px 14px -6px rgba(130,170,255,.55); }
+  .chip.active, .qbtn:active { border-color:var(--accent); }
+  button.act { box-shadow:var(--glass-edge),0 6px 18px -8px rgba(130,170,255,.55); }
+
+  /* Sticky table furniture stays opaque on purpose: rows scroll underneath it,
+     and a translucent header would let them show through as it moved. */
+  .inv-table thead th, .inv-table thead th.stik { background:#262a40; }
+  .inv-table th.stik, .inv-table td.stik { background:#232539; }
+  .inv-tablewrap { border-color:var(--glass-line); }
+
+  /* ================= speed =================
+     The catalogue can hold every bottle in the shop at once. content-visibility
+     lets the engine skip layout, style and paint for any tile that is off
+     screen; contain-intrinsic-size keeps the scrollbar honest while it does.
+     This is what keeps the grid at refresh rate no matter how long it gets. */
+  .prod { content-visibility:auto; contain-intrinsic-size:auto 15rem; }
+  .ui-mobile .prod { contain-intrinsic-size:auto 13rem; }
+  .cat-group { content-visibility:auto; contain-intrinsic-size:auto 26rem; }
+  /* long lists too — Find and Sell can both run to hundreds of rows */
+  .inv-table tbody tr { content-visibility:auto; contain-intrinsic-size:auto 2.3rem; }
+
+  /* A specular highlight that follows the pointer across a tile. One delegated
+     listener feeds --mx/--my (see initSheen); mouse only, so touch never pays. */
+  @media (hover:hover){
+    .prod { position:relative; isolation:isolate; }
+    .prod::after { content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+                   opacity:0; transition:opacity .25s ease; z-index:1;
+                   background:radial-gradient(220px circle at var(--mx,50%) var(--my,0%),
+                              rgba(255,255,255,.10),transparent 60%); }
+    .prod:hover::after { opacity:1; }
+  }
 </style>
 </head>
 <body>
@@ -535,7 +689,8 @@
         <div class="row"><button class="mini" onclick="pickImageForNew()">📷 Add photo</button><span class="muted" id="ni-photo-note">you can add several</span></div>
         <div class="photo-strip" id="ni-photos"></div>
       </div>
-      <label class="field" style="margin-bottom:.75rem"><span>Supplier / note</span><input id="ni-supplier" list="dl-supplier" autocomplete="off" placeholder="optional"></label>
+      <label class="field" style="margin-bottom:.45rem"><span>Supplier / note</span><input id="ni-supplier" list="dl-supplier" autocomplete="off" placeholder="optional"></label>
+      <label class="field" style="margin-bottom:.75rem"><span>Label <span class="muted">(e.g. No sell, Limited)</span></span><input id="ni-label" maxlength="40" autocomplete="off" placeholder="optional"></label>
 
       <button class="act addbtn" onclick="addItem()">＋ Add item</button>
     </div>
@@ -611,6 +766,11 @@
     <div class="card">
       <div class="row" style="margin-bottom:.5rem">
         <h2 style="margin:0">Catalog</h2>
+        <select id="dash-group" onchange="setDashGroup(this.value)" style="margin-left:auto;max-width:9rem">
+          <option value="__all">All items</option>
+          <option value="general">General goods</option>
+          <option value="alcohol">Alcohol</option>
+        </select>
         <select id="dash-sort" onchange="renderCatalog()" style="margin-left:auto;max-width:11.5rem">
           <option value="category">Group by category</option>
           <option value="name-asc">Name · A → Z</option>
@@ -620,6 +780,16 @@
           <option value="newest">Newest first</option>
         </select>
       </div>
+      <div class="row dash-filters" style="margin-bottom:.55rem">
+        <input id="dash-q" type="search" placeholder="Search name, brand, category, barcode…"
+               oninput="renderCatalog()" style="flex:1 1 13rem;min-width:0">
+        <span class="muted dash-cur" title="KHR prices are compared at the standard rate">$</span>
+        <input id="dash-min" type="number" inputmode="decimal" placeholder="min" oninput="renderCatalog()">
+        <input id="dash-max" type="number" inputmode="decimal" placeholder="max" oninput="renderCatalog()">
+        <label class="muted dash-chk"><input id="dash-unpriced" type="checkbox" onchange="renderCatalog()"> unpriced only</label>
+        <button class="mini" onclick="clearDashFilters()">Clear</button>
+      </div>
+      <div class="muted" id="catalog-count" style="font-size:.75rem;margin-bottom:.4rem"></div>
       <div id="catalog"><span class="empty">Loading…</span></div>
     </div>
     <div class="grid">
@@ -806,25 +976,37 @@ async function loadQuick(){
 }
 
 // ---- Category quick-picker (Sell): scrollable chips → tap to browse a category ----
-let sellCatItems=[], sellCat='__all';
+let sellCatItems=[], sellCat='__all', sellGroup='__all';
+function groupItems(items){ return sellGroup==='__all' ? items : items.filter(i=>sellGroup==='alcohol' ? isAlcohol(i) : !isAlcohol(i)); }
 async function loadCategories(){
   try{ sellCatItems = await api('/api/items'); }catch(_){ sellCatItems=[]; }
   const chips=$('#cat-chips'); if(!chips) return;
-  const cats=[...new Set(sellCatItems.map(i=>i.category||'—'))].sort((a,b)=>a.localeCompare(b));
+  const grouped=groupItems(sellCatItems);
+  const cats=[...new Set(grouped.map(i=>i.category||'—'))].sort((a,b)=>a.localeCompare(b));
   if(!cats.some(c=>c===sellCat) && sellCat!=='__all') sellCat='__all';
-  const count=c=>sellCatItems.filter(i=>(i.category||'—')===c).length;
+  const count=c=>grouped.filter(i=>(i.category||'—')===c).length;
+  const groups=[
+    ['__all','All',sellCatItems.length],
+    ['general','General',sellCatItems.filter(i=>!isAlcohol(i)).length],
+    ['alcohol','Alcohol',sellCatItems.filter(isAlcohol).length],
+  ];
   const mk=(val,label,n)=>`<button class="chip${sellCat===val?' active':''}" data-cat="${esc(val)}" onclick="pickCategory(this.dataset.cat)">${esc(label)}<span class="chip-n">${n}</span></button>`;
-  chips.innerHTML = mk('__all','All',sellCatItems.length) + cats.map(c=>mk(c,c,count(c))).join('');
+  const groupHtml=groups.map(([v,l,n])=>`<button class="chip${sellGroup===v?' active':''}" data-group="${v}" onclick="pickSellGroup(this.dataset.group)">${l}<span class="chip-n">${n}</span></button>`).join('');
+  chips.innerHTML = groupHtml + '<span style="flex-basis:100%;height:0"></span>' + mk('__all','All',grouped.length) + cats.map(c=>mk(c,c,count(c))).join('');
   renderCatItems();
 }
 function pickCategory(c){ sellCat=c;
-  document.querySelectorAll('#cat-chips .chip').forEach(b=>b.classList.toggle('active', b.dataset.cat===c));
-  const act=document.querySelector('#cat-chips .chip.active'); if(act) act.scrollIntoView({inline:'center',block:'nearest'});
+  document.querySelectorAll('#cat-chips .chip[data-cat]').forEach(b=>b.classList.toggle('active', b.dataset.cat===c));
+  const act=document.querySelector('#cat-chips .chip[data-cat].active'); if(act) act.scrollIntoView({inline:'center',block:'nearest'});
   renderCatItems();
+}
+function pickSellGroup(g){
+  sellGroup=g; sellCat='__all'; loadCategories();
 }
 function renderCatItems(){
   const box=$('#cat-items'); if(!box) return;
-  let items = sellCat==='__all' ? sellCatItems.slice() : sellCatItems.filter(i=>(i.category||'—')===sellCat);
+  const grouped=groupItems(sellCatItems);
+  let items = sellCat==='__all' ? grouped.slice() : grouped.filter(i=>(i.category||'—')===sellCat);
   items.sort((a,b)=> (a.category||'').localeCompare(b.category||'') || (a.name||'').localeCompare(b.name||''));
   box.innerHTML = items.length ? '' : '<li class="empty">No items in this category</li>';
   for(const it of items){
@@ -1309,7 +1491,7 @@ function addOptRow(){
 }
 // Return the Add-item form to a pristine blank state.
 function resetAddForm(){
-  for(const id of ['ni-brand','ni-name','ni-size','ni-retail','ni-pack','ni-wholesale','ni-cost','ni-barcode','ni-category','ni-supplier','ni-abv','ni-vintage','ni-style','ni-origin']){
+  for(const id of ['ni-brand','ni-name','ni-size','ni-retail','ni-pack','ni-wholesale','ni-cost','ni-barcode','ni-category','ni-supplier','ni-label','ni-abv','ni-vintage','ni-style','ni-origin']){
     const el=$('#'+id); if(el) el.value='';
   }
   const u=$('#ni-unit'); if(u) u.value='single';   // default unit back to single
@@ -1332,6 +1514,7 @@ async function addItem(){
     category: $('#ni-category').value.trim()||null,
     unit: $('#ni-unit').value.trim()||'each',
     supplier: $('#ni-supplier').value.trim()||null,
+    label: $('#ni-label').value.trim()||null,
     barcode: $('#ni-barcode').value.trim()||null };
   const retail=$('#ni-retail').value.trim(), pack=$('#ni-pack').value.trim(),
         wholesale=$('#ni-wholesale').value.trim(), cost=$('#ni-cost').value.trim();
@@ -1360,7 +1543,7 @@ async function addItem(){
     toast('Added '+name); loadStock();
   }catch(e){ toast('Error: '+e.message); }
 }
-let stockItems=[], stockCat='__all';
+let stockItems=[], stockCat='__all', stockGroup='__all';
 async function loadStock(){
   stockItems = await api('/api/items'); populateDatalists(stockItems);
   renderStockChips(); renderStock();
@@ -1368,17 +1551,25 @@ async function loadStock(){
 }
 function renderStockChips(){
   const chips=$('#stock-cat-chips'); if(!chips) return;
-  const cats=[...new Set(stockItems.map(i=>i.category||'—'))].sort((a,b)=>a.localeCompare(b));
+  const grouped=stockGroup==='__all' ? stockItems : stockItems.filter(i=>stockGroup==='alcohol' ? isAlcohol(i) : !isAlcohol(i));
+  const cats=[...new Set(grouped.map(i=>i.category||'—'))].sort((a,b)=>a.localeCompare(b));
   if(stockCat!=='__all' && !cats.includes(stockCat)) stockCat='__all';
-  const count=c=>stockItems.filter(i=>(i.category||'—')===c).length;
+  const count=c=>grouped.filter(i=>(i.category||'—')===c).length;
   const mk=(v,l,n)=>`<button class="chip${stockCat===v?' active':''}" data-cat="${esc(v)}" onclick="pickStockCategory(this.dataset.cat)">${esc(l)}<span class="chip-n">${n}</span></button>`;
-  chips.innerHTML = mk('__all','All',stockItems.length) + cats.map(c=>mk(c,c,count(c))).join('');
+  const groups=[
+    ['__all','All',stockItems.length],
+    ['general','General',stockItems.filter(i=>!isAlcohol(i)).length],
+    ['alcohol','Alcohol',stockItems.filter(isAlcohol).length],
+  ];
+  const groupHtml=groups.map(([v,l,n])=>`<button class="chip${stockGroup===v?' active':''}" data-group="${v}" onclick="pickStockGroup(this.dataset.group)">${l}<span class="chip-n">${n}</span></button>`).join('');
+  chips.innerHTML = groupHtml + '<span style="flex-basis:100%;height:0"></span>' + mk('__all','All',grouped.length) + cats.map(c=>mk(c,c,count(c))).join('');
 }
 function pickStockCategory(c){ stockCat=c;
-  document.querySelectorAll('#stock-cat-chips .chip').forEach(b=>b.classList.toggle('active', b.dataset.cat===c));
-  const act=document.querySelector('#stock-cat-chips .chip.active'); if(act) act.scrollIntoView({inline:'center',block:'nearest'});
+  document.querySelectorAll('#stock-cat-chips .chip[data-cat]').forEach(b=>b.classList.toggle('active', b.dataset.cat===c));
+  const act=document.querySelector('#stock-cat-chips .chip[data-cat].active'); if(act) act.scrollIntoView({inline:'center',block:'nearest'});
   renderStock();
 }
+function pickStockGroup(g){ stockGroup=g; stockCat='__all'; renderStockChips(); renderStock(); }
 const LOW_STOCK = 5;
 function stockStatus(it){
   const q = it.quantity_on_hand || 0;
@@ -1396,7 +1587,8 @@ function unitTag(it){
 function renderStock(){
   const body=$('#stock-body'); if(!body) return;
   const q=($('#stock-search')?.value||'').trim().toLowerCase();
-  let items = stockCat==='__all' ? stockItems : stockItems.filter(i=>(i.category||'—')===stockCat);
+  const grouped=stockGroup==='__all' ? stockItems : stockItems.filter(i=>stockGroup==='alcohol' ? isAlcohol(i) : !isAlcohol(i));
+  let items = stockCat==='__all' ? grouped : grouped.filter(i=>(i.category||'—')===stockCat);
   if(q) items = items.filter(i => (i.name||'').toLowerCase().includes(q)
       || (i.brand||'').toLowerCase().includes(q) || (i.category||'').toLowerCase().includes(q)
       || String(i.barcode||'').includes(q));
@@ -1408,7 +1600,7 @@ function renderStock(){
   body.innerHTML = items.map(it=>{
     const st=stockStatus(it), m = it.margin!=null ? fmt(it.margin,it.currency) : '—';
     return `<tr class="${it.id===invDrawerId?'sel':''}" onclick="openInvItem(${it.id})">
-      <td class="stik">${itemLabel(it)}${unitTag(it)}</td>
+      <td class="stik">${itemLabel(it)}${it.label?`<span class="item-label">${esc(it.label)}</span>`:''}${unitTag(it)}</td>
       <td class="inv-cat">${esc(it.category||'—')}</td>
       <td class="num">${money(it.quantity_on_hand)}</td>
       <td class="num">${fmt(it.retail,it.currency)}</td>
@@ -1441,7 +1633,7 @@ function renderInvDrawer(it){
     <div class="drawer-head">
       <div>
         <h3>${itemLabel(it)}</h3>
-        <div class="sub">${esc(it.category||'—')} <span class="st-pill ${st.cls}">${st.label}</span>${unitTag(it)}</div>
+        <div class="sub">${esc(it.category||'—')} <span class="st-pill ${st.cls}">${st.label}</span>${it.label?`<span class="item-label">${esc(it.label)}</span>`:''}${it.section?`<span class="sec-pill">${esc(it.section)}</span>`:''}${unitTag(it)}</div>
       </div>
       <button class="x" onclick="closeInvDrawer()" title="Close">✕</button>
     </div>
@@ -1496,11 +1688,18 @@ function editItemMenu(id){
       ${field('Full name','name',it.name,'text',true)}${field('Brand','brand',it.brand)}
       ${field('Size','size',it.size)}${field('Category','category',it.category)}
       ${field('Sell unit','unit',it.unit||'single')}
-      ${field('Supplier / note','supplier',it.supplier,'text',true)}${field('Barcode','barcode',it.barcode,'text',true)}
+      ${field('Supplier / note','supplier',it.supplier,'text',true)}${field('Label','label',it.label,'text',true)}${field('Barcode','barcode',it.barcode,'text',true)}
     </div>
     <div class="sec-mini">Prices</div><div class="item-edit-grid">
       ${field('Single / retail','retail',it.retail,'number')}${field('Pack','pack',it.pack,'number')}
       ${field('Wholesale','wholesale',it.wholesale,'number')}${field('Cost','cost',it.cost,'number')}
+    </div>
+    <div class="sec-mini">Website</div><div class="item-edit-grid">
+      <label class="field wide"><span>Section on the public site</span>
+        <select id="edit-section">
+          <option value="">Ordinary stock</option>
+          ${SECTIONS.map(x=>`<option value="${esc(x)}"${it.section===x?' selected':''}>${esc(x)}</option>`).join('')}
+        </select></label>
     </div>
     <div class="sec-mini">Drink information</div><div class="item-edit-grid">
       ${field('ABV %','abv',it.abv,'number')}${field('Vintage','vintage',it.vintage,'number')}
@@ -1520,11 +1719,14 @@ async function saveItemMenu(id){
   try{
     await api('/api/items/'+id+'/meta',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({name:get('name'),brand:get('brand')||null,size:get('size')||null,category:get('category')||null,
-        supplier:get('supplier')||null,unit:get('unit')||null})});
+        supplier:get('supplier')||null,unit:get('unit')||null,label:get('label')||null})});
     await api('/api/items/'+id+'/info',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({abv:get('abv')||null,vintage:get('vintage')?parseInt(get('vintage'),10):null,
         style:get('style')||null,origin:get('origin')||null})});
     const old=stockItems.find(x=>x.id===id);
+    if(get('section') !== String(old?.section||''))
+      await api('/api/items/'+id+'/section',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({section:get('section')||null})});
     if(get('barcode') !== String(old?.barcode||'')) await api('/api/items/'+id+'/barcode',{method:'POST',
       headers:{'Content-Type':'application/json'},body:JSON.stringify({barcode:get('barcode')})});
     for(const [kind,key] of [['retail','retail'],['pack','pack'],['wholesale','wholesale'],['cost','cost']]){
@@ -1637,6 +1839,8 @@ async function editNaming(id){
     toast('Updated'); loadStock();
   }catch(e){ toast('Error: '+e.message); }
 }
+// Website shelves an item can be published to (mirrors repository.SECTIONS).
+const SECTIONS=['Special','Limited Edition','Discontinued','New Arrival','Rare'];
 // Autocomplete sources + known-items cache (for fast entry + duplicate detection).
 let allItems=[], knownItems=[];
 // Alcohol categories (broad) used as a fallback when the explicit flag isn't set.
@@ -1665,27 +1869,149 @@ function refreshDatalists(){
   fill('dl-style', src.map(i=>i.style));
   fill('dl-origin', src.map(i=>i.origin));
 }
-// one Dash catalog card (photo + name open gallery; price is tap-to-edit)
+function openDashItem(id){
+  const it=dashItems.find(x=>x.id===id); if(!it) return;
+  const ov=document.createElement('div'); ov.className='modal-ov';
+  const card=document.createElement('div'); card.className='modal-card';
+  const photo=it.has_image
+    ? `<img class="dash-detail-photo" src="${itemThumbSrc(it.id)}" alt="" onclick="openGallery(${it.id},'${esc(it.name)}')">`
+    : `<div class="dash-detail-photo noimg">📦</div>`;
+  const row=(label,value,cls='',onclick='')=>value==null||value===''?'':`<tr><td>${label}</td><td class="${cls}" ${onclick?`onclick="${onclick}"`:''}>${value}</td></tr>`;
+  card.innerHTML=`<div class="row" style="justify-content:flex-end;margin-bottom:.45rem">
+      <button class="mini" onclick="this.closest('.modal-ov').remove()">Close</button>
+    </div>
+    <div class="dash-detail">
+      <div>${photo}</div>
+      <div class="dash-detail-info">
+        <h2>${itemLabel(it)}</h2>
+        <div class="sub">${esc(it.category||'Uncategorised')} ${isAlcohol(it)?'· 🍷 Alcohol':'· General goods'}</div>
+        <table class="dash-detail-kv">
+          ${row('Retail',fmt(it.retail,it.currency),'dash-editable',`editDashPopupPrice(event,${it.id},'${it.currency}',this)`)}
+          ${row('Stock',`${money(it.quantity_on_hand)} ${esc(it.unit||'')}`,'dash-editable stock-value',`editDashPopupStock(event,${it.id},this)`)}
+          ${row('Pack',it.pack!=null?fmt(it.pack,it.currency):'')}
+          ${row('Wholesale',it.wholesale!=null?fmt(it.wholesale,it.currency):'')}
+          ${row('Cost',it.cost!=null?fmt(it.cost,it.currency):'')}
+          ${row('Margin',it.margin!=null?fmt(it.margin,it.currency):'')}
+          ${row('Supplier',esc(it.supplier||''))}
+          ${row('Drink',drinkLine(it))}
+          ${row('Barcode',esc(it.barcode||''))}
+        </table>
+      </div>
+    </div>`;
+  ov.appendChild(card); ov.onclick=e=>{ if(e.target===ov) ov.remove(); }; document.body.appendChild(ov);
+}
+function editDashPopupPrice(ev,id,currency,el){
+  ev.stopPropagation();
+  if(el.dataset.editing) return;
+  el.dataset.editing='1';
+  const item=dashItems.find(x=>x.id===id), original=el.innerHTML;
+  el.innerHTML=`<span class="dash-popup-editor"><input inputmode="decimal" value="${item?.retail??''}">
+    <select><option value="KHR"${currency==='KHR'?' selected':''}>៛</option>
+    <option value="USD"${currency==='USD'?' selected':''}>$</option></select></span>`;
+  const wrap=el.querySelector('.dash-popup-editor'), input=wrap.querySelector('input'), select=wrap.querySelector('select');
+  input.focus(); input.select();
+  let done=false;
+  const finish=async(commit)=>{
+    if(done) return; done=true;
+    const value=input.value.trim();
+    if(commit && value){
+      try{
+        const upd=await api('/api/items/'+id+'/price',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({price:value,kind:'retail',currency:select.value})});
+        const current=dashItems.find(x=>x.id===id);
+        if(current){ current.retail=upd.retail; current.currency=upd.currency; }
+        el.dataset.editing=''; el.innerHTML=fmt(upd.retail,upd.currency);
+        renderCatalog(); toast('Price updated');
+        return;
+      }catch(e){ toast('Error: '+e.message); }
+    }
+    el.dataset.editing=''; el.innerHTML=original;
+  };
+  input.onkeydown=e=>{ if(e.key==='Enter'){e.preventDefault();finish(true);} else if(e.key==='Escape') finish(false); };
+  wrap.addEventListener('focusout',()=>setTimeout(()=>{if(!wrap.contains(document.activeElement)) finish(true);},0));
+}
+function editDashPopupStock(ev,id,el){
+  ev.stopPropagation();
+  if(el.dataset.editing) return;
+  el.dataset.editing='1';
+  const item=dashItems.find(x=>x.id===id), original=el.innerHTML, current=Number(item?.quantity_on_hand||0);
+  el.innerHTML=`<span class="dash-popup-editor stock"><input inputmode="decimal" min="0" step="any" value="${current}"></span>`;
+  const wrap=el.querySelector('.dash-popup-editor'), input=wrap.querySelector('input');
+  input.focus(); input.select();
+  let done=false;
+  const finish=async(commit)=>{
+    if(done) return; done=true;
+    const desired=Number(input.value);
+    if(commit && Number.isFinite(desired) && desired>=0){
+      const delta=desired-current;
+      if(delta===0){ el.dataset.editing=''; el.innerHTML=original; return; }
+      try{
+        const upd=await api('/api/items/'+id+'/restock',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({quantity:delta})});
+        const currentItem=dashItems.find(x=>x.id===id);
+        if(currentItem) currentItem.quantity_on_hand=upd.quantity_on_hand;
+        el.dataset.editing=''; el.innerHTML=`${money(upd.quantity_on_hand)} ${esc(upd.unit||'')}`;
+        renderCatalog(); toast('Stock updated');
+        return;
+      }catch(e){ toast('Error: '+e.message); }
+    } else if(commit) toast('Stock must be 0 or more');
+    el.dataset.editing=''; el.innerHTML=original;
+  };
+  input.onkeydown=e=>{ if(e.key==='Enter'){e.preventDefault();finish(true);} else if(e.key==='Escape') finish(false); };
+  wrap.addEventListener('focusout',()=>setTimeout(()=>{if(!wrap.contains(document.activeElement)) finish(true);},0));
+}
+// one Dash catalog card (click opens a responsive detail view; price and stock are tap-to-edit)
 const prodCard = it => {
   const media = it.has_image ? `<img class="ph" src="${itemThumbSrc(it.id)}" alt="">` : `<div class="noimg">📦</div>`;
-  return `<div class="prod"><div onclick="openGallery(${it.id},'${esc(it.name)}')">${media}</div>
-    <div class="body"><div class="nm" onclick="openGallery(${it.id},'${esc(it.name)}')">${itemLabel(it)}</div>
+  return `<div class="prod"><div onclick="openDashItem(${it.id})">${media}</div>
+    <div class="body"><div class="nm" onclick="openDashItem(${it.id})">${itemLabel(it)}${it.label?`<span class="item-label">${esc(it.label)}</span>`:''}</div>
       <div class="pr" title="tap to edit" data-raw="${it.retail??''}"
            onclick="editCatPrice(event,${it.id},'${it.currency}',this)">${fmt(it.retail,it.currency)} ✎</div>
+      <div class="stock-edit" title="tap to edit stock" data-raw="${it.quantity_on_hand??0}"
+           onclick="editCatStock(event,${it.id},this)">Stock: ${money(it.quantity_on_hand)} ${esc(it.unit||'')} ✎</div>
       ${drinkLineCompact(it)?`<div class="muted" style="font-size:.72rem;margin-top:.15rem;line-height:1.25">🍷 ${drinkLineCompact(it)}</div>`:''}</div></div>`;
 };
 // Catalog sorting. Prices can be in KHR or USD, so for a meaningful low→high across
 // both we compare a rough USD-equivalent (display is never converted).
-let dashItems=[];
+let dashItems=[], dashGroup='__all';
 const RIEL_PER_USD=4100;   // approximate; only used to order mixed-currency prices
 const usdVal = it => { const p=it.retail; if(p==null) return null; return it.currency==='KHR' ? Number(p)/RIEL_PER_USD : Number(p); };
+function setDashGroup(group){ dashGroup=group; renderCatalog(); }
+// Everything a dashboard search should match on.
+const dashHay = i => [i.name,i.brand,i.category,i.style,i.origin,i.supplier,i.barcode,i.label,i.section]
+  .filter(Boolean).join(' ').toLowerCase();
+// Group + search + price range. Range compares the rough USD equivalent, the same
+// basis the price sorts already use, so mixed KHR/USD stock filters sensibly.
+function dashFiltered(){
+  let items = dashGroup==='__all' ? dashItems : dashItems.filter(i=>dashGroup==='alcohol' ? isAlcohol(i) : !isAlcohol(i));
+  const q=($('#dash-q')?.value||'').trim().toLowerCase();
+  if(q) items=items.filter(i=>dashHay(i).includes(q));
+  if($('#dash-unpriced')?.checked) return items.filter(i=>i.retail==null);
+  const min=parseFloat($('#dash-min')?.value), max=parseFloat($('#dash-max')?.value);
+  if(!isNaN(min)) items=items.filter(i=>{ const v=usdVal(i); return v!=null && v>=min; });
+  if(!isNaN(max)) items=items.filter(i=>{ const v=usdVal(i); return v!=null && v<=max; });
+  return items;
+}
+function clearDashFilters(){
+  for(const id of ['dash-q','dash-min','dash-max']){ const el=$('#'+id); if(el) el.value=''; }
+  const c=$('#dash-unpriced'); if(c) c.checked=false;
+  renderCatalog();
+}
 function renderCatalog(){
   const box=$('#catalog'); if(!box) return;
-  if(!dashItems.length){ box.innerHTML='<span class="empty">No items yet</span>'; return; }
+  initSheen();            // delegated on the box, so it survives every re-render
+  const items=dashFiltered();
+  const cnt=$('#catalog-count');
+  if(cnt){
+    const total=dashItems.length;
+    cnt.textContent = items.length===total ? `${total} items`
+      : `${items.length} of ${total} items`;
+  }
+  if(!items.length){ box.innerHTML='<span class="empty">Nothing matches these filters</span>'; return; }
   const sort=($('#dash-sort')||{}).value || 'category';
   if(sort==='category'){
     const groups={};
-    for(const it of dashItems){ const c=it.category||'Uncategorised'; (groups[c]=groups[c]||[]).push(it); }
+    for(const it of items){ const c=it.category||'Uncategorised'; (groups[c]=groups[c]||[]).push(it); }
     box.innerHTML=Object.keys(groups).sort((a,b)=>a.localeCompare(b)).map(c=>
       `<div class="cat-group"><div class="cat-head">${esc(c)}<span class="cat-n">${groups[c].length}</span></div>
         <div class="catalog">${groups[c].map(prodCard).join('')}</div></div>`).join('');
@@ -1698,7 +2024,7 @@ function renderCatalog(){
     'price-desc':(a,b)=>(usdVal(b)??-Infinity)-(usdVal(a)??-Infinity),
     'newest':    (a,b)=>b.id-a.id,
   }[sort] || (()=>0);
-  box.innerHTML=`<div class="catalog">${[...dashItems].sort(cmp).map(prodCard).join('')}</div>`;
+  box.innerHTML=`<div class="catalog">${[...items].sort(cmp).map(prodCard).join('')}</div>`;
 }
 // Count a metric up from 0 to its value (keeps any prefix/suffix, e.g. $ or decimals).
 function animateCount(el){
@@ -1720,9 +2046,11 @@ async function loadDash(){
   const cats=new Set(items.map(i=>i.category||'—'));
   const withPhoto=items.filter(i=>i.has_image).length;
   const lowCount=items.filter(i=>(i.quantity_on_hand||0)<=5).length;
+  const alcoholCount=items.filter(isAlcohol).length;
+  const generalCount=items.length-alcoholCount;
   const M=(n,l,cls)=>`<div class="metric"><div class="n ${cls||''}">${n}</div><div class="l">${l}</div></div>`;
   $('#metrics').innerHTML =
-    M(items.length,'Items') + M(cats.size,'Categories') +
+    M(items.length,'Items') + M(generalCount,'General items') + M(alcoholCount,'Alcohol items') + M(cats.size,'Categories') +
     M(money(t.total),"Today's sales",'good') + M(lowCount,'Low stock', lowCount?'warn':'');
   document.querySelectorAll('#metrics .n').forEach(animateCount);
   // --- visual catalog (photos) — remembered so re-sorting needs no refetch ---
@@ -1736,7 +2064,7 @@ async function loadDash(){
     : '<li class="empty">No sales today</li>';
   // --- low stock (with thumbnails) ---
   const low=await api('/api/low?threshold=5');
-  $('#low').innerHTML = low.length ? low.map(it=>`<li>${thumb(it)}<span class="name">${itemLabel(it)}</span><span class="price warn">${money(it.quantity_on_hand)} ${esc(it.unit)}</span></li>`).join('')
+  $('#low').innerHTML = low.length ? low.map(it=>`<li>${thumb(it)}<span class="name">${itemLabel(it)}${it.label?`<span class="item-label">${esc(it.label)}</span>`:''}</span><span class="price warn">${money(it.quantity_on_hand)} ${esc(it.unit)}</span></li>`).join('')
     : '<li class="empty">All well stocked</li>';
   // --- best sellers ---
   const best=await api('/api/best?days=30');
@@ -1754,8 +2082,10 @@ function editCatPrice(ev, id, currency, el){
       <select>
         <option value="KHR"${currency==='KHR'?' selected':''}>៛</option>
         <option value="USD"${currency==='USD'?' selected':''}>$</option>
-      </select></span>`;
+      </select>
+      ${raw!==''?`<button class="mini pclear" title="Remove this price">✕</button>`:''}</span>`;
   const wrap=el.querySelector('.pedit'), inp=el.querySelector('input'), sel=el.querySelector('select');
+  const clr=el.querySelector('.pclear');
   inp.focus(); inp.select();
   wrap.onclick=e=>e.stopPropagation();
   let done=false;
@@ -1771,8 +2101,59 @@ function editCatPrice(ev, id, currency, el){
     }
     el.innerHTML=orig; el.dataset.editing='';
   };
+  if(clr) clr.onclick=async e=>{
+    e.stopPropagation(); e.preventDefault();
+    if(done) return; done=true;
+    try{
+      const upd=await api('/api/items/'+id+'/price?kind=retail',{method:'DELETE'});
+      const i=dashItems.find(x=>x.id===id); if(i){ i.retail=null; i.price=null; }
+      el.dataset.raw=''; el.dataset.editing='';
+      el.innerHTML=fmt(null,upd.currency)+' ✎'; toast('Price removed');
+    }catch(err){ toast('Error: '+err.message); el.innerHTML=orig; el.dataset.editing=''; }
+  };
   inp.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); finish(true); } else if(e.key==='Escape'){ finish(false); } };
   // save only when focus leaves the whole editor (so tabbing input→select doesn't save early)
+  wrap.addEventListener('focusout',()=>setTimeout(()=>{ if(!wrap.contains(document.activeElement)) finish(true); },0));
+}
+// Inline stock edit from the Dash catalog. The delta goes through the stock ledger.
+function editCatStock(ev, id, el){
+  ev.stopPropagation();
+  if(el.dataset.editing) return;
+  el.dataset.editing='1';
+  const orig=el.innerHTML, raw=el.dataset.raw||'0';
+  el.innerHTML=`<span class="pedit"><input inputmode="decimal" min="0" step="any" value="${raw}"></span>`;
+  const wrap=el.querySelector('.pedit'), inp=wrap.querySelector('input');
+  inp.focus(); inp.select();
+  let done=false;
+  const finish=async(commit)=>{
+    if(done) return; done=true;
+    const desired=Number(inp.value);
+    const current=Number(raw);
+    if(commit && Number.isFinite(desired) && desired>=0){
+      const delta=desired-current;
+      if(delta!==0){
+        try{
+          const upd=await api('/api/items/'+id+'/restock',{method:'POST',
+            headers:{'Content-Type':'application/json'},body:JSON.stringify({quantity:delta})});
+          const item=dashItems.find(x=>x.id===id);
+          if(item) item.quantity_on_hand=upd.quantity_on_hand;
+          el.dataset.raw=upd.quantity_on_hand;
+          el.dataset.editing='';
+          el.innerHTML=`Stock: ${money(upd.quantity_on_hand)} ${esc(upd.unit||'')} ✎`;
+          toast(`${upd.name}: stock updated`);
+          return;
+        }catch(e){ toast('Error: '+e.message); }
+      } else {
+        el.dataset.editing='';
+        el.innerHTML=orig;
+        return;
+      }
+    } else if(commit) {
+      toast('Stock must be a number of 0 or more');
+    }
+    el.innerHTML=orig; el.dataset.editing='';
+  };
+  inp.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); finish(true); } else if(e.key==='Escape'){ finish(false); } };
   wrap.addEventListener('focusout',()=>setTimeout(()=>{ if(!wrap.contains(document.activeElement)) finish(true); },0));
 }
 
@@ -1842,6 +2223,36 @@ function toggleVimHelp(){ const ex=document.querySelector('.vim-help-ov');
     <div class="muted" style="margin-top:.6rem">Mouse & touch still work everywhere — this is extra.</div>
     <div class="row" style="margin-top:.7rem"><button class="mini" style="margin-left:auto" onclick="toggleVimHelp()">Close</button></div></div>`;
   ov.onclick=e=>{ if(e.target===ov) toggleVimHelp(); }; document.body.appendChild(ov); vimHelpOpen=true;
+}
+
+// ---- pointer sheen on the catalogue tiles ----
+// Light moving across glass: the tile's ::after highlight is positioned from
+// --mx/--my. One delegated listener for the whole grid rather than one per
+// tile, and the write is deferred to the next frame, so sweeping the pointer
+// across the catalogue cannot schedule a layout read per mousemove. Mouse only
+// — a touch device has no hover state and would pay for nothing.
+function initSheen(){
+  const box = document.getElementById('catalog');
+  if(!box || box.dataset.sheen) return;
+  if(!window.matchMedia('(hover: hover)').matches) return;
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  box.dataset.sheen = '1';
+  let tile = null, px = 0, py = 0, queued = false;
+  function paint(){
+    queued = false;
+    if(!tile) return;
+    const r = tile.getBoundingClientRect();
+    tile.style.setProperty('--mx', (px - r.left) + 'px');
+    tile.style.setProperty('--my', (py - r.top) + 'px');
+  }
+  box.addEventListener('pointermove', e=>{
+    if(e.pointerType !== 'mouse') return;
+    const t = e.target.closest('.prod');
+    if(!t){ tile = null; return; }
+    tile = t; px = e.clientX; py = e.clientY;
+    if(!queued){ queued = true; requestAnimationFrame(paint); }
+  }, {passive:true});
+  box.addEventListener('pointerleave', ()=>{ tile = null; }, {passive:true});
 }
 
 document.addEventListener('keydown', e=>{

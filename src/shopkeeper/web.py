@@ -73,6 +73,8 @@ def _item_dict(it: Item, prices: dict | None = None) -> dict:
         "category": it.category,
         "unit": it.unit,
         "supplier": it.supplier,
+        "label": it.label,
+        "section": it.section,
         "quantity_on_hand": float(it.quantity_on_hand),
         "retail": retail,
         "pack": float(pk.price) if pk else None,
@@ -137,6 +139,7 @@ class ItemIn(BaseModel):
     category: str | None = None
     unit: str = "each"
     supplier: str | None = None
+    label: str | None = None
     barcode: str | None = None
     currency: str = "USD"
     retail: Decimal | None = Field(default=None, ge=0)
@@ -158,7 +161,7 @@ def api_add_item(body: ItemIn) -> dict:
                               style=(body.style or None), origin=(body.origin or None),
                               is_alcohol=body.is_alcohol,
                               category=body.category, unit=body.unit,
-                              supplier=body.supplier, barcode=barcode))
+                              supplier=body.supplier, label=(body.label or None), barcode=barcode))
     if body.retail is not None:
         repo.set_price(item.id, body.retail, "retail", cur)
     if body.pack is not None:
@@ -179,6 +182,7 @@ class MetaIn(BaseModel):
     category: str | None = None
     supplier: str | None = None
     unit: str | None = None
+    label: str | None = None
 
 
 @api.post("/items/{item_id}/meta")
@@ -189,7 +193,29 @@ def api_update_meta(item_id: int, body: MetaIn) -> dict:
     if not body.name.strip():
         raise HTTPException(400, "name cannot be blank")
     repo.update_item_meta(item_id, body.name, body.brand, body.size, body.category,
-                          body.supplier, body.unit)
+                          body.supplier, body.unit, body.label)
+    return _item_dict(repo.get_item(item_id))
+
+
+class SectionIn(BaseModel):
+    section: str | None = None      # None / "" clears it back to ordinary stock
+
+
+@api.get("/sections")
+def api_sections() -> dict:
+    """The shelves an item can be published to (drives the picker in the UI)."""
+    return {"sections": list(repo.SECTIONS)}
+
+
+@api.post("/items/{item_id}/section")
+def api_set_section(item_id: int, body: SectionIn) -> dict:
+    """Put an item on a published shelf — Limited Edition, Discontinued, ... — or clear it."""
+    if repo.get_item(item_id) is None:
+        raise HTTPException(404, f"no item #{item_id}")
+    try:
+        repo.set_section(item_id, body.section)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
     return _item_dict(repo.get_item(item_id))
 
 
@@ -606,6 +632,18 @@ def api_set_price(item_id: int, body: PriceIn) -> dict:
         cur = existing.currency if existing else "USD"
     repo.set_price(item_id, body.price, body.kind, cur)
     return _item_dict(repo.get_item(item_id))
+
+
+@api.delete("/items/{item_id}/price")
+def api_clear_price(item_id: int, kind: str = Query("retail")) -> dict:
+    """Remove a price from an item — it then shows as unpriced rather than as 0."""
+    if repo.get_item(item_id) is None:
+        raise HTTPException(404, f"no item #{item_id}")
+    try:
+        removed = repo.clear_price(item_id, kind)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    return {"removed": removed, "kind": kind, **_item_dict(repo.get_item(item_id))}
 
 
 class SaleLineIn(BaseModel):

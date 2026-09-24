@@ -7,6 +7,7 @@ Design rules (deliberate, for a system that must stay trustworthy and run for ye
      without touching the rest of the app.
   3. The whole app works with the AI absent — callers must handle available() == False.
 """
+
 from __future__ import annotations
 
 import json
@@ -21,6 +22,7 @@ from .config import Settings, load_settings
 class ParsedItem(BaseModel):
     """One item the model extracted from free text. quantity is a float at the AI
     boundary (JSON-friendly) and converted to Decimal via qty() before use."""
+
     name: str
     quantity: float = Field(default=1.0, gt=0)
     unit: str | None = None
@@ -36,6 +38,7 @@ class ParsedEntry(BaseModel):
 class ParsedNewItem(BaseModel):
     """A catalogue entry the model extracted from free text. All fields but name
     are optional; prices/stock are floats at the AI boundary."""
+
     name: str
     category: str | None = None
     unit: str | None = None
@@ -52,12 +55,23 @@ class ParsedCatalog(BaseModel):
 
 class Intent(BaseModel):
     """What the shopkeeper's chat message is asking for."""
+
     intent: Literal[
-        "item", "price", "stock", "today", "low_stock", "best_sellers",
-        "record_sale", "add_item", "restock", "help",
+        "item",
+        "price",
+        "stock",
+        "today",
+        "low_stock",
+        "best_sellers",
+        "record_sale",
+        "add_item",
+        "restock",
+        "help",
     ]
-    query: str | None = None      # item name, when the message is about one item
-    quantity: float | None = None  # a number stated in the message (e.g. restock amount)
+    query: str | None = None  # item name, when the message is about one item
+    quantity: float | None = (
+        None  # a number stated in the message (e.g. restock amount)
+    )
 
 
 _SYSTEM_CHAT = """You are a friendly, concise assistant inside a small shop's point-of-sale app.
@@ -146,8 +160,16 @@ _CLAUDE_CATALOG_SCHEMA = {
                     "stock": _nullable("number"),
                     "supplier": _nullable("string"),
                 },
-                "required": ["name", "category", "unit", "retail", "wholesale",
-                             "cost", "stock", "supplier"],
+                "required": [
+                    "name",
+                    "category",
+                    "unit",
+                    "retail",
+                    "wholesale",
+                    "cost",
+                    "stock",
+                    "supplier",
+                ],
                 "additionalProperties": False,
             },
         }
@@ -159,10 +181,21 @@ _CLAUDE_CATALOG_SCHEMA = {
 _CLAUDE_INTENT_SCHEMA = {
     "type": "object",
     "properties": {
-        "intent": {"type": "string", "enum": [
-            "item", "price", "stock", "today", "low_stock", "best_sellers",
-            "record_sale", "add_item", "restock", "help",
-        ]},
+        "intent": {
+            "type": "string",
+            "enum": [
+                "item",
+                "price",
+                "stock",
+                "today",
+                "low_stock",
+                "best_sellers",
+                "record_sale",
+                "add_item",
+                "restock",
+                "help",
+            ],
+        },
         "query": _nullable("string"),
         "quantity": _nullable("number"),
     },
@@ -265,8 +298,12 @@ class OllamaProvider:
     def warm(self) -> None:
         """Pre-load the model into memory so the first real parse isn't slow."""
         try:
-            self._client.generate(model=self._model, prompt="ok",
-                                  options={"num_predict": 1}, keep_alive="30m")
+            self._client.generate(
+                model=self._model,
+                prompt="ok",
+                options={"num_predict": 1},
+                keep_alive="30m",
+            )
         except Exception:  # noqa: BLE001,S110 - warming is best-effort, ignore failures
             pass
 
@@ -282,7 +319,9 @@ class ClaudeProvider:
         try:
             from anthropic import Anthropic
         except ImportError as exc:  # pragma: no cover
-            raise RuntimeError("Claude provider needs the 'anthropic' package: pip install -e \".[claude]\"") from exc
+            raise RuntimeError(
+                "Claude provider needs the 'anthropic' package: pip install -e \".[claude]\""
+            ) from exc
         self._client = Anthropic(api_key=api_key) if api_key else Anthropic()
         self._model = model
         self._has_key = bool(api_key)
@@ -292,7 +331,9 @@ class ClaudeProvider:
         # only check that one is configured (env var or an explicit key).
         import os
 
-        return self._has_key or bool(os.getenv("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_AUTH_TOKEN"))
+        return self._has_key or bool(
+            os.getenv("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_AUTH_TOKEN")
+        )
 
     def parse_items(self, text: str) -> list[ParsedItem]:
         resp = self._client.messages.create(
@@ -317,12 +358,26 @@ class ClaudeProvider:
             max_tokens=2048,
             system=_SYSTEM_ITEMS,
             messages=[{"role": "user", "content": text}],
-            output_config={"format": {"type": "json_schema", "schema": _CLAUDE_CATALOG_SCHEMA}},
+            output_config={
+                "format": {"type": "json_schema", "schema": _CLAUDE_CATALOG_SCHEMA}
+            },
         )
         content = next((b.text for b in resp.content if b.type == "text"), "{}")
         data = json.loads(content)
-        fields = ("name", "category", "unit", "retail", "wholesale", "cost", "stock", "supplier")
-        return [ParsedNewItem(**{k: it.get(k) for k in fields}) for it in data.get("items", [])]
+        fields = (
+            "name",
+            "category",
+            "unit",
+            "retail",
+            "wholesale",
+            "cost",
+            "stock",
+            "supplier",
+        )
+        return [
+            ParsedNewItem(**{k: it.get(k) for k in fields})
+            for it in data.get("items", [])
+        ]
 
     def classify(self, text: str) -> Intent:
         resp = self._client.messages.create(
@@ -330,7 +385,9 @@ class ClaudeProvider:
             max_tokens=256,
             system=_SYSTEM_CLASSIFY,
             messages=[{"role": "user", "content": text}],
-            output_config={"format": {"type": "json_schema", "schema": _CLAUDE_INTENT_SCHEMA}},
+            output_config={
+                "format": {"type": "json_schema", "schema": _CLAUDE_INTENT_SCHEMA}
+            },
         )
         content = next((b.text for b in resp.content if b.type == "text"), "{}")
         return Intent.model_validate(json.loads(content))
