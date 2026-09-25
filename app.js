@@ -218,6 +218,15 @@
   // would anchor to the search capsule rather than to the viewport.
   var topEl = document.querySelector(".top");
   if (topEl && catBtn.parentNode !== topEl) topEl.appendChild(catBtn);
+  // #chips ships inside <header class="top">, which is itself position:fixed
+  // with its own z-index (30) — that makes .top a stacking context, so every
+  // descendant's z-index (including #chips's 32) is compared to the rest of
+  // the page using .top's z-index, not its own. #scrim sits at the body level
+  // at z-index 31, so it painted OVER the entire header, picker included,
+  // and silently ate every click on a category chip. Move #chips out to the
+  // body too, the same way catBtn already is, so its z-index actually competes
+  // against #scrim's in the same (root) stacking context.
+  if (document.body && chipsNav.parentNode !== document.body) document.body.appendChild(chipsNav);
 
   phoneMQ.addEventListener("change", closePicker);
 
