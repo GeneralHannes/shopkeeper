@@ -1127,3 +1127,106 @@ footer{margin-top:1rem}
   .brackets button{flex:1;justify-content:center;padding:.42rem .3rem;font-size:.74rem}
   .results .count{flex:1}
 }
+
+/* ======================= home page (index.html) =======================
+   The front door: who the shop is, where it is, and a way into the
+   catalogue. Reuses the catalogue's hero, tiles and card material; the
+   header here is a plain bar (no search/category islands — those belong to
+   the catalogue). The shop's name appears once: as the hero title. */
+a.ident{color:inherit;text-decoration:none}
+.home-top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:1rem;
+  padding:.8rem clamp(1rem,4vw,2.5rem);max-width:1600px;margin:0 auto;
+  background:linear-gradient(to bottom,var(--ground) 55%,transparent)}
+.home-top .ident{margin-right:auto}
+.home-top .mark{width:28px;height:28px}
+.home-nav{display:flex;gap:.3rem}
+.home-nav a{font:600 .86rem "Archivo",system-ui,sans-serif;color:var(--ink-2);text-decoration:none;
+  padding:.5rem .85rem;border-radius:999px;border:1px solid transparent;
+  transition:background .2s ease,color .2s ease,border-color .2s ease}
+.home-nav a:hover{color:var(--ink);border-color:var(--glass-line);background:color-mix(in srgb,var(--surface) 55%,transparent)}
+main.home{padding-top:0}
+.home-hero{padding-top:clamp(1.4rem,6vw,4.5rem);padding-bottom:clamp(1.6rem,4vw,2.6rem)}
+.hero-eyebrow a{color:inherit;text-decoration:none}
+.hero-eyebrow.back::before{display:none}
+.hero-eyebrow.back a{letter-spacing:.12em}
+.hero-eyebrow.back a:hover{text-decoration:underline;text-underline-offset:3px}
+.hero-cta{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:1.6rem}
+.js .hero-cta{animation-delay:.26s}
+.btn{display:inline-flex;align-items:center;gap:.55rem;text-decoration:none;cursor:pointer;
+  font:700 .92rem "Archivo",system-ui,sans-serif;color:var(--ink);
+  padding:.8rem 1.25rem;border-radius:999px;border:1px solid var(--glass-line);
+  background:var(--glass-solid);box-shadow:var(--glass-edge),var(--shadow);
+  transition:transform .55s var(--sp-bouncy),border-color .2s ease,box-shadow .25s ease}
+.btn b{font-size:.74rem;font-weight:700;padding:.1rem .45rem;border-radius:999px;background:color-mix(in srgb,currentColor 16%,transparent)}
+.btn:active{transform:scale(.96);transition-duration:.09s}
+@media (hover:hover){.btn:hover{border-color:var(--gold-soft);transform:translateY(-1px)}}
+.btn.gold{color:#1b1406;border-color:var(--gold);
+  background:linear-gradient(to bottom,color-mix(in srgb,var(--gold) 82%,#fff),var(--gold));
+  box-shadow:var(--glass-edge),0 10px 26px -12px color-mix(in srgb,var(--gold) 80%,transparent)}
+
+.home-sec{margin:0 0 clamp(2rem,5vw,3.4rem)}
+.sec-head{display:flex;align-items:baseline;gap:1rem;margin-bottom:1rem;padding-bottom:.7rem;border-bottom:1px solid var(--glass-line)}
+.sec-head h2{margin:0;font-family:"Marcellus",Georgia,serif;font-weight:400;font-size:clamp(1.35rem,3vw,1.75rem)}
+.sec-head a{margin-left:auto;font-size:.82rem;font-weight:600;color:var(--gold);text-decoration:none;white-space:nowrap}
+.sec-head a:hover{text-decoration:underline;text-underline-offset:3px}
+.sec-sub{margin:-.4rem 0 1rem;color:var(--ink-3);font-size:.88rem}
+a.tile{text-decoration:none}
+
+/* rare bottles: photos only — these are priced in store */
+.rare-row{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:clamp(.6rem,1.5vw,1.1rem)}
+.rare-shot{display:flex;flex-direction:column;gap:.5rem;text-decoration:none;color:var(--ink);
+  transition:transform .55s var(--sp-bouncy)}
+.rare-shot .shot{display:grid;margin:0;border-radius:var(--r-card);border:1px solid color-mix(in srgb,var(--gold) 34%,var(--glass-line));
+  aspect-ratio:3/4;padding:.6rem;box-shadow:var(--glass-edge),var(--shadow)}
+.rare-shot img{width:100%;height:100%;object-fit:cover;border-radius:10px}
+.rare-nm{font-family:"Marcellus",Georgia,serif;font-size:.88rem;line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rare-shot:active{transform:scale(.97);transition-duration:.09s}
+@media (hover:hover){.rare-shot:hover{transform:translateY(-3px)}}
+
+/* visit us: details beside a real map */
+.visit-grid{display:grid;grid-template-columns:minmax(0,22rem) minmax(0,1fr);gap:clamp(.9rem,2vw,1.4rem);align-items:stretch}
+.visit-card{padding:1.1rem 1.3rem 1.3rem;border-radius:var(--r-card);border:1px solid var(--glass-line);
+  background:var(--glass-solid);box-shadow:var(--glass-edge),var(--shadow);display:flex;flex-direction:column}
+.visit-card .rows{margin:0;border-top:none;font-size:.9rem}
+.visit-card .rows div{align-items:baseline}
+.visit-card .rows dd{color:var(--ink)}
+.visit-card .rows dd a{color:var(--gold);text-decoration:none}
+.visit-card .addr{text-align:right;line-height:1.45}
+.visit-actions{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:auto;padding-top:1.2rem}
+.visit-actions .btn{flex:1 1 auto;justify-content:center;font-size:.84rem;padding:.7rem 1rem}
+.map-frame{position:relative;min-height:22rem;border-radius:var(--r-card);overflow:hidden;
+  border:1px solid var(--glass-line);box-shadow:var(--glass-edge),var(--shadow);background:var(--sunk)}
+.map-frame::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--gold) 22%,transparent)}
+.map-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+
+/* footer: logo + tagline (the name is already on the page), with page links */
+.foot-brand{align-items:center}
+.foot-tag{margin:0;font-family:"Marcellus",Georgia,serif;font-size:1.05rem;color:var(--ink-2)}
+.foot-nav{display:flex;gap:1.2rem;flex-wrap:wrap}
+.foot-nav a{color:var(--ink-2);text-decoration:none;font-size:.86rem;font-weight:600}
+.foot-nav a:hover{color:var(--gold)}
+
+@media (max-width:900px){
+  .visit-grid{grid-template-columns:minmax(0,1fr)}
+  .map-frame{min-height:18rem}
+  .rare-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:640px){
+  .home-top{padding:.6rem 1rem}
+  .home-nav a{padding:.45rem .7rem;font-size:.82rem}
+  .home-hero{padding-top:1rem}
+  .hero-cta .btn{flex:1 1 auto;justify-content:center}
+  .rare-nm{font-size:.74rem}
+  .rare-shot .shot{padding:.35rem;border-radius:12px}
+  .rare-shot img{border-radius:7px}
+  .map-frame{min-height:16rem}
+  main.home + footer{padding-bottom:2rem}
+}
+/* home: its header is a plain bar — undo the catalogue's floating-island
+   positioning that .ident picks up from 641px up */
+.home-top .ident{position:static;transform:none;margin:0 auto 0 0;padding:0;background:none;border:none;box-shadow:none;animation:none}
+.home-top .mark{width:28px;height:28px}
+/* home has no catalogue script to fade photos in, so they're simply shown */
+.rare-shot .shot img{opacity:1}
