@@ -1040,21 +1040,6 @@ footer{margin-top:2rem;padding-top:2.2rem}
 }
 @media (prefers-reduced-motion:reduce){.js .hero > *{animation:none}}
 
-/* ================= view size: Auto / S / M / L =================
-   <html data-view> is set by the head script from localStorage before first
-   paint; no attribute means Auto, which picks by screen: phones get S (three
-   across, the whole interface ~7% smaller), everything else gets M. */
-.view{display:inline-flex;align-items:center;gap:2px;padding:3px;border-radius:999px;margin-left:auto;
-  background:color-mix(in srgb,var(--surface) 55%,transparent);border:1px solid var(--glass-line);box-shadow:var(--glass-edge)}
-.clear:not([hidden]) + .view{margin-left:.6rem}
-.view-l{font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);padding:0 .45rem 0 .55rem}
-.view button{font:600 .74rem "Archivo",system-ui,sans-serif;color:var(--ink-2);background:none;border:none;cursor:pointer;
-  min-width:2rem;padding:.34rem .55rem;border-radius:999px;
-  transition:background .2s ease,color .2s ease,transform .55s var(--sp-bouncy)}
-.view button:active{transform:scale(.92);transition-duration:.09s}
-.view button.on{background:var(--gold);color:var(--surface);box-shadow:0 4px 12px -5px color-mix(in srgb,var(--gold) 70%,transparent)}
-@media (hover:hover){.view button:not(.on):hover{color:var(--ink)}}
-
 /* desktop / tablet: S and L change the card width; M is the base */
 @media (min-width:641px){
   html[data-view="s"] .grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr))}
@@ -1086,8 +1071,6 @@ footer{margin-top:2rem;padding-top:2.2rem}
   html[data-view="l"] .n-shots{display:inline-flex}
   html[data-view="l"] .card{border-radius:16px}
   .results{flex-wrap:wrap;row-gap:.5rem}
-  .view-l{display:none}
-  .view button{min-width:1.9rem;padding:.3rem .5rem}
 }
 
 /* desktop: once scrolled, a soft fade under the floating header keeps the
@@ -1118,3 +1101,29 @@ footer{margin-top:1rem}
 /* shelf tiles read like the others: number, then its name (the badge) at the foot */
 .tile.shelf{justify-content:flex-end}
 .tile .badge{margin:.3rem 0 0}
+
+/* ================= price brackets: low → high =================
+   Replaces the old size switch. Each bracket wears the price-scale colour of
+   its middle (--rk-d / --rk-l from the build), so it reads as the same ladder. */
+.brackets{display:inline-flex;align-items:center;gap:3px;padding:3px;border-radius:999px;margin-left:auto;
+  background:color-mix(in srgb,var(--surface) 55%,transparent);border:1px solid var(--glass-line);box-shadow:var(--glass-edge)}
+.clear:not([hidden]) + .brackets{margin-left:.6rem}
+.brackets button{--rk:var(--rk-l,var(--ink-2));display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;
+  font:700 .76rem "Archivo",system-ui,sans-serif;color:var(--rk);background:none;border:1px solid transparent;cursor:pointer;
+  padding:.36rem .75rem;border-radius:999px;font-variant-numeric:tabular-nums;
+  transition:background .2s ease,color .2s ease,border-color .2s ease,transform .55s var(--sp-bouncy)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .brackets button{--rk:var(--rk-d,var(--ink-2))}}
+.brackets button:first-child{color:var(--ink-2)}
+.brackets button i{font-style:normal;font-size:.66rem;font-weight:600;color:var(--ink-3)}
+.brackets button:active{transform:scale(.93);transition-duration:.09s}
+.brackets button.on{background:color-mix(in srgb,var(--rk) 16%,transparent);
+  border-color:color-mix(in srgb,var(--rk) 55%,transparent);box-shadow:0 4px 14px -6px color-mix(in srgb,var(--rk) 70%,transparent)}
+.brackets button:first-child.on{--rk:var(--gold);color:var(--surface);background:var(--gold);border-color:var(--gold)}
+.brackets button.on i{color:inherit;opacity:.75}
+@media (hover:hover){.brackets button:not(.on):hover{background:color-mix(in srgb,var(--rk) 9%,transparent)}}
+@media (max-width:640px){
+  .brackets{margin-left:0;width:100%;justify-content:space-between}
+  .clear:not([hidden]) + .brackets{margin-left:0}
+  .brackets button{flex:1;justify-content:center;padding:.42rem .3rem;font-size:.74rem}
+  .results .count{flex:1}
+}

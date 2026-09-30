@@ -11,7 +11,7 @@
       emptyEl= document.getElementById("empty"),
       chips  = Array.prototype.slice.call(document.querySelectorAll(".chip")),
       dlg    = document.getElementById("dlg"),
-      fam = "", shelf = "", term = "";
+      fam = "", shelf = "", term = "", priceBand = null;
 
   function slug(v) { return v.toLowerCase().replace(/[^a-z0-9]+/g, "-"); }
 
@@ -130,12 +130,15 @@
     cards.forEach(function (c) {
       var ok = (!fam   || c.dataset.fam === fam)
             && (!shelf || c.dataset.shelf === shelf)
-            && (!t     || c.dataset.q.indexOf(t) > -1);
+            && (!t     || c.dataset.q.indexOf(t) > -1)
+            && (!priceBand || (c.dataset.usd !== undefined
+                           && +c.dataset.usd >= priceBand.lo && (priceBand.hi === null || +c.dataset.usd < priceBand.hi)));
       c.hidden = !ok;
       if (ok) shown++;
     });
     setCount(shown, (shown === 1 ? " bottle" : " bottles")
       + (shelf ? " · " + shelf : "") + (fam ? " · " + fam : "")
+      + (priceBand ? " · " + priceBand.label : "")
       + (t ? ' · "' + term.trim() + '"' : ""));
     emptyEl.hidden = shown > 0;
     var pick = shelf || fam;
@@ -404,7 +407,7 @@
       t.classList.toggle("on", !!on && !!(shelf || fam));
       t.setAttribute("aria-pressed", on ? "true" : "false");
     });
-    if (clearBtn) clearBtn.hidden = !(shelf || fam);
+    if (clearBtn) clearBtn.hidden = !(shelf || fam || priceBand);
   }
   tiles.forEach(function (t) {
     t.addEventListener("click", function () {
@@ -414,30 +417,28 @@
       if (c) c.click();
     });
   });
-  if (clearBtn) clearBtn.addEventListener("click", function () { var c = chipFor("", ""); if (c) c.click(); });
+  if (clearBtn) clearBtn.addEventListener("click", function () {
+    if (priceBand && bracketBtns[0]) bracketBtns[0].click();
+    var c = chipFor("", ""); if (c) c.click();
+  });
   chips.forEach(function (ch) { ch.addEventListener("click", syncTiles); });
   syncTiles();
 
-  // ---- view size: Auto (by device) / S / M / L, remembered per browser ----
-  var viewBtns = Array.prototype.slice.call(document.querySelectorAll(".view button"));
-  function currentView() { return document.documentElement.dataset.view || "auto"; }
-  function syncView() {
-    var v = currentView();
-    viewBtns.forEach(function (b) {
-      var on = b.dataset.view === v;
-      b.classList.toggle("on", on); b.setAttribute("aria-checked", on ? "true" : "false");
-    });
-  }
-  viewBtns.forEach(function (b) {
-    b.addEventListener("click", function () {
-      var v = b.dataset.view;
-      if (v === "auto") delete document.documentElement.dataset.view;
-      else document.documentElement.dataset.view = v;
-      try { localStorage.setItem("share_view", v); } catch (e) {}
-      syncView(); settle();
+  // ---- price brackets: low → high, combined with shelf/category/search ----
+  var bracketBtns = Array.prototype.slice.call(document.querySelectorAll(".brackets button"));
+  bracketBtns.forEach(function (bt) {
+    bt.addEventListener("click", function () {
+      var all = bt.dataset.lo === "";
+      priceBand = all ? null : { lo: +bt.dataset.lo, hi: bt.dataset.hi === "" ? null : +bt.dataset.hi,
+                            label: bt.childNodes[0].textContent.trim() };
+      bracketBtns.forEach(function (o) {
+        var on = o === bt; o.classList.toggle("on", on); o.setAttribute("aria-checked", on ? "true" : "false");
+      });
+      apply(); settle(); syncTiles();
+      // a tapped bracket scrolled half out of its strip comes fully into view
+      bt.scrollIntoView({ block: "nearest", inline: "nearest", behavior: calm ? "auto" : "smooth" });
     });
   });
-  syncView();
 
   // deep link: #whisky or #limited-edition opens that shelf on load
   if (location.hash) {
