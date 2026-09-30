@@ -1099,3 +1099,22 @@ footer{margin-top:2rem;padding-top:2.2rem}
   body.scrolled .top::before{opacity:1}
 }
 @media (min-width:641px) and (max-width:1024px){ .top::before{height:7.6rem} }
+
+/* ================= fixes: clipping + spacing ================= */
+/* shelf tiles size to their badge, so a long shelf name (Discontinued) is never cut */
+.tile.shelf{width:auto;min-width:9.2rem;padding-right:1.1rem}
+.tile .badge{position:static;margin-bottom:auto;white-space:nowrap}
+.tile.shelf{justify-content:space-between}
+/* the footer carries its own clearance; main doesn't need to add a second gap */
+main{padding-bottom:1.5rem}
+footer{margin-top:1rem}
+@media (max-width:640px){
+  .tile.shelf{min-width:7.2rem;padding-right:.8rem}
+  main{padding-bottom:1rem}
+  /* the sheet: a slightly shorter photo so the details fit above the nav bar */
+  .dlg-shot img{height:40vh;height:40svh}
+  .dlg-txt{padding-bottom:1.2rem}
+}
+/* shelf tiles read like the others: number, then its name (the badge) at the foot */
+.tile.shelf{justify-content:flex-end}
+.tile .badge{margin:.3rem 0 0}
