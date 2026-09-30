@@ -17,82 +17,127 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&amp;family=Archivo:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="style.css?v=5769001245">
+<link rel="stylesheet" href="home.css?v=4f2c1e62a9">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"LiquorStore","name":"Odin's Share","url":"https://generalhannes.github.io/shopkeeper/","image":"https://generalhannes.github.io/shopkeeper/img/176.jpg"}</script>
 <script>document.documentElement.classList.add("js");
 /* old links like /#whisky pointed at the catalogue when it was the front page */
-if(location.hash.length>1&&location.hash!=="#visit")location.replace("catalogue.html"+location.hash);</script>
+if(location.hash.length>1&&location.hash!=="#visit"&&location.hash!=="#shelves")location.replace("catalogue.html"+location.hash);</script>
 </head>
-<body>
+<body class="h">
 <a class="skip" href="#main">Skip to content</a>
-<header class="home-top">
-  <a class="ident" href="./" aria-label="Odin&#x27;s Share — home"><span class="mark" aria-hidden="true"></span></a>
-  <nav class="home-nav" aria-label="Pages"><a href="catalogue.html">Catalogue</a><a href="#visit">Visit us</a></nav>
+<header class="h-top">
+  <a class="h-logo" href="./" aria-label="Odin&#x27;s Share — home"><span class="mark" aria-hidden="true"></span></a>
+  <span class="h-status" id="status" hidden></span>
+  <nav class="h-nav" aria-label="Pages"><a href="catalogue.html">Catalogue</a><a href="#visit">Visit</a></nav>
 </header>
-<main id="main" class="home">
-  <section class="hero home-hero" aria-labelledby="hero-h">
-    <p class="hero-eyebrow">Wines &amp; spirits</p>
-    <h1 id="hero-h" class="hero-h">Odin&#x27;s Share</h1>
-    <p class="hero-tag">From Wine to Whiskey and More</p>
-    <p class="hero-stats"><b>189</b> bottles<span></span><b>16</b> categories<span></span>updated 30 September 2026</p>
-    <div class="hero-cta">
-      <a class="btn gold" href="catalogue.html">Browse the catalogue <b>189</b></a>
-      <a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=Phnom%20Penh%2C%20Cambodia" target="_blank" rel="noopener">Get directions</a>
-    </div>
-  </section>
 
-  <section class="home-sec" aria-labelledby="shelves-h">
-    <div class="sec-head"><h2 id="shelves-h">Shop by shelf</h2><a href="catalogue.html">See everything →</a></div>
-    <nav class="shelves" aria-label="Shelves">
-      <a class="tile shelf" href="catalogue.html#rare"><span class="tile-n">5</span><span class="badge b-amethyst">Rare</span></a>
-      <a class="tile shelf" href="catalogue.html#discontinued"><span class="tile-n">1</span><span class="badge b-gunmetal">Discontinued</span></a>
-      <a class="tile" href="catalogue.html#whisky"><span class="tile-n">52</span><span class="tile-l">Whisky</span></a>
-      <a class="tile" href="catalogue.html#wine"><span class="tile-n">49</span><span class="tile-l">Wine</span></a>
-      <a class="tile" href="catalogue.html#vodka"><span class="tile-n">19</span><span class="tile-l">Vodka</span></a>
-      <a class="tile" href="catalogue.html#liqueur"><span class="tile-n">17</span><span class="tile-l">Liqueur</span></a>
-      <a class="tile" href="catalogue.html#rum"><span class="tile-n">12</span><span class="tile-l">Rum</span></a>
-      <a class="tile" href="catalogue.html#cognac-brandy"><span class="tile-n">11</span><span class="tile-l">Cognac &amp; Brandy</span></a>
-      <a class="tile" href="catalogue.html#gin"><span class="tile-n">5</span><span class="tile-l">Gin</span></a>
-      <a class="tile" href="catalogue.html#tequila-mezcal"><span class="tile-n">4</span><span class="tile-l">Tequila &amp; Mezcal</span></a>
-      <a class="tile" href="catalogue.html#aperitif-vermouth"><span class="tile-n">4</span><span class="tile-l">Aperitif &amp; Vermouth</span></a>
-      <a class="tile" href="catalogue.html#baijiu-chinese-spirits"><span class="tile-n">4</span><span class="tile-l">Baijiu &amp; Chinese Spirits</span></a>
-      <a class="tile" href="catalogue.html#medicinal-herbal"><span class="tile-n">3</span><span class="tile-l">Medicinal &amp; Herbal</span></a>
-      <a class="tile" href="catalogue.html#champagne-sparkling"><span class="tile-n">3</span><span class="tile-l">Champagne &amp; Sparkling</span></a>
-      <a class="tile" href="catalogue.html#sake-soju"><span class="tile-n">1</span><span class="tile-l">Sake &amp; Soju</span></a>
-      <a class="tile" href="catalogue.html#pre-mixed-cocktails"><span class="tile-n">2</span><span class="tile-l">Pre-Mixed Cocktails</span></a>
-      <a class="tile" href="catalogue.html#non-alcoholic"><span class="tile-n">1</span><span class="tile-l">Non-Alcoholic</span></a>
-      <a class="tile" href="catalogue.html#other-spirits"><span class="tile-n">2</span><span class="tile-l">Other Spirits</span></a>
-    </nav>
-  </section>
-
-  <section class="home-sec" aria-labelledby="rare-h">
-    <div class="sec-head"><h2 id="rare-h">Rare bottles</h2><a href="catalogue.html#rare">View the Rare shelf →</a></div>
-    <p class="sec-sub">Priced in store — ask us about any of these.</p>
-    <div class="rare-row">
-      <a class="rare-shot" href="catalogue.html#rare"><span class="shot"><img src="img/51.jpg" alt="Hennessy XO Cognac 70cl" loading="lazy"></span><span class="rare-nm">Hennessy XO Cognac 70cl</span></a>
-      <a class="rare-shot" href="catalogue.html#rare"><span class="shot"><img src="img/152.jpg" alt="Johnie Walker Blue Label 750ml" loading="lazy"></span><span class="rare-nm">Johnie Walker Blue Label 750ml</span></a>
-      <a class="rare-shot" href="catalogue.html#rare"><span class="shot"><img src="img/56.jpg" alt="Johnie Walker Red Label 3L" loading="lazy"></span><span class="rare-nm">Johnie Walker Red Label 3L</span></a>
-      <a class="rare-shot" href="catalogue.html#rare"><span class="shot"><img src="img/55.jpg" alt="Otard V.S.O.P 3L" loading="lazy"></span><span class="rare-nm">Otard V.S.O.P 3L</span></a>
-      <a class="rare-shot" href="catalogue.html#rare"><span class="shot"><img src="img/151.jpg" alt="The Balvenie Single Barrel 15 Year Old (Traditional Oak Cask)" loading="lazy"></span><span class="rare-nm">The Balvenie Single Barrel 15 Year Old (Traditional Oak Cask)</span></a>
-      <a class="rare-shot" href="catalogue.html#rare"><span class="shot"><img src="img/150.jpg" alt="The Glenlivet Nàdurra 700ml" loading="lazy"></span><span class="rare-nm">The Glenlivet Nàdurra 700ml</span></a>
-    </div>
-  </section>
-
-  <section class="home-sec visit" id="visit" aria-labelledby="visit-h">
-    <div class="sec-head"><h2 id="visit-h">Visit us</h2></div>
-    <div class="visit-grid">
-      <div class="card visit-card">
-        <dl class="rows">
-          <div><dt>Address</dt><dd class="addr">Street address<br>Phnom Penh, Cambodia</dd></div>
-          <div><dt>Monday – Saturday</dt><dd>8:00 – 21:00</dd></div><div><dt>Sunday</dt><dd>9:00 – 20:00</dd></div>
-          <div><dt>Phone</dt><dd><a href="tel:+855">+855 XX XXX XXX</a></dd></div>
-        </dl>
-        <div class="visit-actions">
-          <a class="btn gold" href="https://www.google.com/maps/dir/?api=1&destination=Phnom%20Penh%2C%20Cambodia" target="_blank" rel="noopener">Get directions</a>
-          <a class="btn" href="https://www.google.com/maps/search/?api=1&query=Phnom%20Penh%2C%20Cambodia" target="_blank" rel="noopener">Open in Google Maps</a>
-        </div>
+<main id="main">
+  <section class="h-hero">
+    <div class="h-hero-txt">
+      <p class="h-eyebrow">Wines &amp; spirits · Phnom Penh</p>
+      <h1 class="h-title">Odin&#x27;s Share</h1>
+      <p class="h-tag">From Wine to Whiskey and More</p>
+      <div class="h-cta">
+        <a class="h-btn gold" href="catalogue.html">Browse 189 bottles <span aria-hidden="true">→</span></a>
+        <a class="h-btn" href="#visit">Find the shop</a>
       </div>
-      <div class="map-frame">
-        <iframe title="Map showing Odin&#x27;s Share" src="https://maps.google.com/maps?q=Phnom%20Penh%2C%20Cambodia&z=15&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+      <dl class="h-facts">
+        <div><dt>Bottles</dt><dd>189</dd></div>
+        <div><dt>Categories</dt><dd>16</dd></div>
+        <div><dt>From</dt><dd>$1.50</dd></div>
+      </dl>
+    </div>
+    <div class="h-mosaic" aria-hidden="true"><div class="h-mcol h-mcol-0"><div class="h-mtrack"><span class="h-mtile"><img src="img/176.jpg" alt="" loading="eager"></span><span class="h-mtile"><img src="img/172.jpg" alt="" loading="eager"></span><span class="h-mtile"><img src="img/253.jpg" alt="" loading="eager"></span><span class="h-mtile"><img src="img/48.jpg" alt="" loading="eager"></span><span class="h-mtile"><img src="img/66.jpg" alt="" loading="eager"></span><span class="h-mtile"><img src="img/54.jpg" alt="" loading="eager"></span><span class="h-mtile"><img src="img/80.jpg" alt="" loading="eager"></span><span class="h-mtile"><img src="img/176.jpg" alt="" loading="eager"></span><span class="h-mtile"><img src="img/172.jpg" alt="" loading="eager"></span><span class="h-mtile"><img src="img/253.jpg" alt="" loading="eager"></span><span class="h-mtile"><img src="img/48.jpg" alt="" loading="eager"></span><span class="h-mtile"><img src="img/66.jpg" alt="" loading="eager"></span><span class="h-mtile"><img src="img/54.jpg" alt="" loading="eager"></span><span class="h-mtile"><img src="img/80.jpg" alt="" loading="eager"></span></div></div><div class="h-mcol h-mcol-1"><div class="h-mtrack"><span class="h-mtile"><img src="img/174.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/175.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/250.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/36.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/94.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/91.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/79.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/174.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/175.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/250.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/36.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/94.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/91.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/79.jpg" alt="" loading="lazy"></span></div></div><div class="h-mcol h-mcol-2"><div class="h-mtrack"><span class="h-mtile"><img src="img/173.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/249.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/248.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/142.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/64.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/92.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/115.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/173.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/249.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/248.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/142.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/64.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/92.jpg" alt="" loading="lazy"></span><span class="h-mtile"><img src="img/115.jpg" alt="" loading="lazy"></span></div></div></div>
+  </section>
+
+  <section class="h-sec" id="shelves" aria-labelledby="shelves-h">
+    <header class="h-head"><p class="h-kicker">01 · The shelves</p><h2 id="shelves-h">What's on the shelves</h2></header>
+    <div class="h-fams">
+      <a class="h-fam h-fam-lead" href="catalogue.html#whisky">
+        <img src="img/271.jpg" alt="" loading="lazy">
+        <span class="h-fam-txt"><b>Whisky</b><i>52 bottles</i></span>
+        <span class="h-fam-go" aria-hidden="true">→</span>
+      </a>
+      <a class="h-fam" href="catalogue.html#wine">
+        <img src="img/12.jpg" alt="" loading="lazy">
+        <span class="h-fam-txt"><b>Wine</b><i>49 bottles</i></span>
+        <span class="h-fam-go" aria-hidden="true">→</span>
+      </a>
+      <a class="h-fam" href="catalogue.html#vodka">
+        <img src="img/179.jpg" alt="" loading="lazy">
+        <span class="h-fam-txt"><b>Vodka</b><i>19 bottles</i></span>
+        <span class="h-fam-go" aria-hidden="true">→</span>
+      </a>
+      <a class="h-fam" href="catalogue.html#liqueur">
+        <img src="img/216.jpg" alt="" loading="lazy">
+        <span class="h-fam-txt"><b>Liqueur</b><i>17 bottles</i></span>
+        <span class="h-fam-go" aria-hidden="true">→</span>
+      </a>
+      <a class="h-fam" href="catalogue.html#rum">
+        <img src="img/251.jpg" alt="" loading="lazy">
+        <span class="h-fam-txt"><b>Rum</b><i>12 bottles</i></span>
+        <span class="h-fam-go" aria-hidden="true">→</span>
+      </a>
+    </div>
+    <div class="h-more"><a class="h-shelf" href="catalogue.html#rare"><span class="badge b-amethyst">Rare</span><i>5</i></a><a class="h-shelf" href="catalogue.html#discontinued"><span class="badge b-gunmetal">Discontinued</span><i>1</i></a><a href="catalogue.html#cognac-brandy">Cognac &amp; Brandy <i>11</i></a><a href="catalogue.html#gin">Gin <i>5</i></a><a href="catalogue.html#tequila-mezcal">Tequila &amp; Mezcal <i>4</i></a><a href="catalogue.html#aperitif-vermouth">Aperitif &amp; Vermouth <i>4</i></a><a href="catalogue.html#baijiu-chinese-spirits">Baijiu &amp; Chinese Spirits <i>4</i></a><a href="catalogue.html#medicinal-herbal">Medicinal &amp; Herbal <i>3</i></a><a href="catalogue.html#champagne-sparkling">Champagne &amp; Sparkling <i>3</i></a><a href="catalogue.html#sake-soju">Sake &amp; Soju <i>1</i></a><a href="catalogue.html#pre-mixed-cocktails">Pre-Mixed Cocktails <i>2</i></a><a href="catalogue.html#non-alcoholic">Non-Alcoholic <i>1</i></a><a href="catalogue.html#other-spirits">Other Spirits <i>2</i></a></div>
+  </section>
+
+  <section class="h-vault" aria-labelledby="vault-h">
+    <div class="h-vault-in">
+      <header class="h-head"><p class="h-kicker">02 · The vault</p><h2 id="vault-h">Rare bottles</h2>
+        <p class="h-sub">Few of each, priced in person. Ask us about any of these.</p></header>
+      <div class="h-vrow">
+      <a class="h-vcard" href="catalogue.html#rare">
+        <span class="h-vshot"><img src="img/51.jpg" alt="Hennessy XO Cognac 70cl" loading="lazy"></span>
+        <span class="h-vbrand">Hennessy</span>
+        <span class="h-vname">Hennessy XO Cognac 70cl</span>
+        <span class="ask-rare">Ask for price</span>
+      </a>
+      <a class="h-vcard" href="catalogue.html#rare">
+        <span class="h-vshot"><img src="img/152.jpg" alt="Johnie Walker Blue Label 750ml" loading="lazy"></span>
+        <span class="h-vbrand">Johnie Walker</span>
+        <span class="h-vname">Johnie Walker Blue Label 750ml</span>
+        <span class="ask-rare">Ask for price</span>
+      </a>
+      <a class="h-vcard" href="catalogue.html#rare">
+        <span class="h-vshot"><img src="img/56.jpg" alt="Johnie Walker Red Label 3L" loading="lazy"></span>
+        <span class="h-vbrand">Johnie Walker</span>
+        <span class="h-vname">Johnie Walker Red Label 3L</span>
+        <span class="ask-rare">Ask for price</span>
+      </a>
+      <a class="h-vcard" href="catalogue.html#rare">
+        <span class="h-vshot"><img src="img/55.jpg" alt="Otard V.S.O.P 3L" loading="lazy"></span>
+        <span class="h-vbrand">Otard</span>
+        <span class="h-vname">Otard V.S.O.P 3L</span>
+        <span class="ask-rare">Ask for price</span>
+      </a>
+      <a class="h-vcard" href="catalogue.html#rare">
+        <span class="h-vshot"><img src="img/151.jpg" alt="The Balvenie Single Barrel 15 Year Old (Traditional Oak Cask)" loading="lazy"></span>
+        <span class="h-vbrand">The Balvenie</span>
+        <span class="h-vname">The Balvenie Single Barrel 15 Year Old (Traditional Oak Cask)</span>
+        <span class="ask-rare">Ask for price</span>
+      </a>
+      <a class="h-vcard" href="catalogue.html#rare">
+        <span class="h-vshot"><img src="img/150.jpg" alt="The Glenlivet Nàdurra 700ml" loading="lazy"></span>
+        <span class="h-vbrand">The Glenlivet</span>
+        <span class="h-vname">The Glenlivet Nàdurra 700ml</span>
+        <span class="ask-rare">Ask for price</span>
+      </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="h-visit" id="visit" aria-labelledby="visit-h">
+    <iframe class="h-map" title="Map showing Odin&#x27;s Share" src="https://maps.google.com/maps?q=Phnom%20Penh%2C%20Cambodia&z=15&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+    <div class="h-vinfo">
+      <p class="h-kicker">03 · Visit</p>
+      <h2 id="visit-h">Come by the shop</h2>
+      <p class="h-addr">Street address<br>Phnom Penh, Cambodia</p>
+      <ul class="h-hours" id="hours" data-tz="Asia/Phnom_Penh"><li data-days="1,2,3,4,5,6" data-open="08:00" data-close="21:00"><span>Monday – Saturday</span><b>8:00 – 21:00</b></li><li data-days="0" data-open="09:00" data-close="20:00"><span>Sunday</span><b>9:00 – 20:00</b></li></ul>
+      <div class="h-contacts"><a class="h-contact" href="tel:+855"><i>Call</i>+855 XX XXX XXX</a></div>
+      <div class="h-cta">
+        <a class="h-btn gold" href="https://www.google.com/maps/dir/?api=1&destination=Phnom%20Penh%2C%20Cambodia" target="_blank" rel="noopener">Get directions</a>
+        <a class="h-btn" href="https://www.google.com/maps/search/?api=1&query=Phnom%20Penh%2C%20Cambodia" target="_blank" rel="noopener">Open in Maps</a>
       </div>
     </div>
   </section>
@@ -108,5 +153,45 @@ if(location.hash.length>1&&location.hash!=="#visit")location.replace("catalogue.
   </div>
   <p class="foot-legal fine">Please drink responsibly. Sale of alcohol is restricted to persons of legal drinking age.</p>
 </footer>
+<script>
+/* open now / closed, in the shop's own time zone, from the hours list */
+(function(){
+  var list=document.getElementById("hours"), pill=document.getElementById("status");
+  if(!list||!pill) return;
+  function now(){
+    var f=new Intl.DateTimeFormat("en-GB",{timeZone:list.dataset.tz,weekday:"short",hour:"2-digit",minute:"2-digit",hour12:false});
+    var p={}; f.formatToParts(new Date()).forEach(function(x){p[x.type]=x.value});
+    return {day:["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].indexOf(p.weekday), hm:(p.hour==="24"?"00":p.hour)+":"+p.minute};
+  }
+  function tick(){
+    var n=now(), open=false, next=null;
+    [].forEach.call(list.children,function(li){
+      var days=(li.dataset.days||"").split(",").filter(Boolean).map(Number), today=days.indexOf(n.day)>-1;
+      li.classList.toggle("today",today);
+      if(today&&li.dataset.open){
+        if(n.hm>=li.dataset.open&&n.hm<li.dataset.close) open=li.dataset.close;
+        else if(n.hm<li.dataset.open) next=li.dataset.open;
+      }
+    });
+    if(!open&&!next){                       /* after hours: when do we open next? */
+      for(var k=1;k<=7&&!next;k++){
+        var d=(n.day+k)%7;
+        [].forEach.call(list.children,function(li){
+          if(!next&&li.dataset.open&&(li.dataset.days||"").split(",").map(Number).indexOf(d)>-1)
+            next=(k===1?"tomorrow ":["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d]+" ")+li.dataset.open;
+        });
+      }
+    }
+    pill.hidden=false;
+    pill.className="h-status "+(open?"is-open":"is-closed");
+    /* the detail after the dot drops away on a narrow phone (see .h-st-more) */
+    pill.innerHTML=open?'Open<span class="h-st-more">now · until '+open+'</span>'
+                       :'Closed<span class="h-st-more">'+(next?'· opens '+next:'now')+'</span>';
+  }
+  try{ tick(); setInterval(tick,60000); }catch(e){}
+})();
+/* the top bar firms up once the page moves under it */
+addEventListener("scroll",function(){document.body.classList.toggle("scrolled",scrollY>12)},{passive:true});
+</script>
 </body>
 </html>
