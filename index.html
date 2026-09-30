@@ -16,12 +16,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&amp;family=Archivo:wght@400;500;600;700&amp;display=swap">
-<link rel="stylesheet" href="style.css?v=5769001245">
+<link rel="stylesheet" href="style.css?v=4ae02dadcb">
 <link rel="stylesheet" href="home.css?v=4f2c1e62a9">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"LiquorStore","name":"Odin's Share","url":"https://generalhannes.github.io/shopkeeper/","image":"https://generalhannes.github.io/shopkeeper/img/176.jpg"}</script>
 <script>document.documentElement.classList.add("js");
 /* old links like /#whisky pointed at the catalogue when it was the front page */
-if(location.hash.length>1&&location.hash!=="#visit"&&location.hash!=="#shelves")location.replace("catalogue.html"+location.hash);</script>
+(function(h){var known=["rare","discontinued","whisky","wine","vodka","liqueur","rum","cognac-brandy","gin","tequila-mezcal","aperitif-vermouth","baijiu-chinese-spirits","medicinal-herbal","champagne-sparkling","sake-soju","pre-mixed-cocktails","non-alcoholic","other-spirits"];
+if(h&&known.indexOf(h)>-1)location.replace("catalogue.html#"+h);})(location.hash.slice(1).toLowerCase());</script>
 </head>
 <body class="h">
 <a class="skip" href="#main">Skip to content</a>

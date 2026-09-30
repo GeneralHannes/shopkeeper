@@ -69,46 +69,11 @@
   }
   Array.prototype.forEach.call(grid.querySelectorAll(".shot img"), watchImage);
 
-  // Re-run the rise-in on the cards that survived a filter change. The stagger is
-  // capped so the 170th card doesn't wait two seconds for its turn.
-  // One observer, cards unobserved once seen — no scroll handler, no per-frame work.
-  if (!calm && "IntersectionObserver" in window) {
-    grid.classList.add("reveal");
-    cards.forEach(function (c) { c.classList.add("veil"); });
-    var seen = new IntersectionObserver(function (entries, obs) {
-      entries.forEach(function (en) {
-        var el = en.target;
-        if (!en.isIntersecting) {             // left the screen; stop scrubbing it
-          var k = band.indexOf(el);
-          if (k > -1) band.splice(k, 1);
-          return;
-        }
-        el.classList.remove("veil");
-        // A flick brings dozens of cards past at once; scrubbing them all is
-        // both pointless — they are gone before you could watch one — and the
-        // thing that makes a fast scroll stutter. So a deliberate scroll gets
-        // the scrubbed reveal that tracks the finger, and a flick gets the
-        // plain timed one. Whichever it picks is latched, so a card never
-        // switches mode halfway through its own animation.
-        if (calm || flicking()) {             // a flick: plain timed reveal
-          el.classList.add("shown");
-          obs.unobserve(el);
-        } else {                              // scrubbed against scroll position
-          if (band.indexOf(el) < 0) { el._p = -1; band.push(el); }
-          requestScrub();                     // stays observed, so it can reverse
-        }
-      });
-    }, { rootMargin: "80px 0px", threshold: 0.01 });
-    cards.forEach(function (c) { seen.observe(c); });
-    // safety net: anything still veiled after 3s is shown regardless
-    setTimeout(function () {
-      cards.forEach(function (c) {
-        c.classList.remove("veil");
-        // a card mid-scrub owns its own opacity; .shown would fight it
-        if (band.indexOf(c) < 0) c.classList.add("shown");
-      });
-    }, 3000);
-  }
+  // No scroll-driven reveal: cards are never hidden waiting for one. An earlier
+  // version faded each card in by scroll position, and a card that left the
+  // screen mid-fade (a fast flick, a slow network) stayed frozen see-through —
+  // whole rows went missing. Content is visible by default; the only entrance
+  // left is the one-shot .rise after a filter change, which can't get stuck.
 
   var RISE_MAX = 24;              // roughly a screenful; beyond that nobody sees it
   function settle() {

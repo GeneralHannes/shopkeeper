@@ -173,8 +173,10 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
 .shot::after,.dlg-shot::after{bottom:6px;right:6px;border-bottom-width:1.5px;border-right-width:1.5px;border-bottom-right-radius:4px}
 .shot img{width:100%;height:100%;object-fit:cover;border-radius:6px}
 /* only once JS is running — without it images must stay visible */
-.js .shot img{opacity:0;transition:opacity .4s ease}
-.js .shot img.ready{opacity:1}
+/* photos are never held hidden waiting for a load event; a photo that arrives
+   late fades in once (animation, not a state), so a missed event can't blank it */
+.js .shot img.ready{animation:imgIn .4s ease backwards}
+@keyframes imgIn{from{opacity:0}}
 .info{display:flex;flex-direction:column;gap:.18rem;padding:.7rem .8rem .85rem;flex:1}
 .brand{margin:0;font-size:.63rem;text-transform:uppercase;letter-spacing:.14em;color:var(--steel);font-weight:600;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -220,7 +222,7 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
    motion instead of a good one here and a fallback there. The script writes the
    independent `translate` property, never `transform`, so hover and press keep
    that to themselves and the two never fight over one property. */
-.grid.reveal .card.veil{opacity:0;transform:translateY(14px)}
+.grid.reveal .card.veil{opacity:1}
 .grid.reveal .card.shown{opacity:1;transform:none;
   transition:opacity .5s ease,transform .55s var(--sp-smooth)}
 /* `backwards` for the same reason as the islands: filling forwards would pin
