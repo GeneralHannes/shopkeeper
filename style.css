@@ -3,6 +3,16 @@
    Bifrost as a single hairline under the header. Marcellus is inscriptional
    (carved capitals) rather than the usual fantasy display face; Archivo keeps
    the data quiet and legible. */
+/* ---- motion: springs, shared with Odin's Keep ----
+   Sampled damped springs in CSS linear(): --sp-smooth settles with no
+   overshoot, --sp-snappy overshoots ~2%, --sp-bouncy ~8% (only for the
+   spring-back after a press). Browsers without linear() get the nearest
+   cubic-bezier, which is what this site used before. */
+:root{--sp-smooth:cubic-bezier(.22,.68,.32,1);--sp-snappy:cubic-bezier(.2,.7,.3,1);--sp-bouncy:cubic-bezier(.3,1.35,.45,1)}
+@supports (transition-timing-function:linear(0,1)){:root{
+  --sp-smooth:linear(0, 0.025, 0.085, 0.165, 0.252, 0.341, 0.426, 0.505, 0.576, 0.64, 0.696, 0.744, 0.786, 0.822, 0.852, 0.877, 0.899, 0.916, 0.931, 0.944, 0.954, 0.962, 0.969, 0.975, 0.98, 0.983, 0.987, 0.989, 0.991, 0.993, 0.994, 0.995, 0.996, 0.997, 1);
+  --sp-snappy:linear(0, 0.031, 0.108, 0.21, 0.324, 0.438, 0.546, 0.643, 0.728, 0.8, 0.859, 0.906, 0.942, 0.97, 0.99, 1.003, 1.012, 1.017, 1.019, 1.02, 1.019, 1.017, 1.015, 1.013, 1.011, 1.009, 1.007, 1.005, 1.004, 1.003, 1.002, 1.001, 1.001, 1, 1);
+  --sp-bouncy:linear(0, 0.046, 0.158, 0.305, 0.462, 0.614, 0.748, 0.86, 0.947, 1.009, 1.05, 1.074, 1.083, 1.082, 1.074, 1.063, 1.05, 1.037, 1.025, 1.015, 1.007, 1.001, 0.997, 0.994, 0.993, 0.993, 0.993, 0.994, 0.995, 0.997, 0.998, 0.998, 0.999, 1, 1)}}
 :root{
   --ground:#F5F7FA; --surface:#FFFFFF; --sunk:#E8EDF3;
   --ink:#131A24; --ink-2:#47566A; --ink-3:#7A8A9E;
@@ -84,8 +94,8 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 @keyframes eyeIn{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:none}}
 @keyframes ringIn{from{opacity:0;transform:scale(.4) rotate(-90deg)}to{opacity:1;transform:none}}
 .js .mark{animation:ringIn .62s cubic-bezier(.2,.9,.3,1.25) both}
-.js .shop{animation:eyeIn .5s cubic-bezier(.22,.68,.32,1) .08s both}
-.js .tag{animation:eyeIn .5s cubic-bezier(.22,.68,.32,1) .16s both}
+.js .shop{animation:eyeIn .5s var(--sp-smooth) .08s both}
+.js .tag{animation:eyeIn .5s var(--sp-smooth) .16s both}
 .bar{display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;padding:.9rem clamp(1rem,4vw,2.5rem) .7rem;max-width:1600px;margin:0 auto}
 .ident{display:flex;align-items:center;gap:.75rem;margin-right:auto}
 /* a gold arm-ring — Norse oath-token and currency both, which suits a shop */
@@ -112,7 +122,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;ba
     color-mix(in srgb,var(--gold) 55%,transparent) 0%,
     color-mix(in srgb,var(--gold) 22%,transparent) 45%,transparent 72%);
   transform:translate(-50%,-50%) scale(0);opacity:.95;
-  animation:droplet .62s cubic-bezier(.22,.68,.32,1) forwards}
+  animation:droplet .62s var(--sp-smooth) forwards}
 @keyframes droplet{
   60%{opacity:.5}
   to{transform:translate(-50%,-50%) scale(1);opacity:0}}
@@ -136,13 +146,13 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
 .card{position:relative;display:flex;flex-direction:column;
   background:var(--glass-solid);border:1px solid var(--glass-line);
   border-radius:13px;overflow:hidden;box-shadow:var(--shadow);cursor:pointer;
-  transition:transform .2s cubic-bezier(.2,.7,.3,1),box-shadow .2s,border-color .2s}
+  transition:transform .2s var(--sp-snappy),box-shadow .2s,border-color .2s}
 .card{box-shadow:var(--glass-edge),var(--shadow)}
 .card:focus-visible{transform:translateY(-3px);box-shadow:var(--glass-edge),var(--shadow-lift);
   border-color:var(--gold-soft)}
 @media (hover:hover){
   .card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lift);border-color:var(--gold-soft)}
-  .shot img{transition:transform .55s cubic-bezier(.22,.68,.32,1)}
+  .shot img{transition:transform .55s var(--sp-smooth)}
   .card:hover .shot img{transform:scale(1.06)}
 }
 /* press feedback — must land on the finger down, not when the sheet opens */
@@ -199,8 +209,8 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
 /* stepping between bottles inside the sheet */
 @keyframes sheetInL{from{opacity:0;transform:translateX(26px)}to{opacity:1;transform:none}}
 @keyframes sheetInR{from{opacity:0;transform:translateX(-26px)}to{opacity:1;transform:none}}
-.dlg-body.from-r{animation:sheetInL .26s cubic-bezier(.22,.68,.32,1) both}
-.dlg-body.from-l{animation:sheetInR .26s cubic-bezier(.22,.68,.32,1) both}
+.dlg-body.from-r{animation:sheetInL .26s var(--sp-smooth) both}
+.dlg-body.from-l{animation:sheetInR .26s var(--sp-smooth) both}
 @keyframes riseIn{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
 /* applied by script to the first screenful only — animating 170 cards at once
    is what makes a filter change stutter rather than glide */
@@ -212,10 +222,10 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
    that to themselves and the two never fight over one property. */
 .grid.reveal .card.veil{opacity:0;transform:translateY(14px)}
 .grid.reveal .card.shown{opacity:1;transform:none;
-  transition:opacity .5s ease,transform .55s cubic-bezier(.22,.68,.32,1)}
+  transition:opacity .5s ease,transform .55s var(--sp-smooth)}
 /* `backwards` for the same reason as the islands: filling forwards would pin
    transform and the hover lift would stop working after any filter change. */
-.card.rise{animation:riseIn .34s cubic-bezier(.22,.68,.32,1) backwards;animation-delay:calc(var(--i,0) * 14ms)}
+.card.rise{animation:riseIn .34s var(--sp-smooth) backwards;animation-delay:calc(var(--i,0) * 14ms)}
 .empty{text-align:center;color:var(--ink-3);padding:3.5rem 1rem;font-size:.92rem}
 
 /* ---------- detail ---------- */
@@ -225,7 +235,7 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
      scrollable overflow and the sheet can be dragged sideways off its own content */
   overflow:auto;overflow-x:hidden;box-shadow:var(--shadow-lift);
   opacity:0;transform:scale(.965) translateY(8px);
-  transition:opacity .24s ease,transform .26s cubic-bezier(.22,.68,.32,1),
+  transition:opacity .24s ease,transform .26s var(--sp-smooth),
              overlay .26s allow-discrete,display .26s allow-discrete}
 #dlg[open]{opacity:1;transform:none}
 @starting-style{#dlg[open]{opacity:0;transform:scale(.965) translateY(8px)}}
@@ -258,8 +268,8 @@ main{max-width:1600px;margin:0 auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 3rem}
 .dots i.on{background:var(--gold);transform:scale(1.25)}
 @keyframes shotInL{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
 @keyframes shotInR{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:none}}
-.dlg-shot img.from-r{animation:shotInL .28s cubic-bezier(.22,.68,.32,1) both}
-.dlg-shot img.from-l{animation:shotInR .28s cubic-bezier(.22,.68,.32,1) both}
+.dlg-shot img.from-r{animation:shotInL .28s var(--sp-smooth) both}
+.dlg-shot img.from-l{animation:shotInR .28s var(--sp-smooth) both}
 .dlg-nav{display:flex;align-items:center;justify-content:center;gap:.7rem;position:relative;
   padding:.6rem 1rem calc(.7rem + env(safe-area-inset-bottom));
   border-top:1px solid var(--glass-line);background:var(--glass);
@@ -307,11 +317,11 @@ footer p{margin:.2rem 0}
   border-radius:999px;cursor:pointer;white-space:nowrap;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.35);
   transition:background .18s ease,border-color .18s ease,transform .14s ease,
-             max-width .3s cubic-bezier(.22,.68,.32,1),opacity .2s ease,padding .3s ease}
+             max-width .3s var(--sp-smooth),opacity .2s ease,padding .3s ease}
 .catbtn:active{transform:scale(.94)}
 .catbtn span{overflow:hidden;text-overflow:ellipsis}
 .catbtn svg{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:2.4;
-  stroke-linecap:round;stroke-linejoin:round;transition:transform .24s cubic-bezier(.22,.68,.32,1)}
+  stroke-linecap:round;stroke-linejoin:round;transition:transform .24s var(--sp-smooth)}
 .catbtn[aria-expanded="true"]{background:var(--gold);border-color:var(--gold);color:var(--surface)}
 .catbtn[aria-expanded="true"] svg{transform:rotate(180deg)}
 .sort{display:none}                       /* relocated into the picker */
@@ -341,7 +351,7 @@ footer p{margin:.2rem 0}
   background:var(--glass);backdrop-filter:var(--glass-blur);
   border:1px solid var(--glass-line);border-radius:22px;
   box-shadow:var(--glass-edge),var(--glass-lift);
-  transition:transform .34s cubic-bezier(.22,.68,.32,1),visibility .34s;
+  transition:transform .34s var(--sp-smooth),visibility .34s;
   opacity:1;visibility:hidden;pointer-events:none}
 .chips.open{visibility:visible;pointer-events:auto;transform:translateX(0)}
 .chips::before{content:"Browse";display:block;flex:none;margin-top:auto;
@@ -363,7 +373,7 @@ footer p{margin:.2rem 0}
   border:1px solid var(--glass-line);
   box-shadow:var(--glass-edge);
   transition:background .18s ease,color .18s ease,border-color .18s ease,
-             box-shadow .22s ease,transform .16s cubic-bezier(.2,.7,.3,1)}
+             box-shadow .22s ease,transform .16s var(--sp-snappy)}
 /* the count is a pane too, sunk into the row rather than sitting on it */
 .chips .chip i{font-size:.72rem;padding:.12rem .45rem;
   color:var(--ink-3);background:color-mix(in srgb,var(--ink) 7%,transparent);
@@ -425,8 +435,8 @@ body.picker-open{overflow:hidden}
     -webkit-backdrop-filter:var(--glass-blur);
     border:1px solid var(--glass-line);
     box-shadow:var(--glass-edge),var(--glass-lift);
-    transition:transform .34s cubic-bezier(.22,.68,.32,1),opacity .24s ease,
-               right .34s cubic-bezier(.22,.68,.32,1),
+    transition:transform .34s var(--sp-smooth),opacity .24s ease,
+               right .34s var(--sp-smooth),
                background .24s ease,border-color .24s ease,box-shadow .28s ease;
   }
   .catbtn{
@@ -439,15 +449,15 @@ body.picker-open{overflow:hidden}
     -webkit-backdrop-filter:var(--glass-blur);
     border:1px solid color-mix(in srgb,var(--gold) 36%,var(--glass-line));
     box-shadow:var(--glass-edge),var(--glass-lift);
-    transition:transform .34s cubic-bezier(.22,.68,.32,1),opacity .24s ease,
+    transition:transform .34s var(--sp-smooth),opacity .24s ease,
                background .2s ease,border-color .2s ease;
   }
   .search{flex:1 1 auto;min-width:0;overflow:hidden}
 
   /* they rise in from the edge they live on */
   @keyframes islandUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
-  .js .tools{animation:islandUp .5s cubic-bezier(.22,.68,.32,1) .14s backwards}
-  .js .catbtn{animation:islandUp .5s cubic-bezier(.22,.68,.32,1) .22s backwards}
+  .js .tools{animation:islandUp .5s var(--sp-smooth) .14s backwards}
+  .js .catbtn{animation:islandUp .5s var(--sp-smooth) .22s backwards}
 
   /* scrolling down sends the search away and leaves the category in reach */
   body.bar-hidden .tools{transform:translateY(165%);opacity:0;pointer-events:none}
@@ -581,8 +591,8 @@ body.picker-open{overflow:hidden}
     border:1px solid var(--glass-line);
     box-shadow:var(--glass-edge),var(--glass-lift);
     transition:box-shadow .28s ease,border-color .22s ease,
-               transform .26s cubic-bezier(.2,.7,.3,1),
-               width .34s cubic-bezier(.22,.68,.32,1)}
+               transform .26s var(--sp-snappy),
+               width .34s var(--sp-smooth)}
   /* using it gives it room: the island grows, still centred by its auto margins */
   .tools:focus-within{width:min(42rem,62vw);
     border-color:color-mix(in srgb,var(--gold) 45%,var(--glass-line));
@@ -598,7 +608,7 @@ body.picker-open{overflow:hidden}
     border:1px solid color-mix(in srgb,var(--gold) 34%,var(--glass-line));
     box-shadow:var(--glass-edge),var(--glass-lift);
     transition:box-shadow .28s ease,border-color .22s ease,
-               transform .24s cubic-bezier(.2,.7,.3,1),background .2s ease}
+               transform .24s var(--sp-snappy),background .2s ease}
   .catbtn svg{width:15px;height:15px}
 
   @media (hover:hover){
@@ -616,9 +626,9 @@ body.picker-open{overflow:hidden}
      keyframe applied for good, and animation declarations outrank normal ones —
      so `transform:none` would win over every :hover and :focus transform below
      and the islands would never move again. */
-  .js .ident{animation:islandIn .55s cubic-bezier(.22,.68,.32,1) .05s backwards}
-  .js .tools{animation:islandIn .55s cubic-bezier(.22,.68,.32,1) .12s backwards}
-  .js .catbtn{animation:islandIn .55s cubic-bezier(.22,.68,.32,1) .19s backwards}
+  .js .ident{animation:islandIn .55s var(--sp-smooth) .05s backwards}
+  .js .tools{animation:islandIn .55s var(--sp-smooth) .12s backwards}
+  .js .catbtn{animation:islandIn .55s var(--sp-smooth) .19s backwards}
 
   .search{flex:1 1 auto;min-width:0}
   #q{background:transparent;border:none;box-shadow:none;border-radius:999px;
@@ -785,3 +795,307 @@ body.picker-open{overflow:hidden}
   .rows div{padding:.32rem 0}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ================= Odin's Keep carry-over ================= */
+
+/* ---- presses: sink fast, spring back ---- */
+.card{transition:transform .6s var(--sp-bouncy),box-shadow .25s ease,border-color .25s ease}
+.card.pressed,.card:active{transition:transform .09s ease-out,border-color .09s ease-out}
+.chip,.catbtn,.dlg-nav button{transition:transform .55s var(--sp-bouncy),background .18s ease,color .18s ease,border-color .18s ease}
+.chip:active,.catbtn:active,.dlg-nav button:active{transform:scale(.95);transition-duration:.09s}
+#dlg{transition:opacity .28s ease,transform .5s var(--sp-smooth),overlay .3s allow-discrete,display .3s allow-discrete}
+
+/* ---- price ranks: Bronze → Diamond, a shade for every dollar ----
+   The colour is computed per bottle at build time (build_site.py) for both
+   themes: --rk-d bright for the dark theme, --rk-l deeper for the light one.
+   Each figure is filled with a metal sheen made from its own colour. */
+.price[data-rank]{--rk:var(--rk-l);color:var(--rk)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .price[data-rank]{--rk:var(--rk-d)}}
+@supports ((-webkit-background-clip:text) or (background-clip:text)) and (color:color-mix(in oklab,red 50%,blue)){
+  .price[data-rank]{background-image:linear-gradient(180deg,color-mix(in oklab,var(--rk) 80%,#fff) 0%,var(--rk) 50%,color-mix(in oklab,var(--rk) 78%,#000) 100%);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .price[data-rank]{
+    /* on the dark ground: light-only metal, nothing darker than the colour itself */
+    background-image:linear-gradient(180deg,color-mix(in oklab,var(--rk) 30%,#fff) 0%,color-mix(in oklab,var(--rk) 70%,#fff) 30%,var(--rk) 55%,var(--rk) 72%,color-mix(in oklab,var(--rk) 75%,#fff) 100%);
+    filter:drop-shadow(0 0 5px color-mix(in oklab,var(--rk) 35%,transparent))}}
+  /* diamond: iridescent, with a white glint that travels */
+  .price[data-rank="diamond"]{background-image:linear-gradient(100deg,var(--rk) 0%,color-mix(in oklab,var(--rk) 45%,#c49bff) 28%,color-mix(in oklab,var(--rk) 20%,#fff) 44%,color-mix(in oklab,var(--rk) 45%,#7fd4ff) 60%,var(--rk) 80%,color-mix(in oklab,var(--rk) 60%,#fff) 100%) !important;
+    background-size:250% 100%;animation:rkGlint 5s ease-in-out infinite alternate}
+}
+@keyframes rkGlint{from{background-position:0% 0}to{background-position:100% 0}}
+
+/* ---- shelf badges: struck metal, finish chosen from the shelf's name ---- */
+.badge{position:relative;isolation:isolate;overflow:hidden;display:inline-flex;align-items:center;align-self:flex-start;
+  padding:.17rem .52rem .16rem;border-radius:6px;white-space:nowrap;
+  font:800 .6rem/1.25 "Archivo",system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;
+  color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.4);
+  background:var(--b-metal);background-size:200% 200%;border:1px solid var(--b-edge);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -1px 0 rgba(0,0,0,.35),0 0 14px -3px var(--b-glow),0 1px 2px rgba(0,0,0,.35)}
+.badge::after{content:"";position:absolute;inset:-1px;z-index:-1;pointer-events:none;
+  background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.65) 48%,rgba(255,255,255,.15) 55%,transparent 70%);
+  transform:translateX(-130%);animation:bSheen 4.2s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes bSheen{0%,62%{transform:translateX(-130%)}100%{transform:translateX(130%)}}
+.shelf-tag.badge{margin-top:.45rem;gap:0}
+.shelf-tag.badge::before{content:none}
+.b-ruby    {--b-metal:linear-gradient(135deg,#ff7485 0%,#d01839 38%,#ff9aa5 55%,#8e0c24 100%);--b-edge:#ff8fa0;--b-glow:rgba(255,60,90,.7)}
+.b-amethyst{--b-metal:linear-gradient(135deg,#d6b3ff 0%,#7a3fe0 40%,#e5ccff 56%,#4a1f9e 100%);--b-edge:#caa6ff;--b-glow:rgba(160,100,255,.65)}
+.b-sapphire{--b-metal:linear-gradient(135deg,#a9ccff 0%,#2f64d8 40%,#c7ddff 56%,#173c96 100%);--b-edge:#9cc0ff;--b-glow:rgba(80,140,255,.65)}
+.b-gold    {--b-metal:linear-gradient(135deg,#fff3b0 0%,#d2a022 38%,#ffe98a 55%,#8f6610 100%);--b-edge:#ffe38a;--b-glow:rgba(240,195,60,.65);color:#3a2900;text-shadow:0 1px 0 rgba(255,255,255,.45)}
+.b-emerald {--b-metal:linear-gradient(135deg,#9dffd2 0%,#12a86a 40%,#c3ffe4 56%,#07613c 100%);--b-edge:#8ff5c6;--b-glow:rgba(40,220,140,.6)}
+.b-gunmetal{--b-metal:linear-gradient(135deg,#dfe5ee 0%,#6a7384 40%,#f1f4f8 56%,#3a404c 100%);--b-edge:#c9d1dc;--b-glow:rgba(170,185,210,.45)}
+.b-copper  {--b-metal:linear-gradient(135deg,#ffcfa8 0%,#c1611f 40%,#ffdcc0 56%,#7a3a10 100%);--b-edge:#ffc59a;--b-glow:rgba(240,130,60,.55)}
+.b-holo{--b-metal:linear-gradient(115deg,#ff9ad5,#ffd36e,#8affc8,#7ab8ff,#c79bff,#ff9ad5);--b-edge:rgba(255,255,255,.75);
+  --b-glow:rgba(200,160,255,.75);background-size:300% 100%;color:#1b1530;text-shadow:0 1px 0 rgba(255,255,255,.5);animation:bHolo 5s linear infinite}
+@keyframes bHolo{to{background-position:-300% 0}}
+.rows dd .badge{vertical-align:middle}
+
+@media (prefers-reduced-motion:reduce){
+  .price[data-rank="diamond"],.badge::after,.b-holo{animation:none}
+  .badge::after{display:none}
+}
+
+/* ---- rare bottles: priced by conversation, not on the page ----
+   The figure is left out of the build entirely (card, dialog, sort data and
+   structured data); this is what stands in its place, in the Rare badge's own
+   amethyst so the two read as one idea. */
+.ask-rare{display:inline-flex;align-items:center;gap:.4rem;font-size:.8rem;font-weight:700;letter-spacing:.02em;
+  color:#9a6cf0;font-variant-numeric:normal}
+.ask-rare::before{content:"";width:1rem;height:1rem;flex:none;background:currentColor;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12a8 8 0 01-11.6 7.1L4 20l1-4.6A8 8 0 1121 12z'/%3E%3C/svg%3E") center/contain no-repeat;
+          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12a8 8 0 01-11.6 7.1L4 20l1-4.6A8 8 0 1121 12z'/%3E%3C/svg%3E") center/contain no-repeat}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .ask-rare{color:#c9a8ff}}
+.dlg-txt .ask-rare{font-size:1.05rem}
+.dlg-note{margin:.35rem 0 0;font-size:.82rem;color:var(--ink-3)}
+
+/* ---- phone: three bottles per row ----
+   Cards are ~115px wide here, so everything inside scales down to fit:
+   tighter photo well, one-line brand, two-line name, compact price/badge. */
+@media (max-width:640px){
+  .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem}
+  main{padding-left:.6rem;padding-right:.6rem}
+  .card{border-radius:12px;contain-intrinsic-size:auto 250px}
+  .shot{margin:.3rem .3rem 0;padding:.3rem}
+  .info{padding:.4rem .45rem .55rem}
+  .brand{font-size:.52rem;letter-spacing:.08em}
+  .nm{font-size:.76rem;line-height:1.25}
+  .meta{font-size:.6rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .price{font-size:.82rem;margin-top:.25rem}
+  .ask,.ask-rare{font-size:.64rem;gap:.25rem}
+  .ask-rare::before{width:.75rem;height:.75rem}
+  .shelf-tag.badge{font-size:.5rem;padding:.12rem .38rem;margin-top:.3rem;letter-spacing:.07em}
+  .fam-tag{display:none}
+}
+@media (max-width:360px){
+  .grid{gap:.4rem}
+  .nm{font-size:.7rem}
+}
+
+/* ======================= Odin's Share — v2 =======================
+   The overhaul. A hero that says what the shop is, shelves you can see
+   without opening anything, cards whose prices line up in a row, a results
+   bar that shows (and clears) the active filter, and a real footer. The
+   interaction machinery above — floating islands, the drawer, the swipeable
+   sheet, the scroll-scrubbed reveal — is kept as is; this layer restyles it. */
+
+:root{--r-card:16px;--r-tile:14px}
+
+/* ---- hero ---- */
+.hero{position:relative;padding:clamp(1.2rem,5vw,3.6rem) 0 clamp(1rem,3vw,1.8rem);text-align:left;max-width:52rem}
+.hero-eyebrow{margin:0 0 .7rem;display:inline-flex;align-items:center;gap:.55rem;
+  font-size:.7rem;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:var(--gold)}
+.hero-eyebrow::before{content:"";width:1.8rem;height:1px;background:linear-gradient(90deg,transparent,var(--gold))}
+.hero-h{margin:0;font-family:"Marcellus",Georgia,serif;font-weight:400;letter-spacing:.01em;line-height:1.02;
+  font-size:clamp(2.3rem,7vw,4.6rem);
+  background:linear-gradient(180deg,var(--ink) 30%,color-mix(in srgb,var(--ink) 62%,var(--gold)));
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.hero-tag{margin:.7rem 0 0;font-size:clamp(1rem,2.2vw,1.2rem);color:var(--ink-2);max-width:34rem}
+.hero-stats{margin:1.1rem 0 0;display:flex;flex-wrap:wrap;align-items:center;gap:.35rem .7rem;
+  font-size:.8rem;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.hero-stats b{color:var(--ink);font-weight:700}
+.hero-stats span{width:4px;height:4px;border-radius:50%;background:var(--line-2)}
+/* a slow gold light behind the hero, part of the ambient wash rather than a panel */
+.hero::before{content:"";position:absolute;z-index:-1;left:-10%;top:-30%;width:70%;height:160%;pointer-events:none;
+  background:radial-gradient(closest-side,color-mix(in srgb,var(--gold) 14%,transparent),transparent 72%);
+  filter:blur(8px)}
+.js .hero > *{animation:heroIn .8s var(--sp-smooth) backwards}
+.js .hero-h{animation-delay:.06s}.js .hero-tag{animation-delay:.14s}.js .hero-stats{animation-delay:.2s}
+@keyframes heroIn{from{opacity:0;transform:translateY(14px)}}
+
+/* ---- shelf tiles: every category, visible at a glance ---- */
+.shelves{display:flex;gap:.6rem;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none;
+  margin:0 0 1.4rem;padding:.2rem 0 .6rem;
+  mask-image:linear-gradient(90deg,#000 calc(100% - 2.5rem),transparent)}
+.shelves::-webkit-scrollbar{display:none}
+.tile{flex:none;scroll-snap-align:start;position:relative;overflow:hidden;isolation:isolate;
+  display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:.15rem;
+  width:9.2rem;min-height:5.6rem;padding:.8rem .9rem .85rem;text-align:left;cursor:pointer;font:inherit;color:var(--ink);
+  border-radius:var(--r-tile);border:1px solid var(--glass-line);
+  background:var(--glass-solid);box-shadow:var(--glass-edge),var(--shadow);
+  transition:transform .6s var(--sp-bouncy),border-color .2s ease,box-shadow .25s ease,background .2s ease}
+.tile::before{content:"";position:absolute;inset:0;z-index:-1;opacity:.7;background:var(--weave)}
+.tile-n{font-size:1.5rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
+.tile-l{font-size:.8rem;font-weight:600;color:var(--ink-2);line-height:1.25}
+.tile .badge{position:absolute;top:.7rem;left:.9rem}
+.tile.shelf .tile-l{display:none}
+.tile.shelf{border-color:color-mix(in srgb,var(--gold) 40%,var(--glass-line))}
+.tile:active{transform:scale(.96);transition-duration:.09s}
+@media (hover:hover){.tile:hover{border-color:var(--gold-soft);transform:translateY(-2px)}}
+.tile.on{border-color:var(--gold);background:linear-gradient(to bottom,color-mix(in srgb,var(--gold) 22%,var(--surface)),color-mix(in srgb,var(--gold) 10%,var(--surface)));
+  box-shadow:var(--glass-edge),0 10px 26px -12px color-mix(in srgb,var(--gold) 70%,transparent)}
+.tile.on .tile-n,.tile.on .tile-l{color:var(--gold)}
+
+/* ---- results bar ---- */
+.results{position:relative;display:flex;align-items:center;gap:.8rem;margin:0 0 1.1rem;padding-bottom:.8rem;
+  border-bottom:1px solid var(--glass-line)}
+.results .count{margin:0;font-size:.74rem;letter-spacing:.16em}
+.clear{margin-left:auto;display:inline-flex;align-items:center;gap:.35rem;cursor:pointer;font:600 .78rem "Archivo",system-ui,sans-serif;
+  color:var(--gold);background:color-mix(in srgb,var(--gold) 10%,transparent);
+  border:1px solid color-mix(in srgb,var(--gold) 38%,transparent);border-radius:999px;padding:.38rem .8rem;
+  transition:transform .55s var(--sp-bouncy),background .18s ease}
+.clear::before{content:"×";font-size:1rem;line-height:1;margin-top:-1px}
+.clear:active{transform:scale(.94);transition-duration:.09s}
+.clear[hidden]{display:none}
+
+/* ---- cards ---- */
+.grid{gap:clamp(.9rem,1.8vw,1.5rem)}
+.card{border-radius:var(--r-card);background:var(--glass-solid)}
+.shot{margin:0;border-radius:0;border:none;border-bottom:1px solid var(--glass-line);aspect-ratio:4/5;padding:.9rem}
+.shot img{border-radius:10px;box-shadow:0 10px 24px -12px rgba(0,0,0,.55)}
+.shot::before{top:9px;left:9px}.shot::after{bottom:9px;right:9px}
+.shot .shelf-tag.badge{position:absolute;top:.6rem;right:.6rem;left:auto;margin:0;z-index:2}
+.n-shots{position:absolute;bottom:.6rem;left:.6rem;z-index:2;display:inline-flex;align-items:center;gap:.25rem;
+  font-size:.62rem;font-weight:700;font-variant-numeric:tabular-nums;color:#fff;
+  padding:.14rem .42rem;border-radius:999px;background:rgba(10,14,22,.55);backdrop-filter:blur(6px)}
+.n-shots::before{content:"";width:.7rem;height:.7rem;background:currentColor;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2'%3E%3Crect x='3' y='5' width='14' height='14' rx='2'/%3E%3Cpath d='M7 3h12a2 2 0 012 2v12'/%3E%3C/svg%3E") center/contain no-repeat;
+          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2'%3E%3Crect x='3' y='5' width='14' height='14' rx='2'/%3E%3Cpath d='M7 3h12a2 2 0 012 2v12'/%3E%3C/svg%3E") center/contain no-repeat}
+/* the info block grows, so the price sits on the card's floor and lines up across a row */
+.info{flex:1;display:flex;flex-direction:column;padding:.85rem .95rem 1rem}
+.brand{font-size:.62rem;letter-spacing:.16em}
+.nm{font-size:1.02rem;margin-top:.2rem}
+.meta{margin-top:.25rem}
+.price{margin-top:auto;padding-top:.7rem;font-size:1.12rem;letter-spacing:-.01em}
+.fam-tag{top:auto;bottom:.8rem;right:.8rem;inset:auto .8rem .8rem auto}
+
+/* ---- detail sheet ---- */
+#dlg{border-radius:20px}
+@media (min-width:641px){
+  #dlg{max-width:min(760px,92vw)}
+  .dlg-body{grid-template-columns:minmax(0,300px) 1fr}
+  .dlg-shot{min-height:340px;padding:1.4rem}
+  .dlg-shot img{max-height:340px}
+}
+.dlg-txt{padding:1.6rem 1.7rem 1.7rem}
+.dlg-txt h2{font-size:1.6rem}
+.dlg-txt .price{font-size:1.9rem;margin-top:.5rem;padding-top:0}
+.rows{margin-top:1.2rem}
+.rows div{padding:.55rem 0}
+
+/* ---- footer ---- */
+footer{margin-top:2rem;padding-top:2.2rem}
+.foot{display:flex;flex-wrap:wrap;gap:1.5rem 3rem;align-items:flex-start;justify-content:space-between;
+  padding-bottom:1.4rem;border-bottom:1px solid var(--glass-line)}
+.foot-brand{display:flex;align-items:center;gap:.7rem}
+.foot-shop{margin:0;font-family:"Marcellus",Georgia,serif;font-size:1.25rem;color:var(--ink)}
+.foot-brand .fine{margin:.1rem 0 0}
+.foot-notes{max-width:30rem}
+.foot-notes p{margin:0 0 .35rem}
+.foot-legal{margin-top:1.1rem !important}
+
+/* ---- phones ---- */
+@media (max-width:640px){
+  .hero{padding:.4rem 0 1rem}
+  .hero-h{font-size:2.3rem}
+  .hero-tag{font-size:.95rem;margin-top:.45rem}
+  .hero-stats{font-size:.74rem;margin-top:.8rem}
+  /* the hero already says the shop's name, so the bar above it can go quiet */
+  .top .ident .tag{display:none}
+  .shelves{gap:.45rem;margin-bottom:1rem}
+  .tile{width:7.2rem;min-height:4.6rem;padding:.6rem .7rem .7rem}
+  .tile-n{font-size:1.2rem}
+  .tile-l{font-size:.72rem}
+  .tile .badge{top:.55rem;left:.7rem}
+  .results{margin-bottom:.8rem;padding-bottom:.6rem}
+  /* three across: the badge and photo count shrink with the card */
+  .shot{padding:.45rem;aspect-ratio:3/4}
+  .shot img{border-radius:7px}
+  .shot .shelf-tag.badge{top:.35rem;right:.35rem;font-size:.46rem;padding:.1rem .3rem}
+  .n-shots{display:none}
+  .info{padding:.45rem .5rem .6rem}
+  .nm{font-size:.76rem;margin-top:.1rem}
+  .price{padding-top:.35rem;font-size:.84rem}
+  .card{border-radius:12px}
+  .dlg-txt{padding:1.1rem 1.15rem 1.6rem}
+  .dlg-txt h2{font-size:1.3rem}
+  .dlg-txt .price{font-size:1.5rem}
+  footer{padding-bottom:6.5rem}
+}
+/* tablet / desktop: the fixed islands sit over the top of main — give the hero clearance */
+@media (min-width:641px){ main{padding-top:5rem} }
+@media (min-width:641px) and (max-width:1024px){ main{padding-top:7.4rem} }
+@media (orientation:landscape) and (max-height:500px){
+  main{padding-top:3.2rem}
+  .hero{padding:.4rem 0 .6rem}.hero-h{font-size:2rem}.hero-stats{margin-top:.5rem}
+  .shelves{margin-bottom:.7rem}
+}
+@media (prefers-reduced-motion:reduce){.js .hero > *{animation:none}}
+
+/* ================= view size: Auto / S / M / L =================
+   <html data-view> is set by the head script from localStorage before first
+   paint; no attribute means Auto, which picks by screen: phones get S (three
+   across, the whole interface ~7% smaller), everything else gets M. */
+.view{display:inline-flex;align-items:center;gap:2px;padding:3px;border-radius:999px;margin-left:auto;
+  background:color-mix(in srgb,var(--surface) 55%,transparent);border:1px solid var(--glass-line);box-shadow:var(--glass-edge)}
+.clear:not([hidden]) + .view{margin-left:.6rem}
+.view-l{font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);padding:0 .45rem 0 .55rem}
+.view button{font:600 .74rem "Archivo",system-ui,sans-serif;color:var(--ink-2);background:none;border:none;cursor:pointer;
+  min-width:2rem;padding:.34rem .55rem;border-radius:999px;
+  transition:background .2s ease,color .2s ease,transform .55s var(--sp-bouncy)}
+.view button:active{transform:scale(.92);transition-duration:.09s}
+.view button.on{background:var(--gold);color:var(--surface);box-shadow:0 4px 12px -5px color-mix(in srgb,var(--gold) 70%,transparent)}
+@media (hover:hover){.view button:not(.on):hover{color:var(--ink)}}
+
+/* desktop / tablet: S and L change the card width; M is the base */
+@media (min-width:641px){
+  html[data-view="s"] .grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr))}
+  html[data-view="s"] .nm{font-size:.9rem}
+  html[data-view="s"] .price{font-size:1rem}
+  html[data-view="l"] .grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr))}
+  html[data-view="l"] .nm{font-size:1.15rem}
+  html[data-view="l"] .price{font-size:1.3rem}
+  html[data-view="m"] .grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr))}
+}
+
+/* phones: Auto and S = three across with the base zoomed out; M = two; L = one */
+@media (max-width:640px){
+  html:not([data-view]),html[data-view="s"]{font-size:15px}
+  html:not([data-view]) body,html[data-view="s"] body{font-size:14px}
+  html[data-view="m"] .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem}
+  html[data-view="l"] .grid{grid-template-columns:minmax(0,1fr);gap:.9rem}
+  /* two or one across have the room the three-up sizes were squeezed out of */
+  html[data-view="m"] .nm{font-size:.9rem} html[data-view="l"] .nm{font-size:1.1rem}
+  html[data-view="m"] .brand{font-size:.58rem} html[data-view="l"] .brand{font-size:.64rem}
+  html[data-view="m"] .meta{font-size:.68rem;white-space:normal} html[data-view="l"] .meta{font-size:.76rem;white-space:normal}
+  html[data-view="m"] .price{font-size:1rem} html[data-view="l"] .price{font-size:1.25rem}
+  html[data-view="m"] .info{padding:.65rem .7rem .8rem} html[data-view="l"] .info{padding:.9rem 1rem 1.05rem}
+  html[data-view="m"] .ask-rare,html[data-view="m"] .ask{font-size:.76rem}
+  html[data-view="l"] .ask-rare,html[data-view="l"] .ask{font-size:.9rem}
+  html[data-view="m"] .shot .shelf-tag.badge{font-size:.54rem;padding:.14rem .42rem;top:.5rem;right:.5rem}
+  html[data-view="l"] .shot .shelf-tag.badge{font-size:.62rem;padding:.17rem .5rem;top:.7rem;right:.7rem}
+  html[data-view="m"] .shot{padding:.6rem} html[data-view="l"] .shot{padding:1rem;aspect-ratio:4/5}
+  html[data-view="l"] .n-shots{display:inline-flex}
+  html[data-view="l"] .card{border-radius:16px}
+  .results{flex-wrap:wrap;row-gap:.5rem}
+  .view-l{display:none}
+  .view button{min-width:1.9rem;padding:.3rem .5rem}
+}
+
+/* desktop: once scrolled, a soft fade under the floating header keeps the
+   shop name and islands legible over the cards passing beneath */
+@media (min-width:641px){
+  .top::before{content:"";position:fixed;left:0;right:0;top:0;height:5.2rem;pointer-events:none;z-index:-1;
+    background:linear-gradient(to bottom,var(--ground) 30%,color-mix(in srgb,var(--ground) 70%,transparent) 65%,transparent);
+    opacity:0;transition:opacity .3s ease}
+  body.scrolled .top::before{opacity:1}
+}
+@media (min-width:641px) and (max-width:1024px){ .top::before{height:7.6rem} }

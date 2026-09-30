@@ -387,6 +387,58 @@
     if (e.key === "Escape" && chipsNav.classList.contains("open")) { closePicker(); catBtn.focus(); }
   });
 
+  // ---- shelf tiles + clear ----
+  // The tiles under the hero and the Clear button are shortcuts onto the chips
+  // in the drawer, so filtering keeps exactly one code path (the chip click).
+  var tiles = Array.prototype.slice.call(document.querySelectorAll(".tile")),
+      clearBtn = document.getElementById("clear");
+  function chipFor(sh, fm) {
+    return chips.filter(function (c) {
+      return sh ? c.dataset.shelf === sh : (!c.dataset.shelf && (c.dataset.fam || "") === fm);
+    })[0];
+  }
+  function syncTiles() {
+    tiles.forEach(function (t) {
+      var on = t.dataset.jumpShelf ? t.dataset.jumpShelf === shelf
+             : (t.dataset.jumpFam === fam && !shelf);
+      t.classList.toggle("on", !!on && !!(shelf || fam));
+      t.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    if (clearBtn) clearBtn.hidden = !(shelf || fam);
+  }
+  tiles.forEach(function (t) {
+    t.addEventListener("click", function () {
+      var sh = t.dataset.jumpShelf || "", fm = t.dataset.jumpFam || "";
+      var already = sh ? shelf === sh : (fam === fm && !shelf);
+      var c = already ? chipFor("", "") : chipFor(sh, fm);   // a second tap clears it
+      if (c) c.click();
+    });
+  });
+  if (clearBtn) clearBtn.addEventListener("click", function () { var c = chipFor("", ""); if (c) c.click(); });
+  chips.forEach(function (ch) { ch.addEventListener("click", syncTiles); });
+  syncTiles();
+
+  // ---- view size: Auto (by device) / S / M / L, remembered per browser ----
+  var viewBtns = Array.prototype.slice.call(document.querySelectorAll(".view button"));
+  function currentView() { return document.documentElement.dataset.view || "auto"; }
+  function syncView() {
+    var v = currentView();
+    viewBtns.forEach(function (b) {
+      var on = b.dataset.view === v;
+      b.classList.toggle("on", on); b.setAttribute("aria-checked", on ? "true" : "false");
+    });
+  }
+  viewBtns.forEach(function (b) {
+    b.addEventListener("click", function () {
+      var v = b.dataset.view;
+      if (v === "auto") delete document.documentElement.dataset.view;
+      else document.documentElement.dataset.view = v;
+      try { localStorage.setItem("share_view", v); } catch (e) {}
+      syncView(); settle();
+    });
+  });
+  syncView();
+
   // deep link: #whisky or #limited-edition opens that shelf on load
   if (location.hash) {
     var want = location.hash.slice(1).toLowerCase();
@@ -427,7 +479,7 @@
       });
     }
     rows += "<div><dt>Category</dt><dd>" + card.dataset.fam + "</dd></div>";
-    if (card.dataset.shelf) rows += "<div><dt>Shelf</dt><dd>" + card.dataset.shelf + "</dd></div>";
+    if (card.dataset.shelf) rows += "<div><dt>Shelf</dt><dd><span class=\"badge b-" + (card.dataset.shelfkind || "copper") + "\">" + card.dataset.shelf + "</span></dd></div>";
     body.className = "dlg-body";
     if (from) { void body.offsetWidth; body.classList.add(from); }
     shots = (card.dataset.imgs || "").split(",").filter(Boolean);
@@ -443,6 +495,7 @@
       '<div class="dlg-txt">' + card.querySelector(".brand").outerHTML +
         "<h2>" + card.querySelector(".nm").textContent + "</h2>" +
         card.querySelector(".price").outerHTML +
+        (card.dataset.ask ? '<p class="dlg-note">A rare bottle — talk to us in store or message the shop for pricing.</p>' : "") +
         '<dl class="rows">' + rows + "</dl></div>";
     openCard = card;
     dlg.scrollTop = 0;
@@ -615,7 +668,7 @@
   // One transition, its duration taken from the speed of the finger rather than
   // a constant — that is the whole difference between smooth and clunky here.
   function glide(el, x, op, ms, done) {
-    el.style.transition = "transform " + ms + "ms cubic-bezier(.22,.68,.32,1)," +
+    el.style.transition = "transform " + ms + "ms var(--sp-smooth,cubic-bezier(.22,.68,.32,1))," +
                           "opacity " + ms + "ms ease";
     el.style.transform = "translateX(" + x + "px)";
     el.style.opacity = String(op);
