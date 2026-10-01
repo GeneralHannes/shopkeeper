@@ -133,18 +133,23 @@
   --shot-a:#FFFAF3; --shot-b:#F2E9E1; --vault:#191724; --on-gold:#FFFAF3;
   --bifrost:linear-gradient(90deg,#EA9D34,#D7827E,#B4637A,#907AA9,#56949F,#286983);
 }
-/* ---- wood: the home page's shelf and the catalogue's cabinet ----
-   Oiled teak in light themes, dark walnut in dark ones. The texture is three
-   SVG-turbulence layers over the base colour: --grain (the long flowing figure,
-   noise folded into bands), --pores (fine streaks along the board) and --sheen
-   (lighter flecks, so it has depth and not just stripes). Painted once per
-   element, never animated. --grain-soft is a quieter figure for back panels. */
-:root{--wood-hi:#9a6436;--wood:#74461f;--wood-lo:#4a2a11;--back:#2c190b;--lamp:rgba(255,196,125,.28);
-  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='200'%3E%3Cfilter id='p' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.035 1.4' numOctaves='2' seed='9' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.05  0 0 0 0 0.02  0 0 0 0 0  2.6 0 0 0 -1.45'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23p%29'/%3E%3C/svg%3E"),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='260'%3E%3Cfilter id='s' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.004 0.11' numOctaves='3' seed='21' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 0.86  0 0 0 0 0.62  1.6 0 0 0 -0.95'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23s%29'/%3E%3C/svg%3E"),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='260'%3E%3Cfilter id='w' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0016 0.045' numOctaves='4' seed='4' stitchTiles='stitch'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='table' tableValues='0 1 0 1 0 1 0 1 0 1 0 1 0 1 0'/%3E%3C/feComponentTransfer%3E%3CfeColorMatrix values='0 0 0 0 0.09  0 0 0 0 0.045  0 0 0 0 0.01  0.6 0 0 0 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23w%29'/%3E%3C/svg%3E");
-  --grain-soft:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='200'%3E%3Cfilter id='p' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.035 1.4' numOctaves='2' seed='9' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.05  0 0 0 0 0.02  0 0 0 0 0  2.6 0 0 0 -1.45'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23p%29'/%3E%3C/svg%3E"),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='260'%3E%3Cfilter id='w' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0016 0.045' numOctaves='4' seed='7' stitchTiles='stitch'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='table' tableValues='0 1 0 1 0 1 0 1 0 1 0 1 0 1 0'/%3E%3C/feComponentTransfer%3E%3CfeColorMatrix values='0 0 0 0 0.09  0 0 0 0 0.045  0 0 0 0 0.01  0.38 0 0 0 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23w%29'/%3E%3C/svg%3E");
-}
-@media (prefers-color-scheme:dark){:root:not([data-tone="light"]){--wood-hi:#71472a;--wood:#4e2f16;--wood-lo:#2a170a;--back:#160c05;--lamp:rgba(255,190,115,.2)}}
-:root[data-tone="dark"]{--wood-hi:#71472a;--wood:#4e2f16;--wood-lo:#2a170a;--back:#160c05;--lamp:rgba(255,190,115,.2)}
+/* ---- wood: the home page's shelf, the catalogue's cabinet, the detail box ----
+   Oiled teak in light themes, dark walnut in dark ones. The texture is a set
+   of small greyscale tiles (assets/tex, ~175KB together, cached) laid over the
+   wood colour with background-blend-mode:multiply — white leaves the colour
+   alone, darker grain darkens it, so one tile serves both woods. They were
+   SVG turbulence once (tex-src/texgen.py renders them): pre-rendering took
+   the filter work off the page, which measurably smoothed scrolling on a
+   throttled phone. Every rule that uses one puts it as the FIRST background
+   layer and lists the blend modes in full (a short list would repeat).
+   --grain: the long figure, tone patches and pores. --grain-soft: quieter, for
+   back panels. --grain-wall: faint, for the catalogue page's wall. --paper:
+   fibre speckle for the labels. */
+:root{--wood-hi:#9a6436;--wood:#74461f;--wood-lo:#4a2a11;--back:#4a2e17;--lamp:rgba(255,200,135,.32);
+  --grain:url("tex/wood-grain.webp");--grain-soft:url("tex/wood-grain-soft.webp");
+  --grain-wall:url("tex/wood-wall.webp");--paper:url("tex/paper.webp")}
+@media (prefers-color-scheme:dark){:root:not([data-tone="light"]){--wood-hi:#71472a;--wood:#4e2f16;--wood-lo:#2a170a;--back:#28180b;--lamp:rgba(255,190,115,.24)}}
+:root[data-tone="dark"]{--wood-hi:#71472a;--wood:#4e2f16;--wood-lo:#2a170a;--back:#28180b;--lamp:rgba(255,190,115,.24)}
 *,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{
@@ -1339,45 +1344,147 @@ a.tile{text-decoration:none}
 
 /* ================= wooden catalogue =================
    The grid is a cabinet: its own background is the wood, so the gaps between
-   cards read as the cabinet's dividers and shelves. Each card is a lit cubby
-   with the bottle's photo framed like a print, and its name and price on a
-   paper shelf tag — cream in every theme, so it reads the same on oak or walnut.
-   Still no backdrop-filter and no per-card grain layer: ~170 cards. */
-.grid{--cab:clamp(.5rem,1.2vw,.8rem);gap:var(--cab);padding:var(--cab);border-radius:18px;
+   cards are the cabinet's stiles and shelves. Each card is a cubby — plank-lined
+   back, shaded side walls, a lamp above — with the bottle's photo standing on a
+   small ledge like a framed print, and a paper shelf tag hanging from the ledge
+   on a brass pin. The tag is paper in every theme, so it reads the same on teak
+   or walnut. Still no backdrop-filter: ~170 cards. */
+.grid{--cab:clamp(.6rem,1.4vw,.95rem);gap:var(--cab);padding:var(--cab);border-radius:16px;
   background:var(--grain),linear-gradient(135deg,var(--wood-hi),var(--wood) 40%,var(--wood-lo));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 -2px 0 rgba(0,0,0,.3),0 34px 60px -30px rgba(0,0,0,.6)}
-.card{border:none;border-radius:6px;
-  background:linear-gradient(to bottom,rgba(0,0,0,.55),rgba(0,0,0,0) 22%),
-             radial-gradient(70% 45% at 50% 0%,var(--lamp),transparent 75%),var(--grain-soft),var(--back);
-  box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),inset 0 -6px 10px -6px rgba(0,0,0,.5)}
+  background-blend-mode:multiply,normal;
+  border:1px solid rgba(0,0,0,.45);
+  box-shadow:inset 0 2px 0 rgba(255,235,200,.22),inset 0 -3px 0 rgba(0,0,0,.35),
+    inset 0 0 0 3px color-mix(in srgb,var(--wood-lo) 70%,transparent),
+    0 2px 0 rgba(0,0,0,.3),0 34px 60px -30px rgba(0,0,0,.65)}
+.card{border:none;border-radius:4px;
+  background:var(--grain-soft),
+    linear-gradient(to bottom,rgba(0,0,0,.42),rgba(0,0,0,0) 18%),
+    radial-gradient(75% 42% at 50% 0%,var(--lamp),transparent 75%),
+    repeating-linear-gradient(90deg,transparent 0 calc(33.33% - 2px),rgba(0,0,0,.32) calc(33.33% - 2px) calc(33.33% - 1px),rgba(255,225,180,.06) calc(33.33% - 1px) 33.33%),
+    var(--back);
+  background-blend-mode:multiply,normal,normal,normal;
+  box-shadow:inset 9px 0 12px -9px rgba(0,0,0,.6),inset -9px 0 12px -9px rgba(0,0,0,.6),
+    inset 0 0 0 1px rgba(0,0,0,.4)}
 .card[data-shelf]{border:none}
-@media (hover:hover){.card:hover{transform:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),inset 0 -6px 10px -6px rgba(0,0,0,.5)}}
+@media (hover:hover){.card:hover{transform:none;box-shadow:inset 9px 0 12px -9px rgba(0,0,0,.6),inset -9px 0 12px -9px rgba(0,0,0,.6),inset 0 0 0 1px rgba(0,0,0,.4)}}
 .card:focus-visible{transform:none;outline:2px solid var(--gold);outline-offset:-2px}
 .card.pressed,.card:active{transform:none;border:none}
-/* the photo: a print standing in the cubby, white mat, cast shadow */
-.shot,.card[data-shelf] .shot{background:none;border:none;padding:.9rem .9rem .55rem;aspect-ratio:4/5}
-.shot::before,.shot::after{content:none}
-.shot img{border-radius:3px;border:4px solid #e6dcc6;background:#e6dcc6;
-  box-shadow:0 1px 0 rgba(255,255,255,.08),0 14px 22px -10px rgba(0,0,0,.75);
+/* the photo: a print standing on a ledge — mat, thin dark frame, cast shadow */
+.shot,.card[data-shelf] .shot{background:none;border:none;padding:1rem .95rem 1.05rem;aspect-ratio:4/5;overflow:visible}
+.shot::before{content:none}
+.shot::after{content:"";position:absolute;left:0;right:0;bottom:0;width:auto;height:.7rem;border:0;border-radius:0;z-index:1;
+  background:var(--grain),linear-gradient(to bottom,color-mix(in srgb,var(--wood-hi) 80%,#fff) 0 2px,transparent 2px),
+    linear-gradient(to bottom,var(--wood),var(--wood-lo));
+  background-blend-mode:multiply,normal,normal;
+  box-shadow:0 5px 7px -3px rgba(0,0,0,.65)}
+.card.pressed .shot::after,.card:active .shot::after{border-color:transparent}
+.shot img{position:relative;z-index:2;border-radius:2px;border:4px solid #e6dcc6;background:#e6dcc6;
+  outline:2px solid #2a170a;outline-offset:0;
+  box-shadow:0 2px 0 2px rgba(0,0,0,.25),0 14px 20px -10px rgba(0,0,0,.8);
   transition:transform .55s var(--sp-bouncy)}
 @media (hover:hover){.card:hover .shot img{transform:translateY(-4px) rotate(-.6deg)}}
 .card.pressed .shot img,.card:active .shot img{transform:scale(.97);transition-duration:.09s}
-/* the shelf tag: paper, pinned to the bottom of the cubby */
-.info{position:relative;margin:0 .6rem .6rem;padding:.6rem .7rem .65rem;border-radius:3px;
+.shot .n-shots{z-index:3}
+.shot .shelf-tag.badge{z-index:3}
+/* the shelf tag: aged paper hanging from the ledge */
+.info{position:relative;margin:.5rem .65rem .7rem;padding:.6rem .7rem .65rem;border-radius:2px;
   --ink:#21170c;--ink-2:#43341f;--ink-3:#5f4c35;--steel:#523f27;--gold:#6e500f;
-  color:var(--ink);background:linear-gradient(to bottom,#eadcbc,#dccaa2);
-  box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 4px 8px -4px rgba(0,0,0,.6)}
-.info::before{content:"";position:absolute;top:-4px;left:50%;width:9px;height:9px;margin-left:-4.5px;border-radius:50%;
-  background:radial-gradient(circle at 35% 35%,#f3d98b,#a87a24);box-shadow:0 1px 2px rgba(0,0,0,.5)}
+  color:var(--ink);background:var(--paper),linear-gradient(to bottom,#eadcbc,#d9c59c);background-blend-mode:multiply,normal;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 0 0 1px rgba(90,60,25,.25),0 5px 9px -4px rgba(0,0,0,.7)}
+.info::before{content:"";position:absolute;top:-.55rem;left:50%;width:1px;height:.55rem;background:rgba(30,18,6,.7)}
+.info::after{content:"";position:absolute;top:-3px;left:50%;width:8px;height:8px;margin-left:-4px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#f6e2a0,#b08428 60%,#6e4f12);box-shadow:0 1px 2px rgba(0,0,0,.55)}
 .info .price[data-rank]{--rk:var(--rk-l)}
-@media (prefers-color-scheme:dark){:root:not([data-tone="light"]) .info .price[data-rank]{--rk:var(--rk-l);filter:none;
+@media (prefers-color-scheme:dark){:root:not([data-tone="light"]) .info .price[data-rank],:root:not([data-tone="light"]) #dlg .dlg-txt .price[data-rank]{--rk:var(--rk-l);filter:none;
   background-image:linear-gradient(180deg,color-mix(in oklab,var(--rk) 80%,#fff) 0%,var(--rk) 50%,color-mix(in oklab,var(--rk) 78%,#000) 100%)}}
-:root[data-tone="dark"] .info .price[data-rank]{--rk:var(--rk-l);filter:none;
+:root[data-tone="dark"] .info .price[data-rank],:root[data-tone="dark"] #dlg .dlg-txt .price[data-rank]{--rk:var(--rk-l);filter:none;
   background-image:linear-gradient(180deg,color-mix(in oklab,var(--rk) 80%,#fff) 0%,var(--rk) 50%,color-mix(in oklab,var(--rk) 78%,#000) 100%)}
-.info .ask-rare{color:#6b3fc0}
+.info .ask-rare,#dlg .dlg-txt .ask-rare{color:#6b3fc0}
 .fam-tag{display:none}
 @media (max-width:640px){
-  .shot,.card[data-shelf] .shot{padding:.6rem .6rem .45rem}
-  .info{margin:0 .4rem .4rem;padding:.5rem .55rem .55rem}
-  .grid{border-radius:14px}
+  .shot,.card[data-shelf] .shot{padding:.65rem .6rem .8rem}
+  .shot img{border-width:3px}
+  .info{margin:.45rem .4rem .45rem;padding:.5rem .55rem .55rem}
+  .grid{border-radius:12px}
 }
+
+/* ================= the detail box =================
+   The pop-up is a wooden display box: a framed print in a lit cubby on the
+   left (top, on a phone), a large paper label beside it, and a plank along
+   the bottom with brass knobs for stepping between bottles. */
+#dlg{border:1px solid rgba(0,0,0,.5);color:var(--ink);padding:clamp(.5rem,1.2vw,.75rem);
+  background:var(--grain),linear-gradient(135deg,var(--wood-hi),var(--wood) 45%,var(--wood-lo));
+  background-blend-mode:multiply,normal;-webkit-backdrop-filter:none;backdrop-filter:none;
+  box-shadow:inset 0 2px 0 rgba(255,235,200,.22),inset 0 -3px 0 rgba(0,0,0,.35),0 30px 70px -20px rgba(0,0,0,.75)}
+#dlg::backdrop{background:rgba(18,10,4,.66)}
+#dlg .dlg-body{border-radius:6px;overflow:hidden;gap:clamp(.5rem,1.2vw,.75rem)}
+#dlg .dlg-shot{border-radius:4px;
+  background:var(--grain-soft),linear-gradient(to bottom,rgba(0,0,0,.42),rgba(0,0,0,0) 22%),
+    radial-gradient(75% 50% at 50% 0%,var(--lamp),transparent 75%),var(--back);
+  background-blend-mode:multiply,normal,normal;
+  box-shadow:inset 10px 0 14px -10px rgba(0,0,0,.6),inset -10px 0 14px -10px rgba(0,0,0,.6),inset 0 -10px 14px -10px rgba(0,0,0,.5)}
+#dlg .dlg-shot::before,#dlg .dlg-shot::after{content:none}
+#dlg .dlg-shot img{border-radius:2px;border:6px solid #e6dcc6;background:#e6dcc6;outline:2px solid #2a170a;
+  box-shadow:0 3px 0 2px rgba(0,0,0,.25),0 22px 30px -14px rgba(0,0,0,.85)}
+#dlg .dlg-txt{position:relative;border-radius:3px;
+  --ink:#21170c;--ink-2:#43341f;--ink-3:#5f4c35;--steel:#523f27;--gold:#6e500f;--glass-line:rgba(90,60,25,.3);
+  color:var(--ink);background:var(--paper),linear-gradient(to bottom,#ece0c3,#dccaa4);background-blend-mode:multiply,normal;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 0 0 1px rgba(90,60,25,.25),0 6px 12px -6px rgba(0,0,0,.7)}
+/* brass pins in the label's top corners */
+#dlg .dlg-txt::before,#dlg .dlg-txt::after{content:"";position:absolute;top:.55rem;width:9px;height:9px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#f6e2a0,#b08428 60%,#6e4f12);box-shadow:0 1px 2px rgba(0,0,0,.55)}
+#dlg .dlg-txt::before{left:.55rem}
+#dlg .dlg-txt::after{right:.55rem}
+#dlg .rows{border-top:1px dashed rgba(90,60,25,.45)}
+#dlg .rows div{border-color:rgba(90,60,25,.22)}
+#dlg .dlg-note{color:var(--ink-3)}
+/* the plank: steps between bottles */
+#dlg .dlg-nav{margin:clamp(.5rem,1.2vw,.75rem) calc(-1 * clamp(.5rem,1.2vw,.75rem)) calc(-1 * clamp(.5rem,1.2vw,.75rem));
+  border-top:1px solid rgba(0,0,0,.45);-webkit-backdrop-filter:none;backdrop-filter:none;
+  background:var(--grain),linear-gradient(to bottom,rgba(255,235,200,.18) 0 1px,transparent 1px),
+    linear-gradient(to bottom,var(--wood),var(--wood-lo));
+  background-blend-mode:multiply,normal,normal;
+  box-shadow:inset 0 6px 8px -6px rgba(0,0,0,.6)}
+#dlg .dlg-nav button,#dlg .x{color:#2b1c06;border:1px solid rgba(60,38,8,.7);-webkit-backdrop-filter:none;backdrop-filter:none;
+  background:radial-gradient(circle at 35% 30%,#f8e7ad,#d2a64a 55%,#8c6418);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6),inset 0 -2px 3px rgba(0,0,0,.3),0 2px 4px rgba(0,0,0,.55)}
+#dlg .dlg-nav button[disabled]{opacity:.45;filter:saturate(.4)}
+#dlg .dlg-nav .pos{color:#2b1c06;border:1px solid rgba(60,38,8,.6);-webkit-backdrop-filter:none;backdrop-filter:none;
+  background:linear-gradient(to bottom,#f6e3a1,#d4a849 48%,#a87a24 52%,#c9973a);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 1px 2px rgba(0,0,0,.5)}
+#dlg .x{top:1rem;right:1rem}
+#dlg .grab{background:none}
+#dlg .grab::after{background:rgba(255,230,190,.55)}
+#dlg .dots i{background:rgba(255,235,200,.45)}
+#dlg .dots i.on{background:#f3d98b}
+@media (max-width:640px){
+  #dlg{padding:.45rem .45rem 0}
+  #dlg .dlg-nav{margin:.45rem -.45rem 0}
+}
+
+/* ---- the catalogue page itself: a panelled wall ----
+   The cabinet used to sit on the bright page ground, and that jump from near
+   white to dark wood was the glare. The wall is the theme's ground with wood
+   mixed in (so Gruvbox, Nord … keep their tint) under a faint grain, and every
+   pane on it (header, search, shelf tiles, the detail sheet) takes a little of
+   the wood too, so nothing on the page is a cold white. --surface-base carries
+   the theme's own surface down from :root, since body cannot mix --surface
+   with itself. */
+:root{--surface-base:var(--surface)}
+body.cat{--wall:color-mix(in srgb,var(--wood-hi) 58%,var(--ground));
+  --surface:color-mix(in srgb,var(--wood-hi) 22%,var(--surface-base));
+  --ink-2:color-mix(in srgb,var(--ink) 78%,var(--wood));--ink-3:color-mix(in srgb,var(--ink) 62%,var(--wood));
+  background:var(--grain-wall),var(--wall);background-blend-mode:multiply}
+@media (prefers-color-scheme:dark){:root:not([data-tone="light"]) body.cat{
+  --wall:color-mix(in srgb,var(--wood) 34%,var(--ground));--surface:color-mix(in srgb,var(--wood) 42%,var(--surface-base));
+  --ink-2:color-mix(in srgb,var(--ink) 80%,var(--wood-hi));--ink-3:color-mix(in srgb,var(--ink) 62%,var(--wood-hi))}}
+:root[data-tone="dark"] body.cat{
+  --wall:color-mix(in srgb,var(--wood) 34%,var(--ground));--surface:color-mix(in srgb,var(--wood) 42%,var(--surface-base));
+  --ink-2:color-mix(in srgb,var(--ink) 80%,var(--wood-hi));--ink-3:color-mix(in srgb,var(--ink) 62%,var(--wood-hi))}
+/* the glass recipes are resolved at :root, so they are restated here to pick up
+   the wood-tinted --surface (search, shelf tiles, price brackets, islands) */
+body.cat{--glass:linear-gradient(to bottom,color-mix(in srgb,var(--surface) 78%,transparent),color-mix(in srgb,var(--surface) 62%,transparent));
+  --glass-solid:linear-gradient(to bottom,color-mix(in srgb,var(--surface) 94%,transparent),color-mix(in srgb,var(--surface) 84%,transparent))}
+body.cat::before{opacity:.5}
+body.cat .top{background:linear-gradient(to bottom,color-mix(in srgb,var(--wall) 88%,transparent),
+                                         color-mix(in srgb,var(--wall) 74%,transparent))}
