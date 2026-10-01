@@ -45,7 +45,7 @@
           repeating-linear-gradient(-45deg,transparent 0 9px,color-mix(in srgb,var(--gold) 7%,transparent) 9px 10px);
 }
 @media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){
+  :root:not([data-tone="light"]){
     --ground:#0D131E; --surface:#151D2B; --sunk:#101725;
     --ink:#E9EEF5; --ink-2:#A3B2C4; --ink-3:#71829A;
     --line:#212C3D; --line-2:#314056;
@@ -67,6 +67,71 @@
                                             color-mix(in srgb,var(--surface) 72%,transparent));
     --sheen:color-mix(in srgb,#fff 15%,transparent);
   }
+}
+/* the same dark tokens, chosen explicitly from the theme picker (data-tone is
+   set by the inline theme script in <head>; without JS the media query above
+   is all there is) */
+:root[data-tone="dark"]{
+    --ground:#0D131E; --surface:#151D2B; --sunk:#101725;
+    --ink:#E9EEF5; --ink-2:#A3B2C4; --ink-3:#71829A;
+    --line:#212C3D; --line-2:#314056;
+    --gold:#D4AF37; --gold-soft:#C9A227; --steel:#8FA6BF;
+    --shot-a:#1E2836; --shot-b:#131B27;
+    --shadow:0 1px 2px rgba(0,0,0,.45),0 8px 24px -12px rgba(0,0,0,.65);
+    --glass:linear-gradient(to bottom,color-mix(in srgb,var(--surface) 72%,transparent),
+                                      color-mix(in srgb,var(--surface) 55%,transparent));
+    --glass-edge:inset 0 1px 0 rgba(255,255,255,.14),inset 0 -1px 0 rgba(0,0,0,.35);
+    --glass-lift:0 12px 38px -10px rgba(0,0,0,.7),0 2px 10px -2px rgba(0,0,0,.45);
+    --glass-line:color-mix(in srgb,#fff 14%,transparent);
+    --shadow-lift:0 2px 6px rgba(0,0,0,.55),0 20px 44px -16px rgba(0,0,0,.8);
+    --bifrost:linear-gradient(90deg,#D4AF37,#D98A3C,#8FA6BF,#8B7BC4,#5A6FC0);
+    --weave:repeating-linear-gradient(45deg,transparent 0 9px,color-mix(in srgb,var(--gold) 9%,transparent) 9px 10px),
+            repeating-linear-gradient(-45deg,transparent 0 9px,color-mix(in srgb,var(--gold) 9%,transparent) 9px 10px);
+    --ambient:radial-gradient(1100px 700px at 12% -8%,color-mix(in srgb,var(--steel) 17%,transparent),transparent 62%),
+              radial-gradient(900px 620px at 100% 108%,color-mix(in srgb,var(--gold) 13%,transparent),transparent 60%);
+    --glass-solid:linear-gradient(to bottom,color-mix(in srgb,var(--surface) 88%,transparent),
+                                            color-mix(in srgb,var(--surface) 72%,transparent));
+    --sheen:color-mix(in srgb,#fff 15%,transparent);
+}
+/* ---- named themes, picked in the footer ----
+   Each one only swaps the palette; the glass, shadows and price-metal recipes
+   come from its tone (data-tone, light or dark) above. --vault is the always-dark
+   band of rare bottles on the home page; --on-gold the text on gold buttons. */
+:root{--vault:#0a0d15;--on-gold:#1b1406;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-tone="light"]){color-scheme:dark}}
+:root[data-tone="dark"]{color-scheme:dark}
+:root[data-tone="light"]{color-scheme:light}
+:root[data-theme="gruvbox"]{
+  --ground:#282828; --surface:#32302F; --sunk:#1D2021;
+  --ink:#EBDBB2; --ink-2:#D5C4A1; --ink-3:#A89984;
+  --line:#3C3836; --line-2:#504945;
+  --gold:#FABD2F; --gold-soft:#D79921; --steel:#83A598;
+  --shot-a:#3C3836; --shot-b:#282828; --vault:#1D2021;
+  --bifrost:linear-gradient(90deg,#FABD2F,#FE8019,#FB4934,#D3869B,#83A598,#8EC07C);
+}
+:root[data-theme="gruvbox-light"]{
+  --ground:#FBF1C7; --surface:#F9F5D7; --sunk:#EBDBB2;
+  --ink:#282828; --ink-2:#504945; --ink-3:#7C6F64;
+  --line:#E5D5AD; --line-2:#D5C4A1;
+  --gold:#B57614; --gold-soft:#D79921; --steel:#076678;
+  --shot-a:#FBF1C7; --shot-b:#EBDBB2; --vault:#282828;
+  --bifrost:linear-gradient(90deg,#D79921,#D65D0E,#CC241D,#B16286,#458588,#689D6A);
+}
+:root[data-theme="nord"]{
+  --ground:#2E3440; --surface:#3B4252; --sunk:#272C36;
+  --ink:#ECEFF4; --ink-2:#D8DEE9; --ink-3:#9AA4B6;
+  --line:#434C5E; --line-2:#4C566A;
+  --gold:#EBCB8B; --gold-soft:#D08770; --steel:#88C0D0;
+  --shot-a:#434C5E; --shot-b:#2E3440; --vault:#242933;
+  --bifrost:linear-gradient(90deg,#EBCB8B,#D08770,#BF616A,#B48EAD,#81A1C1,#88C0D0);
+}
+:root[data-theme="rose-pine-dawn"]{
+  --ground:#FAF4ED; --surface:#FFFAF3; --sunk:#F2E9E1;
+  --ink:#575279; --ink-2:#6E6A86; --ink-3:#8B86A0;
+  --line:#EBE2D8; --line-2:#DFDAD9;
+  --gold:#B4637A; --gold-soft:#D7827E; --steel:#286983;
+  --shot-a:#FFFAF3; --shot-b:#F2E9E1; --vault:#191724; --on-gold:#FFFAF3;
+  --bifrost:linear-gradient(90deg,#EA9D34,#D7827E,#B4637A,#907AA9,#56949F,#286983);
 }
 *,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
@@ -812,14 +877,19 @@ body.picker-open{overflow:hidden}
    themes: --rk-d bright for the dark theme, --rk-l deeper for the light one.
    Each figure is filled with a metal sheen made from its own colour. */
 .price[data-rank]{--rk:var(--rk-l);color:var(--rk)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .price[data-rank]{--rk:var(--rk-d)}}
+@media (prefers-color-scheme:dark){:root:not([data-tone="light"]) .price[data-rank]{--rk:var(--rk-d)}}
+:root[data-tone="dark"] .price[data-rank]{--rk:var(--rk-d)}
 @supports ((-webkit-background-clip:text) or (background-clip:text)) and (color:color-mix(in oklab,red 50%,blue)){
   .price[data-rank]{background-image:linear-gradient(180deg,color-mix(in oklab,var(--rk) 80%,#fff) 0%,var(--rk) 50%,color-mix(in oklab,var(--rk) 78%,#000) 100%);
     -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .price[data-rank]{
+  @media (prefers-color-scheme:dark){:root:not([data-tone="light"]) .price[data-rank]{
     /* on the dark ground: light-only metal, nothing darker than the colour itself */
     background-image:linear-gradient(180deg,color-mix(in oklab,var(--rk) 30%,#fff) 0%,color-mix(in oklab,var(--rk) 70%,#fff) 30%,var(--rk) 55%,var(--rk) 72%,color-mix(in oklab,var(--rk) 75%,#fff) 100%);
     filter:drop-shadow(0 0 5px color-mix(in oklab,var(--rk) 35%,transparent))}}
+  :root[data-tone="dark"] .price[data-rank]{
+    /* on the dark ground: light-only metal, nothing darker than the colour itself */
+    background-image:linear-gradient(180deg,color-mix(in oklab,var(--rk) 30%,#fff) 0%,color-mix(in oklab,var(--rk) 70%,#fff) 30%,var(--rk) 55%,var(--rk) 72%,color-mix(in oklab,var(--rk) 75%,#fff) 100%);
+    filter:drop-shadow(0 0 5px color-mix(in oklab,var(--rk) 35%,transparent))}
   /* diamond: iridescent, with a white glint that travels */
   .price[data-rank="diamond"]{background-image:linear-gradient(100deg,var(--rk) 0%,color-mix(in oklab,var(--rk) 45%,#c49bff) 28%,color-mix(in oklab,var(--rk) 20%,#fff) 44%,color-mix(in oklab,var(--rk) 45%,#7fd4ff) 60%,var(--rk) 80%,color-mix(in oklab,var(--rk) 60%,#fff) 100%) !important;
     background-size:250% 100%;animation:rkGlint 5s ease-in-out infinite alternate}
@@ -865,7 +935,8 @@ body.picker-open{overflow:hidden}
 .ask-rare::before{content:"";width:1rem;height:1rem;flex:none;background:currentColor;
   -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12a8 8 0 01-11.6 7.1L4 20l1-4.6A8 8 0 1121 12z'/%3E%3C/svg%3E") center/contain no-repeat;
           mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12a8 8 0 01-11.6 7.1L4 20l1-4.6A8 8 0 1121 12z'/%3E%3C/svg%3E") center/contain no-repeat}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .ask-rare{color:#c9a8ff}}
+@media (prefers-color-scheme:dark){:root:not([data-tone="light"]) .ask-rare{color:#c9a8ff}}
+:root[data-tone="dark"] .ask-rare{color:#c9a8ff}
 .dlg-txt .ask-rare{font-size:1.05rem}
 .dlg-note{margin:.35rem 0 0;font-size:.82rem;color:var(--ink-3)}
 
@@ -1114,7 +1185,8 @@ footer{margin-top:1rem}
   font:700 .76rem "Archivo",system-ui,sans-serif;color:var(--rk);background:none;border:1px solid transparent;cursor:pointer;
   padding:.36rem .75rem;border-radius:999px;font-variant-numeric:tabular-nums;
   transition:background .2s ease,color .2s ease,border-color .2s ease,transform .55s var(--sp-bouncy)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .brackets button{--rk:var(--rk-d,var(--ink-2))}}
+@media (prefers-color-scheme:dark){:root:not([data-tone="light"]) .brackets button{--rk:var(--rk-d,var(--ink-2))}}
+:root[data-tone="dark"] .brackets button{--rk:var(--rk-d,var(--ink-2))}
 .brackets button:first-child{color:var(--ink-2)}
 .brackets button i{font-style:normal;font-size:.66rem;font-weight:600;color:var(--ink-3)}
 .brackets button:active{transform:scale(.93);transition-duration:.09s}
@@ -1162,7 +1234,7 @@ main.home{padding-top:0}
 .btn b{font-size:.74rem;font-weight:700;padding:.1rem .45rem;border-radius:999px;background:color-mix(in srgb,currentColor 16%,transparent)}
 .btn:active{transform:scale(.96);transition-duration:.09s}
 @media (hover:hover){.btn:hover{border-color:var(--gold-soft);transform:translateY(-1px)}}
-.btn.gold{color:#1b1406;border-color:var(--gold);
+.btn.gold{color:var(--on-gold);border-color:var(--gold);
   background:linear-gradient(to bottom,color-mix(in srgb,var(--gold) 82%,#fff),var(--gold));
   box-shadow:var(--glass-edge),0 10px 26px -12px color-mix(in srgb,var(--gold) 80%,transparent)}
 
@@ -1232,3 +1304,23 @@ a.tile{text-decoration:none}
 .home-top .mark{width:28px;height:28px}
 /* home has no catalogue script to fade photos in, so they're simply shown */
 .rare-shot .shot img{opacity:1}
+
+/* ================= theme picker (footer) ================= */
+.theme-pick{display:flex;flex-direction:column;gap:.55rem}
+.theme-pick-h{margin:0;font-size:.66rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+.theme-pick-row{display:flex;flex-wrap:wrap;gap:.35rem}
+.theme-pick button{display:inline-flex;align-items:center;gap:.45rem;cursor:pointer;
+  font:600 .76rem "Archivo",system-ui,sans-serif;color:var(--ink-2);
+  padding:.32rem .7rem .32rem .36rem;border-radius:999px;border:1px solid var(--glass-line);
+  background:color-mix(in srgb,var(--surface) 55%,transparent);
+  transition:transform .55s var(--sp-bouncy),border-color .2s ease,color .2s ease,background .2s ease}
+.theme-pick button i{width:1.05rem;height:1.05rem;border-radius:50%;flex:none;
+  background:linear-gradient(135deg,var(--a) 0 50%,var(--b) 50% 100%);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ink) 22%,transparent),inset 0 0 0 3px var(--a)}
+.theme-pick button[aria-pressed="true"]{color:var(--ink);border-color:var(--gold);
+  background:color-mix(in srgb,var(--gold) 14%,var(--surface))}
+.theme-pick button:active{transform:scale(.94);transition-duration:.09s}
+@media (hover:hover){.theme-pick button:hover{border-color:var(--gold-soft);color:var(--ink)}}
+.theme-pick button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+/* the switch itself: one crossfade instead of every surface tweening on its own */
+::view-transition-old(root),::view-transition-new(root){animation-duration:.35s}

@@ -16,8 +16,44 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&amp;family=Archivo:wght@400;500;600;700&amp;display=swap">
-<link rel="stylesheet" href="style.css?v=4ae02dadcb">
-<link rel="stylesheet" href="home.css?v=4f2c1e62a9">
+<link rel="stylesheet" href="style.css?v=3842a7e473">
+<script>/* Odin's Share — colour theme. Inlined into <head> by build.ts so the saved
+   theme is on <html> before first paint (no flash of the wrong palette).
+   data-theme names the palette; data-tone (light|dark) picks the glass,
+   shadow and price-metal recipes in style.css. "auto" follows the device. */
+(function(){
+  var TONE={auto:"","light":"light","dark":"dark","gruvbox":"dark","gruvbox-light":"light","nord":"dark","rose-pine-dawn":"light"};
+  var KEY="odins-share-theme", d=document.documentElement, mq=matchMedia("(prefers-color-scheme: dark)"), cur="auto";
+  try{var saved=localStorage.getItem(KEY); if(saved&&TONE.hasOwnProperty(saved)) cur=saved;}catch(e){}
+
+  function apply(name){
+    cur=name;
+    if(name==="auto") d.removeAttribute("data-theme"); else d.setAttribute("data-theme",name);
+    d.setAttribute("data-tone",TONE[name]||(mq.matches?"dark":"light"));
+    var meta=document.querySelector('meta[name="theme-color"]'), g=getComputedStyle(d).getPropertyValue("--ground").trim();
+    if(meta&&g) meta.setAttribute("content",g);
+    var btns=document.querySelectorAll(".theme-pick button[data-theme]");
+    for(var i=0;i<btns.length;i++) btns[i].setAttribute("aria-pressed",String(btns[i].getAttribute("data-theme")===name));
+  }
+  apply(cur);
+  var onSys=function(){ if(cur==="auto") apply("auto"); };
+  if(mq.addEventListener) mq.addEventListener("change",onSys); else if(mq.addListener) mq.addListener(onSys);
+
+  document.addEventListener("DOMContentLoaded",function(){
+    apply(cur);
+    document.addEventListener("click",function(e){
+      var b=e.target.closest&&e.target.closest(".theme-pick button[data-theme]");
+      if(!b) return;
+      var name=b.getAttribute("data-theme");
+      try{localStorage.setItem(KEY,name);}catch(err){}
+      var reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if(document.startViewTransition&&!reduce) document.startViewTransition(function(){apply(name);});
+      else apply(name);
+    });
+  });
+})();
+</script>
+<link rel="stylesheet" href="home.css?v=a7a7c3d963">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"LiquorStore","name":"Odin's Share","url":"https://generalhannes.github.io/shopkeeper/","image":"https://generalhannes.github.io/shopkeeper/img/176.jpg"}</script>
 <script>document.documentElement.classList.add("js");
 /* old links like /#whisky pointed at the catalogue when it was the front page */
@@ -53,31 +89,26 @@ if(h&&known.indexOf(h)>-1)location.replace("catalogue.html#"+h);})(location.hash
 
   <section class="h-sec" id="shelves" aria-labelledby="shelves-h">
     <header class="h-head"><p class="h-kicker">01 · The shelves</p><h2 id="shelves-h">What's on the shelves</h2></header>
-    <div class="h-fams">
-      <a class="h-fam h-fam-lead" href="catalogue.html#whisky">
-        <img src="img/271.jpg" alt="" loading="lazy">
-        <span class="h-fam-txt"><b>Whisky</b><i>52 bottles</i></span>
-        <span class="h-fam-go" aria-hidden="true">→</span>
+    <div class="h-cabinet">
+      <a class="h-shelf-row" href="catalogue.html#whisky">
+        <span class="h-bottles"><img src="cut/121.webp" alt="Chivas Regal 25 Year Old Original Legend Blended Scotch Whisky (Gift Box Presentation) 700ml" width="157" height="440" loading="lazy" decoding="async" style="--s:0.98;--n:0"><img src="cut/74.webp" alt="Whyte &amp; Mackay, limited edition bottling Glasgow Supreme, Aged 22 years 700ml" width="147" height="440" loading="lazy" decoding="async" style="--s:0.98;--n:1"><img src="cut/118.webp" alt="Macallan Amber 750ml" width="125" height="440" loading="lazy" decoding="async" style="--s:1.00;--n:2"><img src="cut/81.webp" alt="CHIVAS REGAL Whisky 700g" width="149" height="440" loading="lazy" decoding="async" style="--s:1.00;--n:3"><img src="cut/86.webp" alt="Label 5 Classic Black 1l" width="155" height="410" loading="lazy" decoding="async" style="--s:1.10;--n:4"><img src="cut/154.webp" alt="Canadian Club Blended Canadian Whisky 40% alc./vol. 1L" width="137" height="440" loading="lazy" decoding="async" style="--s:1.10;--n:5"><img src="cut/53.webp" alt="Label 5 classic Black 2L" width="152" height="440" loading="lazy" decoding="async" style="--s:1.12;--n:6"><img src="cut/38.webp" alt="Chivas Regal, aged 12 years 1L" width="146" height="440" loading="lazy" decoding="async" style="--s:1.10;--n:7"><img src="cut/271.webp" alt="Jim Beam Kentucky Straight Bourbon 1L" width="132" height="440" loading="lazy" decoding="async" style="--s:1.10;--n:8"><img src="cut/92.webp" alt="Ballantine’s Finest 1l" width="165" height="431" loading="lazy" decoding="async" style="--s:1.10;--n:9"><img src="cut/163.webp" alt="Johnie Walker Platinum Label 18 years 750ml" width="154" height="440" loading="lazy" decoding="async" style="--s:1.00;--n:10"><img src="cut/97.webp" alt="jack daniel&#x27;s Jack Daniels Tennessee Whisky 0 7L ( 36 32 Eur / Liter) 700ml" width="147" height="440" loading="lazy" decoding="async" style="--s:0.98;--n:11"><img src="cut/236.webp" alt="GlenTurner Double Cask (Green) 70cl" width="145" height="440" loading="lazy" decoding="async" style="--s:0.98;--n:12"><img src="cut/91.webp" alt="Ballantine’s Christmas Reserve 700ml" width="174" height="440" loading="lazy" decoding="async" style="--s:0.98;--n:13"></span>
+        <span class="h-plank"><span class="h-plate"><b>Whisky</b><i>52 bottles</i></span></span>
       </a>
-      <a class="h-fam" href="catalogue.html#wine">
-        <img src="img/12.jpg" alt="" loading="lazy">
-        <span class="h-fam-txt"><b>Wine</b><i>49 bottles</i></span>
-        <span class="h-fam-go" aria-hidden="true">→</span>
+      <a class="h-shelf-row" href="catalogue.html#wine">
+        <span class="h-bottles"><img src="cut/106.webp" alt="BV Beaulieu Vineyard 750ml" width="119" height="440" loading="lazy" decoding="async" style="--s:1.00;--n:0"><img src="cut/137.webp" alt="Penfolds Max’s 750ml" width="179" height="440" loading="lazy" decoding="async" style="--s:1.00;--n:1"><img src="cut/241.webp" alt="B.Ph.de Rothschild MOUTON CADET Bordeaux 0.75l" width="167" height="440" loading="lazy" decoding="async" style="--s:1.00;--n:2"><img src="cut/266.webp" alt="Tomich Chardonnay 2017 750ml" width="137" height="440" loading="lazy" decoding="async" style="--s:1.00;--n:3"><img src="cut/21.webp" alt="Blowfish Shiraz 750ml" width="156" height="440" loading="lazy" decoding="async" style="--s:1.00;--n:4"><img src="cut/159.webp" alt="Penfolds Bin 8 750ml" width="145" height="440" loading="lazy" decoding="async" style="--s:1.00;--n:5"><img src="cut/157.webp" alt="Penfolds Bin 2 shiraz mourvèdre 75l" width="138" height="440" loading="lazy" decoding="async" style="--s:1.12;--n:6"><img src="cut/240.webp" alt="Baron Philippe de Rothschild Mouton Cadet Réserve 2016 75cl" width="148" height="440" loading="lazy" decoding="async" style="--s:1.00;--n:7"><img src="cut/267.webp" alt="Tomich Hill shiraz 750ml" width="155" height="440" loading="lazy" decoding="async" style="--s:1.00;--n:8"><img src="cut/158.webp" alt="Penfolds Bin 28 Shiraz 2023 750ml" width="137" height="440" loading="lazy" decoding="async" style="--s:1.00;--n:9"><img src="cut/98.webp" alt="Penfolds Koonunga hill 750ml" width="134" height="440" loading="lazy" decoding="async" style="--s:1.00;--n:10"><img src="cut/269.webp" alt="Santa Carolina Cabernet Sauvignon Reserva 75cl" width="129" height="440" loading="lazy" decoding="async" style="--s:1.00;--n:11"><img src="cut/101.webp" alt="RD Winery Napa Valley 66 750ml" width="121" height="440" loading="lazy" decoding="async" style="--s:1.00;--n:12"><img src="cut/270.webp" alt="El Emperador Chile Cardonnay 75cl" width="116" height="440" loading="lazy" decoding="async" style="--s:1.00;--n:13"></span>
+        <span class="h-plank"><span class="h-plate"><b>Wine</b><i>49 bottles</i></span></span>
       </a>
-      <a class="h-fam" href="catalogue.html#vodka">
-        <img src="img/179.jpg" alt="" loading="lazy">
-        <span class="h-fam-txt"><b>Vodka</b><i>19 bottles</i></span>
-        <span class="h-fam-go" aria-hidden="true">→</span>
+      <a class="h-shelf-row" href="catalogue.html#vodka">
+        <span class="h-bottles"><img src="cut/147.webp" alt="Stolichnaya The origional 375ml" width="221" height="440" loading="lazy" decoding="async" style="--s:0.79;--n:0"><img src="cut/246.webp" alt="Baroso Happy day Vodka 70cl" width="118" height="440" loading="lazy" decoding="async" style="--s:0.98;--n:1"><img src="cut/172.webp" alt="Absolut Vodka 700ml" width="150" height="396" loading="lazy" decoding="async" style="--s:0.98;--n:2"><img src="cut/103.webp" alt="Smirnoff Green Apple 70 Proof (Vodka Infused With Natural Flavors) 750 mL 750ml" width="187" height="440" loading="lazy" decoding="async" style="--s:1.00;--n:3"><img src="cut/175.webp" alt="Absolut Vodka Mango 1l" width="150" height="440" loading="lazy" decoding="async" style="--s:1.10;--n:4"><img src="cut/176.webp" alt="Absolut Kurant 1L" width="144" height="440" loading="lazy" decoding="async" style="--s:1.10;--n:5"><img src="cut/173.webp" alt="Absolut Pears 1L" width="144" height="440" loading="lazy" decoding="async" style="--s:1.10;--n:6"><img src="cut/174.webp" alt="ABSOLUT MANDRIN Mandarin/Orange 1l" width="165" height="440" loading="lazy" decoding="async" style="--s:1.10;--n:7"><img src="cut/47.webp" alt="Karavan Pure grain 700ml" width="135" height="440" loading="lazy" decoding="async" style="--s:0.98;--n:8"><img src="cut/244.webp" alt="Priskaia Triple Distilled Vodka 70cl" width="119" height="440" loading="lazy" decoding="async" style="--s:0.98;--n:9"><img src="cut/264.webp" alt="Belvedere Organic vodka 70cl" width="209" height="440" loading="lazy" decoding="async" style="--s:0.98;--n:10"></span>
+        <span class="h-plank"><span class="h-plate"><b>Vodka</b><i>19 bottles</i></span></span>
       </a>
-      <a class="h-fam" href="catalogue.html#liqueur">
-        <img src="img/216.jpg" alt="" loading="lazy">
-        <span class="h-fam-txt"><b>Liqueur</b><i>17 bottles</i></span>
-        <span class="h-fam-go" aria-hidden="true">→</span>
+      <a class="h-shelf-row" href="catalogue.html#liqueur">
+        <span class="h-bottles"><img src="cut/181.webp" alt="Jägermeister klein 20ml" width="188" height="440" loading="lazy" decoding="async" style="--s:0.50;--n:0"><img src="cut/232.webp" alt="Du Bouchett Amaretto/Almond 700ml" width="133" height="440" loading="lazy" decoding="async" style="--s:0.98;--n:1"><img src="cut/128.webp" alt="Cointreau Куантро Ликер крепкий 1l" width="193" height="440" loading="lazy" decoding="async" style="--s:1.10;--n:2"><img src="cut/217.webp" alt="Du Bouchett Blue Curacao/Orange 1L" width="133" height="440" loading="lazy" decoding="async" style="--s:1.10;--n:3"><img src="cut/64.webp" alt="Baileys The origional 1l" width="141" height="440" loading="lazy" decoding="async" style="--s:1.10;--n:4"><img src="cut/46.webp" alt="Kahlua The origional 1L" width="138" height="440" loading="lazy" decoding="async" style="--s:1.10;--n:5"><img src="cut/216.webp" alt="Jägermeister Origional 1L" width="177" height="440" loading="lazy" decoding="async" style="--s:1.10;--n:6"><img src="cut/238.webp" alt="Campari Milano Bitter 1l" width="224" height="440" loading="lazy" decoding="async" style="--s:1.10;--n:7"><img src="cut/145.webp" alt="Jägermeister Selected 56 botanicals 700ml" width="202" height="440" loading="lazy" decoding="async" style="--s:0.98;--n:8"></span>
+        <span class="h-plank"><span class="h-plate"><b>Liqueur</b><i>17 bottles</i></span></span>
       </a>
-      <a class="h-fam" href="catalogue.html#rum">
-        <img src="img/251.jpg" alt="" loading="lazy">
-        <span class="h-fam-txt"><b>Rum</b><i>12 bottles</i></span>
-        <span class="h-fam-go" aria-hidden="true">→</span>
+      <a class="h-shelf-row" href="catalogue.html#rum">
+        <span class="h-bottles"><img src="cut/219.webp" alt="Negrita Dry and light barbinet 750ml" width="126" height="440" loading="lazy" decoding="async" style="--s:1.00;--n:0"><img src="cut/250.webp" alt="Admiral Nelson&#x27;s Spiced Rum 1 L 1l" width="223" height="440" loading="lazy" decoding="async" style="--s:1.10;--n:1"><img src="cut/249.webp" alt="Admiral Nelson’s Coconut 1L" width="126" height="440" loading="lazy" decoding="async" style="--s:1.10;--n:2"><img src="cut/115.webp" alt="Bardinet Rhum Negrita Original Caribbean Rum (Dark Rum) 1L" width="133" height="440" loading="lazy" decoding="async" style="--s:1.10;--n:3"><img src="cut/143.webp" alt="Captain Morgan Jamaica Rum 1L" width="149" height="440" loading="lazy" decoding="async" style="--s:1.10;--n:4"><img src="cut/252.webp" alt="Newport Rum 1L" width="138" height="440" loading="lazy" decoding="async" style="--s:1.10;--n:5"><img src="cut/248.webp" alt="Admiral Nelson’s Vanilla caribbean rum 1L" width="129" height="440" loading="lazy" decoding="async" style="--s:1.10;--n:6"><img src="cut/253.webp" alt="Admiral Nelson&#x27;s Dark Premium Rum 1L" width="212" height="440" loading="lazy" decoding="async" style="--s:1.10;--n:7"><img src="cut/77.webp" alt="Havana Club (3) Full Size Cuban Rum Empty Glorias De Cuba 7 Year 3 Year oro 750ml" width="127" height="440" loading="lazy" decoding="async" style="--s:1.00;--n:8"><img src="cut/251.webp" alt="Baroso Gold rum 750ml" width="123" height="440" loading="lazy" decoding="async" style="--s:1.00;--n:9"></span>
+        <span class="h-plank"><span class="h-plate"><b>Rum</b><i>12 bottles</i></span></span>
       </a>
     </div>
     <div class="h-more"><a class="h-shelf" href="catalogue.html#rare"><span class="badge b-amethyst">Rare</span><i>5</i></a><a class="h-shelf" href="catalogue.html#discontinued"><span class="badge b-gunmetal">Discontinued</span><i>1</i></a><a href="catalogue.html#cognac-brandy">Cognac &amp; Brandy <i>11</i></a><a href="catalogue.html#gin">Gin <i>5</i></a><a href="catalogue.html#tequila-mezcal">Tequila &amp; Mezcal <i>4</i></a><a href="catalogue.html#aperitif-vermouth">Aperitif &amp; Vermouth <i>4</i></a><a href="catalogue.html#baijiu-chinese-spirits">Baijiu &amp; Chinese Spirits <i>4</i></a><a href="catalogue.html#medicinal-herbal">Medicinal &amp; Herbal <i>3</i></a><a href="catalogue.html#champagne-sparkling">Champagne &amp; Sparkling <i>3</i></a><a href="catalogue.html#sake-soju">Sake &amp; Soju <i>1</i></a><a href="catalogue.html#pre-mixed-cocktails">Pre-Mixed Cocktails <i>2</i></a><a href="catalogue.html#non-alcoholic">Non-Alcoholic <i>1</i></a><a href="catalogue.html#other-spirits">Other Spirits <i>2</i></a></div>
@@ -147,9 +178,15 @@ if(h&&known.indexOf(h)>-1)location.replace("catalogue.html#"+h);})(location.hash
   <div class="foot">
     <div class="foot-brand"><span class="mark" aria-hidden="true"></span><p class="foot-tag">From Wine to Whiskey and More</p></div>
     <nav class="foot-nav" aria-label="Pages"><a href="./">Home</a><a href="catalogue.html">Catalogue</a><a href="./#visit">Visit us</a></nav>
+    <div class="theme-pick" role="group" aria-label="Colour theme">
+      <p class="theme-pick-h">Theme</p>
+      <div class="theme-pick-row">
+        <button type="button" data-theme="auto" aria-pressed="false"><i style="--a:#F5F7FA;--b:#0D131E" aria-hidden="true"></i>Auto</button><button type="button" data-theme="light" aria-pressed="false"><i style="--a:#F5F7FA;--b:#8A6D10" aria-hidden="true"></i>Light</button><button type="button" data-theme="dark" aria-pressed="false"><i style="--a:#0D131E;--b:#D4AF37" aria-hidden="true"></i>Dark</button><button type="button" data-theme="gruvbox" aria-pressed="false"><i style="--a:#282828;--b:#FABD2F" aria-hidden="true"></i>Gruvbox</button><button type="button" data-theme="gruvbox-light" aria-pressed="false"><i style="--a:#FBF1C7;--b:#B57614" aria-hidden="true"></i>Gruvbox Light</button><button type="button" data-theme="nord" aria-pressed="false"><i style="--a:#2E3440;--b:#88C0D0" aria-hidden="true"></i>Nord</button><button type="button" data-theme="rose-pine-dawn" aria-pressed="false"><i style="--a:#FAF4ED;--b:#B4637A" aria-hidden="true"></i>Rosé Pine Dawn</button>
+      </div>
+    </div>
     <div class="foot-notes">
       <p>Prices are retail and may change. Rare bottles are priced in store — just ask.</p>
-      <p class="fine">Stock as recorded in the shop's inventory system · updated 30 September 2026</p>
+      <p class="fine">Stock as recorded in the shop's inventory system · updated 1 October 2026</p>
     </div>
   </div>
   <p class="foot-legal fine">Please drink responsibly. Sale of alcohol is restricted to persons of legal drinking age.</p>
