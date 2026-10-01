@@ -103,12 +103,13 @@ body.h.scrolled .h-top{padding-top:.6rem;padding-bottom:.6rem;
 }
 /* ---------- shelves: a wooden display cabinet ----------
    One shelf per big family. The bottles are cutouts (build.ts → cutout.swift)
-   standing on the plank, sized by volume, tallest in the middle; extra bottles
+   standing on the plank at true relative size (height_cm, or estimated from the
+   volume), tallest in the middle; extra bottles
    wrap onto a hidden second line, so a narrow screen simply shows fewer. The
    plank's near edge overlaps their feet, which hides photos cut off at the base.
    Oak in light themes, walnut in dark ones. */
 .h-cabinet{--wood-hi:#e2bd86;--wood:#b9844d;--wood-lo:#7d5329;--back:#5b3b1f;--lamp:rgba(255,214,150,.30);
-  --bh:clamp(7.2rem,15vw,10.5rem);
+  --bh:clamp(8.6rem,18vw,12.6rem);   /* the height of a SHELF_MAX_CM (36cm) bottle; --s scales each one */
   --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='80'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.004 0.32' numOctaves='3' seed='11'/%3E%3CfeColorMatrix values='0 0 0 0 0.2  0 0 0 0 0.1  0 0 0 0 0.03  1.3 0 0 0 -0.5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
   --grain-soft:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='80'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.003 0.18' numOctaves='3' seed='11'/%3E%3CfeColorMatrix values='0 0 0 0 0.2  0 0 0 0 0.1  0 0 0 0 0.03  0.55 0 0 0 -0.22'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
   padding:clamp(.55rem,1.2vw,.85rem);border-radius:18px;
@@ -126,7 +127,7 @@ body.h.scrolled .h-top{padding-top:.6rem;padding-bottom:.6rem;
     var(--grain-soft),var(--back)}
 .h-shelf-row + .h-shelf-row{margin-top:0}
 .h-bottles{display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-end;align-content:flex-start;
-  gap:0 clamp(.35rem,1.4vw,1rem);height:calc(var(--bh) * 1.12 + .5rem);padding:.5rem clamp(.6rem,2vw,1.4rem) 0;overflow:hidden}
+  gap:0 clamp(.35rem,1.4vw,1rem);height:calc(var(--bh) * var(--rowmax,1) + .5rem);padding:.5rem clamp(.6rem,2vw,1.4rem) 0;overflow:hidden}
 .h-bottles img{height:calc(var(--bh) * var(--s,1));width:auto;max-width:42%;object-fit:contain;flex:none;
   filter:drop-shadow(0 6px 5px rgba(0,0,0,.5)) drop-shadow(0 0 1px rgba(0,0,0,.4));
   transform-origin:50% 100%;transition:transform .55s var(--sp-bouncy) calc(var(--n,0) * 28ms)}
