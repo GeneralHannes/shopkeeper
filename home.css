@@ -278,3 +278,19 @@ body.h.scrolled .h-top::before{display:none}
 @media (min-width:761px) and (max-width:1000px){
   .h-fam:last-child:nth-child(even){grid-column:span 2}
 }
+
+/* ---------- motion pass: the home page reveals as it scrolls ----------
+   CSS scroll-driven animations — run off the main thread, no script, no
+   scroll listener. Browsers without animation-timeline simply show
+   everything in place. `backwards` so nothing is pinned once revealed. */
+@keyframes hReveal{from{opacity:0;transform:translateY(34px)}}
+@keyframes hRevealX{from{opacity:0;transform:translateX(40px)}}
+@keyframes hPlate{from{opacity:0;transform:translateX(-50%) translateY(-8px) scale(.9)}}
+@supports (animation-timeline:view()){
+  @media (prefers-reduced-motion:no-preference){
+    .h-head,.h-shelf-row,.h-more,.h-vinfo,.h-map,body.h footer .foot{
+      animation:hReveal linear backwards;animation-timeline:view();animation-range:entry 0% entry 80%}
+    .h-vcard{animation:hRevealX linear backwards;animation-timeline:view(inline);animation-range:entry 0% entry 90%}
+    .h-plate{animation:hPlate linear backwards;animation-timeline:view();animation-range:entry 20% entry 100%}
+  }
+}

@@ -1488,3 +1488,64 @@ body.cat{--glass:linear-gradient(to bottom,color-mix(in srgb,var(--surface) 78%,
 body.cat::before{opacity:.5}
 body.cat .top{background:linear-gradient(to bottom,color-mix(in srgb,var(--wall) 88%,transparent),
                                          color-mix(in srgb,var(--wall) 74%,transparent))}
+
+/* ================= motion pass =================
+   Transform + opacity only; `backwards` fills so hover and press keep working
+   after an entrance; everything off under reduced motion. */
+@keyframes tagSwing{0%{transform:rotate(0)}25%{transform:rotate(2.2deg)}55%{transform:rotate(-1.4deg)}80%{transform:rotate(.6deg)}100%{transform:rotate(0)}}
+@keyframes riseSoft{from{opacity:0;transform:translateY(12px)}}
+@keyframes slideFromL{from{opacity:0;transform:translateX(-18px)}}
+@keyframes slideFromR{from{opacity:0;transform:translateX(22px)}}
+/* the paper tag swings on its pin when the cubby is touched */
+.info{transform-origin:50% -.5rem}
+@media (hover:hover){.card:hover .info{animation:tagSwing .9s var(--sp-smooth)}}
+.card.pressed .info{animation:tagSwing .7s var(--sp-smooth)}
+/* shelf tiles deal in */
+.tile{animation:riseSoft .5s var(--sp-smooth) backwards}
+.tile:nth-child(1){animation-delay:0ms}
+  .tile:nth-child(2){animation-delay:40ms}
+  .tile:nth-child(3){animation-delay:80ms}
+  .tile:nth-child(4){animation-delay:120ms}
+  .tile:nth-child(5){animation-delay:160ms}
+  .tile:nth-child(6){animation-delay:200ms}
+  .tile:nth-child(7){animation-delay:240ms}
+  .tile:nth-child(8){animation-delay:280ms}
+  .tile:nth-child(9){animation-delay:320ms}
+  .tile:nth-child(10){animation-delay:360ms}
+  .tile:nth-child(11){animation-delay:400ms}
+  .tile:nth-child(12){animation-delay:440ms}
+  .tile:nth-child(13){animation-delay:480ms}
+  .tile:nth-child(14){animation-delay:520ms}
+  .tile:nth-child(n+15){animation-delay:560ms}
+/* the detail box: print slides in from its side, the label from the other */
+#dlg[open] .dlg-shot img{animation:slideFromL .5s var(--sp-smooth) backwards}
+#dlg[open] .dlg-txt{animation:slideFromR .5s var(--sp-smooth) .05s backwards}
+#dlg[open] .rows div{animation:riseSoft .4s var(--sp-smooth) backwards}
+#dlg[open] .rows div:nth-child(1){animation-delay:150ms}
+  #dlg[open] .rows div:nth-child(2){animation-delay:195ms}
+  #dlg[open] .rows div:nth-child(3){animation-delay:240ms}
+  #dlg[open] .rows div:nth-child(4){animation-delay:285ms}
+  #dlg[open] .rows div:nth-child(5){animation-delay:330ms}
+  #dlg[open] .rows div:nth-child(6){animation-delay:375ms}
+  #dlg[open] .rows div:nth-child(7){animation-delay:420ms}
+  #dlg[open] .rows div:nth-child(8){animation-delay:465ms}
+  #dlg[open] .rows div:nth-child(n+9){animation-delay:510ms}
+#dlg .dlg-nav button{transition:transform .5s var(--sp-bouncy),opacity .18s ease}
+@media (hover:hover){#dlg .dlg-nav button:not([disabled]):hover,#dlg .x:hover{transform:rotate(-14deg) scale(1.06)}}
+/* theme swatches turn a little on hover */
+.theme-pick button i{transition:transform .5s var(--sp-bouncy)}
+@media (hover:hover){.theme-pick button:hover i{transform:rotate(180deg)}}
+.theme-pick button{animation:riseSoft .4s var(--sp-smooth) backwards}
+.theme-pick button:nth-child(1){animation-delay:0ms}
+  .theme-pick button:nth-child(2){animation-delay:35ms}
+  .theme-pick button:nth-child(3){animation-delay:70ms}
+  .theme-pick button:nth-child(4){animation-delay:105ms}
+  .theme-pick button:nth-child(5){animation-delay:140ms}
+  .theme-pick button:nth-child(6){animation-delay:175ms}
+  .theme-pick button:nth-child(7){animation-delay:210ms}
+  .theme-pick button:nth-child(8){animation-delay:245ms}
+  .theme-pick button:nth-child(n+9){animation-delay:280ms}
+@media (prefers-reduced-motion:reduce){
+  .card:hover .info,.card.pressed .info,.tile,#dlg[open] .dlg-shot img,#dlg[open] .dlg-txt,#dlg[open] .rows div,.theme-pick button{animation:none}
+  .theme-pick button i,#dlg .dlg-nav button{transition:none}
+}
