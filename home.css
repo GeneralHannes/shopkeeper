@@ -129,6 +129,19 @@ body.h.scrolled .h-top{padding-top:.6rem;padding-bottom:.6rem;
 .h-bottles img{height:calc(var(--bh) * var(--s,1));width:auto;max-width:42%;object-fit:contain;flex:none;
   filter:drop-shadow(0 6px 5px rgba(0,0,0,.5)) drop-shadow(0 0 1px rgba(0,0,0,.4));
   transform-origin:50% 100%;transition:transform .55s var(--sp-bouncy) calc(var(--n,0) * 28ms)}
+/* photo shelves (cutouts parked): ordinary item photos in framed mats, standing on the plank.
+   One visible line; whatever doesn't fit wraps out of sight, so a narrow screen just shows fewer whole tiles. */
+.h-photos{--ph:clamp(9.5rem,17vw,13rem)}
+.h-pics{display:flex;flex-wrap:wrap;justify-content:center;align-content:flex-start;gap:clamp(.5rem,1.4vw,1rem);
+  height:calc(var(--ph) + 1.5rem);padding:.4rem clamp(.6rem,2vw,1.4rem) 1rem;overflow:hidden}   /* extra tiles wrap onto a hidden 2nd line: whole tiles only */
+.h-pic{flex:0 0 auto;display:block;height:var(--ph);aspect-ratio:3/4;padding:5px;border-radius:12px;
+  background:linear-gradient(145deg,var(--shot-a),var(--shot-b));
+  box-shadow:0 10px 14px -8px rgba(0,0,0,.75),0 0 0 1px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.35);
+  transition:transform .45s var(--sp-bouncy,cubic-bezier(.34,1.56,.64,1))}
+.h-pic img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 40%;border-radius:8px}
+.h-shelf-row:focus-visible .h-pic,.h-shelf-row:active .h-pic{transform:translateY(-2px)}
+@media (hover:hover){.h-shelf-row:hover .h-pic{transform:translateY(-6px)}.h-shelf-row:hover .h-pic:nth-child(even){transition-delay:40ms}}
+@media (prefers-reduced-motion:reduce){.h-pic{transition:none}}
 /* a stacked shelf: one pre-composed image (build.ts stackShelf) holding every
    bottle of the family in rows. Sized off --bh so it scales with the cabinet;
    wider than a phone, it stays full size and shows the shelf's middle. One
