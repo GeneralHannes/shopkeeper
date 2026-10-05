@@ -1471,21 +1471,22 @@ a.tile{text-decoration:none}
    the theme's own surface down from :root, since body cannot mix --surface
    with itself. */
 :root{--surface-base:var(--surface)}
-body.cat{--wall:color-mix(in srgb,var(--wood-hi) 58%,var(--ground));
-  --surface:color-mix(in srgb,var(--wood-hi) 22%,var(--surface-base));
-  --ink-2:color-mix(in srgb,var(--ink) 78%,var(--wood));--ink-3:color-mix(in srgb,var(--ink) 62%,var(--wood));
-  background:var(--grain-wall),var(--wall);background-blend-mode:multiply}
+/* The wall follows the site's own palette (cool ground, gold accents) — the same navy as the home page —
+   with only a whisper of wood so the oak cabinet doesn't sit on a stranger's wall. It used to mix in 34–58%
+   wood, which turned the whole page brown against the home page's navy. No grain on the wall for the same
+   reason: the wood belongs to the cabinet. */
+body.cat{--wall:color-mix(in srgb,var(--wood-hi) 6%,var(--ground));
+  --surface:color-mix(in srgb,var(--wood-hi) 4%,var(--surface-base));
+  background:var(--wall)}
 @media (prefers-color-scheme:dark){:root:not([data-tone="light"]) body.cat{
-  --wall:color-mix(in srgb,var(--wood) 34%,var(--ground));--surface:color-mix(in srgb,var(--wood) 42%,var(--surface-base));
-  --ink-2:color-mix(in srgb,var(--ink) 80%,var(--wood-hi));--ink-3:color-mix(in srgb,var(--ink) 62%,var(--wood-hi))}}
+  --wall:color-mix(in srgb,var(--wood) 5%,var(--ground));--surface:color-mix(in srgb,var(--wood) 5%,var(--surface-base))}}
 :root[data-tone="dark"] body.cat{
-  --wall:color-mix(in srgb,var(--wood) 34%,var(--ground));--surface:color-mix(in srgb,var(--wood) 42%,var(--surface-base));
-  --ink-2:color-mix(in srgb,var(--ink) 80%,var(--wood-hi));--ink-3:color-mix(in srgb,var(--ink) 62%,var(--wood-hi))}
+  --wall:color-mix(in srgb,var(--wood) 5%,var(--ground));--surface:color-mix(in srgb,var(--wood) 5%,var(--surface-base))}
 /* the glass recipes are resolved at :root, so they are restated here to pick up
    the wood-tinted --surface (search, shelf tiles, price brackets, islands) */
 body.cat{--glass:linear-gradient(to bottom,color-mix(in srgb,var(--surface) 78%,transparent),color-mix(in srgb,var(--surface) 62%,transparent));
   --glass-solid:linear-gradient(to bottom,color-mix(in srgb,var(--surface) 94%,transparent),color-mix(in srgb,var(--surface) 84%,transparent))}
-body.cat::before{opacity:.5}
+body.cat::before{opacity:1}   /* the ambient steel/gold wash, at full strength like the home page */
 body.cat .top{background:linear-gradient(to bottom,color-mix(in srgb,var(--wall) 88%,transparent),
                                          color-mix(in srgb,var(--wall) 74%,transparent))}
 

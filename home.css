@@ -338,3 +338,5 @@ body.h.scrolled .h-top::before{display:none}
     .h-plate{animation:hPlate linear backwards;animation-timeline:view();animation-range:entry 20% entry 100%}
   }
 }
+/* the map embed is always a light Google map: in the dark palette, dim and invert it so the Visit block isn't a white slab */
+:root[data-tone="dark"] .h-map{filter:invert(.9) hue-rotate(180deg) saturate(.55) brightness(.92) contrast(.95)}
