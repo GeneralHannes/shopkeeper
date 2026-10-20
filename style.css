@@ -1565,3 +1565,10 @@ body.cat .top{background:linear-gradient(to bottom,color-mix(in srgb,var(--wall)
 .pin-btn:hover{background:color-mix(in srgb,var(--gold) 18%,transparent)}
 .pin-btn:active{transform:scale(.94);transition-duration:.08s}
 @media (max-width:520px){.pin-btn span{display:none}.pin-btn{padding:.5rem}}
+
+/* ---- home-screen app (Add to Home Screen, status bar "black-translucent"): the page runs under the status bar.
+   Every env() below is 0 in an ordinary browser tab, so none of this changes anything there. The body is pushed
+   below the strip, fixed/sticky bars sit just under it, and a veil in the page colour hides what scrolls past. ---- */
+body{padding-top:env(safe-area-inset-top)}
+.top{top:env(safe-area-inset-top)}
+body::after{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top);background:var(--ground);z-index:9999;pointer-events:none}
