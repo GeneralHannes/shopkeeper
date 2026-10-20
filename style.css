@@ -193,6 +193,11 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;ba
   background:var(--surface);border:1px solid var(--line-2);border-radius:9px}
 #q::placeholder{color:var(--ink-3)}
 #q:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 20%,transparent)}
+.search .scan-btn{position:absolute;right:.3rem;top:50%;translate:0 -50%;width:2.1rem;height:2.1rem;border:0;border-radius:50%;background:transparent;color:var(--gold);display:grid;place-items:center;cursor:pointer;padding:0;transition:transform .3s cubic-bezier(.34,1.45,.64,1),background .2s}
+.search .scan-btn:hover{background:color-mix(in srgb,var(--gold) 14%,transparent)}
+.search .scan-btn:active{transform:scale(.86)}
+.search .scan-btn svg{position:static;width:18px;height:18px;stroke:currentColor}
+.search:has(.scan-btn) #q{padding-right:2.7rem}
 #sort{font:inherit;font-size:.82rem;color:var(--ink-2);background:var(--surface);border:1px solid var(--line-2);border-radius:9px;padding:.62rem .7rem}
 
 .chips{display:flex;gap:.4rem;overflow-x:auto;padding:0 clamp(1rem,4vw,2.5rem) .8rem;max-width:1600px;margin:0 auto;scrollbar-width:none}

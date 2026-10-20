@@ -146,6 +146,26 @@
   });
   sortEl.addEventListener("change", function () { sortBy(sortEl.value); settle(); });
 
+  // ---- barcode scan: the camera engine loads on the first tap only; a read code goes through the search box ----
+  var scanBtn = document.getElementById("scan");
+  if (scanBtn) {
+    if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) scanBtn.hidden = true;
+    scanBtn.addEventListener("click", function () {
+      function go() {
+        window.ODKScan.open(function (code) {
+          qEl.value = code.replace(/^0+(?=\d)/, "");   // a UPC-A read as EAN-13 gains a leading 0; cards hold both forms
+          qEl.dispatchEvent(new Event("input"));
+          qEl.blur();
+        });
+      }
+      if (window.ODKScan) return go();
+      var s = document.createElement("script");
+      s.src = scanBtn.dataset.src;
+      s.onload = go;
+      document.head.appendChild(s);
+    });
+  }
+
   chips.forEach(function (ch) {
     ch.addEventListener("click", function () {
       chips.forEach(function (o) { o.classList.remove("on"); o.setAttribute("aria-selected", "false"); });
